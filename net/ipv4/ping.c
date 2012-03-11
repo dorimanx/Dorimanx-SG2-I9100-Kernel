@@ -156,7 +156,7 @@ static struct sock *ping_v4_lookup(struct net *net, __be32 saddr, __be32 daddr,
 	struct hlist_nulls_node *hnode;
 
 	pr_debug("try to find: num = %d, daddr = %pI4, dif = %d\n",
-			 (int)ident, &daddr, dif);
+		 (int)ident, &daddr, dif);
 	read_lock_bh(&ping_table.lock);
 
 	ping_portaddr_for_each_entry(sk, hnode, hslot) {
@@ -235,7 +235,7 @@ static int ping_init_sock(struct sock *sk)
 static void ping_close(struct sock *sk, long timeout)
 {
 	pr_debug("ping_close(sk=%p,sk->num=%u)\n",
-		inet_sk(sk), inet_sk(sk)->inet_num);
+		 inet_sk(sk), inet_sk(sk)->inet_num);
 	pr_debug("isk->refcnt = %d\n", sk->sk_refcnt.counter);
 
 	sk_common_release(sk);
@@ -258,7 +258,7 @@ static int ping_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 		return -EINVAL;
 
 	pr_debug("ping_v4_bind(sk=%p,sa_addr=%08x,sa_port=%d)\n",
-		sk, addr->sin_addr.s_addr, ntohs(addr->sin_port));
+		 sk, addr->sin_addr.s_addr, ntohs(addr->sin_port));
 
 	chk_addr_ret = inet_addr_type(sock_net(sk), addr->sin_addr.s_addr);
 	if (addr->sin_addr.s_addr == htonl(INADDR_ANY))
@@ -286,9 +286,9 @@ static int ping_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	}
 
 	pr_debug("after bind(): num = %d, daddr = %pI4, dif = %d\n",
-		(int)isk->inet_num,
-		&isk->inet_rcv_saddr,
-		(int)sk->sk_bound_dev_if);
+		 (int)isk->inet_num,
+		 &isk->inet_rcv_saddr,
+		 (int)sk->sk_bound_dev_if);
 
 	err = 0;
 	if (isk->inet_rcv_saddr)
@@ -341,7 +341,7 @@ void ping_err(struct sk_buff *skb, u32 info)
 		return;
 
 	pr_debug("ping_err(type=%04x,code=%04x,id=%04x,seq=%04x)\n", type,
-		code, ntohs(icmph->un.echo.id), ntohs(icmph->un.echo.sequence));
+		 code, ntohs(icmph->un.echo.id), ntohs(icmph->un.echo.sequence));
 
 	sk = ping_v4_lookup(net, iph->daddr, iph->saddr,
 			    ntohs(icmph->un.echo.id), skb->dev->ifindex);
@@ -683,7 +683,7 @@ out:
 static int ping_queue_rcv_skb(struct sock *sk, struct sk_buff *skb)
 {
 	pr_debug("ping_queue_rcv_skb(sk=%p,sk->num=%d,skb=%p)\n",
-		inet_sk(sk), inet_sk(sk)->inet_num, skb);
+		 inet_sk(sk), inet_sk(sk)->inet_num, skb);
 	if (sock_queue_rcv_skb(sk, skb) < 0) {
 		ICMP_INC_STATS_BH(sock_net(sk), ICMP_MIB_INERRORS);
 		kfree_skb(skb);
@@ -710,7 +710,7 @@ void ping_rcv(struct sk_buff *skb)
 	/* We assume the packet has already been checked by icmp_rcv */
 
 	pr_debug("ping_rcv(skb=%p,id=%04x,seq=%04x)\n",
-		skb, ntohs(icmph->un.echo.id), ntohs(icmph->un.echo.sequence));
+		 skb, ntohs(icmph->un.echo.id), ntohs(icmph->un.echo.sequence));
 
 	/* Push ICMP header back */
 	skb_push(skb, skb->data - (u8 *)icmph);
