@@ -62,6 +62,8 @@
  *		2 of the License, or (at your option) any later version.
  */
 
+#define pr_fmt(fmt) "IPv4: " fmt
+
 #include <linux/module.h>
 #include <asm/uaccess.h>
 #include <linux/bitops.h>
@@ -1293,7 +1295,7 @@ restart:
 			}
 
 			if (net_ratelimit())
-				pr_warn("ipv4: Neighbour table overflow\n");
+				pr_warn("Neighbour table overflow\n");
 			rt_drop(rt);
 			return ERR_PTR(-ENOBUFS);
 		}
