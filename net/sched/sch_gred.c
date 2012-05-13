@@ -252,10 +252,8 @@ static struct sk_buff *gred_dequeue(struct Qdisc *sch)
 		u16 dp = tc_index_to_dp(skb);
 
 		if (dp >= t->DPs || (q = t->tab[dp]) == NULL) {
-			if (net_ratelimit())
-				pr_warning("GRED: Unable to relocate VQ 0x%x "
-					   "after dequeue, screwing up "
-					   "backlog.\n", tc_index_to_dp(skb));
+			net_warn_ratelimited("GRED: Unable to relocate VQ 0x%x after dequeue, screwing up backlog\n",
+					     tc_index_to_dp(skb));
 		} else {
 			q->backlog -= qdisc_pkt_len(skb);
 
@@ -284,10 +282,8 @@ static unsigned int gred_drop(struct Qdisc *sch)
 		u16 dp = tc_index_to_dp(skb);
 
 		if (dp >= t->DPs || (q = t->tab[dp]) == NULL) {
-			if (net_ratelimit())
-				pr_warning("GRED: Unable to relocate VQ 0x%x "
-					   "while dropping, screwing up "
-					   "backlog.\n", tc_index_to_dp(skb));
+			net_warn_ratelimited("GRED: Unable to relocate VQ 0x%x while dropping, screwing up backlog\n",
+					     tc_index_to_dp(skb));
 		} else {
 			q->backlog -= len;
 			q->stats.other++;
