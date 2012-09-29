@@ -258,7 +258,7 @@ struct s3cfb_user_chroma {
 #define S3CFB_SET_WIN_MEM_START		_IOW('F', 312, u32)
 #endif
 #define S3CFB_SET_ALPHA_MODE		_IOW('F', 313, unsigned int)
-#define S3CFB_WAIT_FOR_VSYNC		_IOR('F', 311, u64) // New IOCTL that waits for vsync and returns a timestamp
+#define S3CFB_WAIT_FOR_VSYNC		_IOR('F', 314, u64) // New IOCTL that waits for vsync and returns a timestamp
 
 extern struct fb_ops			s3cfb_ops;
 extern struct s3cfb_global		*get_fimd_global(int id);
