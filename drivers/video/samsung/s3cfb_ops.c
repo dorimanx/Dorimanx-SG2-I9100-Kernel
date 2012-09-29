@@ -1134,7 +1134,7 @@ int s3cfb_ioctl(struct fb_info *fb, unsigned int cmd, unsigned long arg)
 		s3cfb_set_vsync_interrupt(fbdev, 1);
 #endif
 		/* Wait for Vsync */
-		s3cfb_wait_for_vsync(fbdev, 0);
+		s3cfb_wait_for_vsync(fbdev, 100);
 		if (fbdev->regs == 0)
 			return 0;
 #if defined(CONFIG_CPU_EXYNOS4212) || defined(CONFIG_CPU_EXYNOS4412)
@@ -1145,7 +1145,7 @@ int s3cfb_ioctl(struct fb_info *fb, unsigned int cmd, unsigned long arg)
 		break;
 
 	case S3CFB_WAIT_FOR_VSYNC: // Custom IOCTL added to return the VSYNC timestamp
-		ret = s3cfb_wait_for_vsync(fbdev, 0);
+		ret = s3cfb_wait_for_vsync(fbdev, 100);
 		if (ret > 0) {
 			u64 nsecs = ktime_to_ns(fbdev->vsync_timestamp);
 			if (copy_to_user((void*)arg, &nsecs, sizeof(u64))) {
