@@ -589,7 +589,7 @@ static void gpio_keys_report_event(struct gpio_button_data *bdata)
 #endif
 
 	/* mdnie negative effect toggle by gm */
-	if ((button->code == HOME_KEY_VAL || button->code == KEY_HOMEPAGE) &&
+	if ((button->code == HOME_KEY_VAL || button->code == KEY_HOME || button->code == KEY_HOMEPAGE) &&
 				mdnie_shortcut_enabled) {
 		if (state) {
 			if (get_time_inms() - homekey_lasttime < homekey_trg_ms) {

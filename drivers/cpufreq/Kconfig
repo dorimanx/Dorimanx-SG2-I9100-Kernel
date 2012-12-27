@@ -229,6 +229,10 @@ config CPU_FREQ_DEFAULT_GOV_PEGASUSQ
 	bool "pegasusq"
 	select CPU_FREQ_GOV_PEGASUSQ
 
+config CPU_FREQ_DEFAULT_GOV_NIGHTMARE
+	bool "nightmare"
+	select CPU_FREQ_GOV_NIGHTMARE
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -499,6 +503,8 @@ config CPU_FREQ_DVFS_MONITOR
 	  This option adds a proc node for dvfs monitoring.
 	  /proc/dvfs_mon
 
+config CPU_FREQ_GOV_NIGHTMARE
+	tristate "'nightmare' cpufreq policy governor"
 
 menu "x86 CPU frequency scaling drivers"
 depends on X86
