@@ -746,6 +746,12 @@ static int cpufreq_zenx_notifier(
 
 	if (val == CPUFREQ_POSTCHANGE) {
 		pcpu = &per_cpu(cpuinfo, freq->cpu);
+		if (!down_read_trylock(&pcpu->enable_sem))
+			return 0;
+		if (!pcpu->governor_enabled) {
+			up_read(&pcpu->enable_sem);
+			return 0;
+		}
 
 		for_each_cpu(cpu, pcpu->policy->cpus) {
 			struct cpufreq_zenx_cpuinfo *pjcpu =
@@ -754,8 +760,9 @@ static int cpufreq_zenx_notifier(
 			update_load(cpu);
 			spin_unlock(&pjcpu->load_lock);
 		}
-	}
 
+		up_read(&pcpu->enable_sem);
+	}
 	return 0;
 }
 
