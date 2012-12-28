@@ -145,13 +145,13 @@ static unsigned int get_nr_run_avg(void)
  * It helps to keep variable names smaller, simpler
  */
 
-#define DEF_SAMPLING_UP_FACTOR			(2)
+#define DEF_SAMPLING_UP_FACTOR			(1)
 #define MAX_SAMPLING_UP_FACTOR		(100000)
-#define DEF_SAMPLING_DOWN_FACTOR		(2)
+#define DEF_SAMPLING_DOWN_FACTOR		(1)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define DEF_FREQ_STEP_DEC		(5)
 
-#define DEF_SAMPLING_RATE			(40000)
+#define DEF_SAMPLING_RATE			(50000)
 #define MIN_SAMPLING_RATE			(10000)
 #define MAX_HOTPLUG_RATE			(40u)
 
@@ -160,7 +160,7 @@ static unsigned int get_nr_run_avg(void)
 #define DEF_UP_NR_CPUS				(1)
 #define DEF_CPU_UP_RATE				(10)
 #define DEF_CPU_DOWN_RATE			(20)
-#define DEF_FREQ_STEP				(12)
+#define DEF_FREQ_STEP				(10)
 
 #define DEF_START_DELAY				(0)
 
@@ -176,7 +176,7 @@ static unsigned int get_nr_run_avg(void)
 /* CPU freq will be decreased if measured load < dec_cpu_load;*/
 #define DEF_DEC_CPU_LOAD (60)
 #define DOWN_AVG_LOAD					(30u)
-#define DEF_FREQ_UP_BRAKE				(2u)
+#define DEF_FREQ_UP_BRAKE				(5u)
 #define DEF_HOTPLUG_COMPARE_LEVEL		(0u)
 
 #ifdef CONFIG_MACH_MIDAS
