@@ -5157,10 +5157,11 @@ struct gpio_keys_button u1_buttons[] = {
 	},			/* power key */
 #if !defined(CONFIG_MACH_U1_NA_SPR) && !defined(CONFIG_MACH_U1_NA_USCC)
 	{
-		.code = KEY_HOME,
-	#if defined(SAMSUNGROM)
+#if defined(SAMSUNGROM)
 		.code = KEY_HOMEPAGE,
-	#endif
+#else
+		.code = KEY_HOME,
+#endif
 		.gpio = GPIO_OK_KEY,
 		.active_low = 1,
 		.type = EV_KEY,
