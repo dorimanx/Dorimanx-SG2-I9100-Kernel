@@ -31,6 +31,7 @@
 #include <linux/sensor/k3g.h>
 #include <linux/sensor/k3dh.h>
 #include <linux/sensor/ak8975.h>
+#include <linux/kallsyms.h>
 #ifdef CONFIG_MACH_U1_BD
 #include <linux/sensor/cm3663.h>
 #include <linux/sensor/pas2m110.h>
@@ -5127,6 +5128,8 @@ static struct platform_device sec_device_thermistor = {
 };
 #endif /* CONFIG_SEC_THERMISTOR */
 
+#define JBSAMMY if(kallsyms_lookup_name("rom_feature_set") == 0)
+
 struct gpio_keys_button u1_buttons[] = {
 	{
 		.code = KEY_VOLUMEUP,
@@ -5156,18 +5159,25 @@ struct gpio_keys_button u1_buttons[] = {
 		.debounce_interval = 10,
 	},			/* power key */
 #if !defined(CONFIG_MACH_U1_NA_SPR) && !defined(CONFIG_MACH_U1_NA_USCC)
+#ifdef JBSAMMY
 	{
-#if defined(SAMSUNGROM)
 		.code = KEY_HOMEPAGE,
-#else
-		.code = KEY_HOME,
-#endif
 		.gpio = GPIO_OK_KEY,
 		.active_low = 1,
 		.type = EV_KEY,
 		.wakeup = 1,
 		.debounce_interval = 10,
 	},			/* ok key */
+#else
+	{
+		.code = KEY_HOME,
+		.gpio = GPIO_OK_KEY,
+		.active_low = 1,
+		.type = EV_KEY,
+		.wakeup = 1,
+		.debounce_interval = 10,
+	},			/* ok key */
+#endif
 #endif
 };
 
