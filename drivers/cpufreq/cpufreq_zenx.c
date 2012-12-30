@@ -35,9 +35,6 @@
 
 #include <asm/cputime.h>
 
-#define CREATE_TRACE_POINTS
-#include <trace/events/cpufreq_zenx.h>
-
 static atomic_t active_count = ATOMIC_INIT(0);
 
 struct cpufreq_zenx_cpuinfo {
@@ -96,10 +93,6 @@ static unsigned long go_hispeed_load = DEFAULT_GO_HISPEED_LOAD;
 static unsigned int unplug_load[] =
 	{ DEFAULT_UNPLUG_LOAD_CPU1,
 	  DEFAULT_UNPLUG_LOAD_CPU2,
-	  DEFAULT_UNPLUG_LOAD_CPUMORE,
-	  DEFAULT_UNPLUG_LOAD_CPUMORE,
-	  DEFAULT_UNPLUG_LOAD_CPUMORE,
-	  DEFAULT_UNPLUG_LOAD_CPUMORE,
 	  DEFAULT_UNPLUG_LOAD_CPUMORE
 	};
 
@@ -332,7 +325,7 @@ static void cpufreq_zenx_timer(unsigned long data)
 		&per_cpu(cpuinfo, data);
 	unsigned int new_freq;
 	unsigned int loadadjfreq;
-	unsigned int index;
+	unsigned int index, up_load_index;
 	unsigned int total_load = 0;
 	unsigned int rearm_if_notmax = 0;
 	unsigned long flags;
@@ -382,9 +375,6 @@ static void cpufreq_zenx_timer(unsigned long data)
 	if (pcpu->target_freq >= hispeed_freq &&
 	    new_freq > pcpu->target_freq &&
 	    now - pcpu->hispeed_validate_time < above_hispeed_delay_val) {
-		trace_cpufreq_zenx_notyet(
-			data, cpu_load, pcpu->target_freq,
-			pcpu->policy->cur, new_freq);
 		goto call_hp_work;
 	}
 
@@ -406,9 +396,6 @@ static void cpufreq_zenx_timer(unsigned long data)
 	 */
 	if (new_freq < pcpu->floor_freq) {
 		if (now - pcpu->floor_validate_time < min_sample_time) {
-			trace_cpufreq_zenx_notyet(
-				data, cpu_load, pcpu->target_freq,
-				pcpu->policy->cur, new_freq);
 			goto call_hp_work;
 		}
 	}
@@ -427,15 +414,9 @@ static void cpufreq_zenx_timer(unsigned long data)
 	}
 
 	if (pcpu->target_freq == new_freq) {
-		trace_cpufreq_zenx_already(
-			data, cpu_load, pcpu->target_freq,
-			pcpu->policy->cur, new_freq);
 		rearm_if_notmax = 1;
 		goto call_hp_work;
 	}
-
-	trace_cpufreq_zenx_target(data, cpu_load, pcpu->target_freq,
-					 pcpu->policy->cur, new_freq);
 
 	pcpu->target_freq = new_freq;
 	spin_lock_irqsave(&speedchange_cpumask_lock, flags);
@@ -446,6 +427,10 @@ static void cpufreq_zenx_timer(unsigned long data)
 call_hp_work:
 	/* Skip hot-add/remove calculations for CPU 0 */
 	if (data > 0) {
+		if (data > 2)
+			up_load_index = 2;
+		else
+			up_load_index = data - 1;
 	        /*
 	         * Compute average load across all online CPUs
         	 */
@@ -471,7 +456,7 @@ call_hp_work:
 		 */
 		if (pcpu->nr_periods_add >= curr_hot_add_sampling_periods) {
 			if (pcpu->add_avg_load / pcpu->nr_periods_add
-			    > unplug_load[data - 1]) {
+			    > unplug_load[up_load_index]) {
 				spin_lock_irqsave(&hotplug_add_cpumask_lock, flags);
 				cpumask_set_cpu(data, &hotplug_add_cpumask);
 				spin_unlock_irqrestore(&hotplug_add_cpumask_lock, flags);
@@ -485,7 +470,7 @@ call_hp_work:
 			pcpu->nr_periods_add = 0;
 		} else if (pcpu->nr_periods_remove >= curr_hot_remove_sampling_periods) {
 			if (pcpu->remove_avg_load / pcpu->nr_periods_remove
-			    <= unplug_load[data - 1]) {
+			    <= unplug_load[up_load_index]) {
 				spin_lock_irqsave(&hotplug_remove_cpumask_lock, flags);
 				cpumask_set_cpu(data, &hotplug_remove_cpumask);
 				spin_unlock_irqrestore(&hotplug_remove_cpumask_lock, flags);
@@ -691,9 +676,6 @@ static int cpufreq_zenx_speedchange_task(void *data)
 							max_freq,
 							CPUFREQ_RELATION_H);
 			mutex_unlock(&set_speed_lock);
-			trace_cpufreq_zenx_setspeed(cpu,
-						     pcpu->target_freq,
-						     pcpu->policy->cur);
 
 			up_read(&pcpu->enable_sem);
 		}
@@ -1173,12 +1155,8 @@ static ssize_t store_boost(struct kobject *kobj, struct attribute *attr,
 
 	boost_val = val;
 
-	if (boost_val) {
-		trace_cpufreq_zenx_boost("on");
+	if (boost_val) 
 		cpufreq_zenx_boost();
-	} else {
-		trace_cpufreq_zenx_unboost("off");
-	}
 
 	return count;
 }
@@ -1196,7 +1174,6 @@ static ssize_t store_boostpulse(struct kobject *kobj, struct attribute *attr,
 		return ret;
 
 	boostpulse_endtime = ktime_to_us(ktime_get()) + boostpulse_duration_val;
-	trace_cpufreq_zenx_boost("pulse");
 	cpufreq_zenx_boost();
 	return count;
 }
@@ -1494,5 +1471,5 @@ MODULE_AUTHOR("Mike Chan <mike@android.com>");
 MODULE_AUTHOR("Brandon Berhent <bbedward@androiddeveloperalliance.org>");
 MODULE_DESCRIPTION("'cpufreq_zenx' - A cpufreq governor for "
 	"Latency sensitive workloads with load-based hotplugging.");
-MODULE_VERSION("2.0");
+MODULE_VERSION("2.1");
 MODULE_LICENSE("GPL");
