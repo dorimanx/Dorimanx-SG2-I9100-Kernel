@@ -8,7 +8,6 @@
  * published by the Free Software Foundation.
  */
 
-#include <linux/kernel.h>
 #include <linux/serial_core.h>
 #include <linux/delay.h>
 #include <linux/gpio.h>
@@ -5128,15 +5127,6 @@ static struct platform_device sec_device_thermistor = {
 };
 #endif /* CONFIG_SEC_THERMISTOR */
 
-static void rom_feature_set_read(void)
-{
-	if (kallsyms_lookup_name("rom_feature_set") == 2) {
-		#define JBSAMMY
-	} else {
-		#define JBCUSTOM
-	}
-}
-
 struct gpio_keys_button u1_buttons[] = {
 	{
 		.code = KEY_VOLUMEUP,
@@ -5177,54 +5167,9 @@ struct gpio_keys_button u1_buttons[] = {
 #endif
 };
 
-struct gpio_keys_button u1_buttons_jb_rom[] = {
-	{
-		.code = KEY_VOLUMEUP,
-		.gpio = GPIO_VOL_UP,
-		.active_low = 1,
-		.type = EV_KEY,
-		.wakeup = 1,
-		.isr_hook = sec_debug_check_crash_key,
-		.debounce_interval = 10,
-	},			/* vol up */
-	{
-		.code = KEY_VOLUMEDOWN,
-		.gpio = GPIO_VOL_DOWN,
-		.active_low = 1,
-		.type = EV_KEY,
-		.wakeup = 1,
-		.isr_hook = sec_debug_check_crash_key,
-		.debounce_interval = 10,
-	},			/* vol down */
-	{
-		.code = KEY_POWER,
-		.gpio = GPIO_nPOWER,
-		.active_low = 1,
-		.type = EV_KEY,
-		.wakeup = 1,
-		.isr_hook = sec_debug_check_crash_key,
-		.debounce_interval = 10,
-	},			/* power key */
-#if !defined(CONFIG_MACH_U1_NA_SPR) && !defined(CONFIG_MACH_U1_NA_USCC)
-	{
-		.code = KEY_HOMEPAGE,
-		.gpio = GPIO_OK_KEY,
-		.active_low = 1,
-		.type = EV_KEY,
-		.wakeup = 1,
-		.debounce_interval = 10,
-	},			/* ok key */
-#endif
-};
-
 struct gpio_keys_platform_data u1_keypad_platform_data = {
-#if defined (JBCUSTOM)
 	u1_buttons,
 	ARRAY_SIZE(u1_buttons),
-#elif defined (JBSAMMY)
-	u1_buttons_jb_rom,
-	ARRAY_SIZE(u1_buttons_jb_rom),
-#endif
 };
 
 struct platform_device u1_keypad = {
