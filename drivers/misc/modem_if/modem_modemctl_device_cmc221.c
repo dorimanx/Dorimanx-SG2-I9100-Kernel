@@ -1,4 +1,6 @@
-/*
+/* /linux/drivers/misc/modem_if/modem_modemctl_device_cmc221.c
+ *
+ * Copyright (C) 2010 Google, Inc.
  * Copyright (C) 2010 Samsung Electronics.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -11,15 +13,15 @@
  * GNU General Public License for more details.
  *
  */
-
 #include <linux/init.h>
+
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 #include <linux/gpio.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
-#include <linux/platform_data/modem.h>
 
+#include <linux/platform_data/modem.h>
 #include "modem_prj.h"
 #include "modem_link_device_usb.h"
 #include "modem_link_device_dpram.h"
@@ -75,7 +77,7 @@ static irqreturn_t phone_active_handler(int irq, void *arg)
 static irqreturn_t dynamic_switching_handler(int irq, void *arg)
 {
 	struct modem_ctl *mc = (struct modem_ctl *)arg;
-	int txpath = gpio_get_value(mc->gpio_link_switch);
+	int txpath = gpio_get_value(mc->gpio_dynamic_switching);
 	bool enumerated = usb_is_enumerated(mc->msd);
 
 	mif_err("txpath=%d, enumeration=%d\n", txpath, enumerated);
@@ -202,10 +204,11 @@ static int cmc221_boot_off(struct modem_ctl *mc)
 {
 	int ret;
 	struct link_device *ld = get_current_link(mc->bootd);
+	struct dpram_link_device *dpld = to_dpram_link_device(ld);
 
 	mif_err("%s\n", mc->name);
 
-	ret = wait_for_completion_interruptible_timeout(&ld->init_cmpl,
+	ret = wait_for_completion_interruptible_timeout(&dpld->dpram_init_cmd,
 			DPRAM_INIT_TIMEOUT);
 	if (!ret) {
 		/* ret == 0 on timeout, ret < 0 if interrupted */
@@ -246,19 +249,20 @@ int cmc221_init_modemctl_device(struct modem_ctl *mc, struct modem_data *pdata)
 	int ret = 0;
 	int irq = 0;
 	unsigned long flag = 0;
+	struct platform_device *pdev = NULL;
 
-	mc->gpio_cp_on = pdata->gpio_cp_on;
-	mc->gpio_cp_reset = pdata->gpio_cp_reset;
+	mc->gpio_cp_on        = pdata->gpio_cp_on;
+	mc->gpio_cp_reset     = pdata->gpio_cp_reset;
 	mc->gpio_phone_active = pdata->gpio_phone_active;
-	mc->gpio_pda_active = pdata->gpio_pda_active;
+	mc->gpio_pda_active   = pdata->gpio_pda_active;
 #if 0	/*TODO: check the GPIO map*/
-	mc->gpio_cp_dump_int = pdata->gpio_cp_dump_int;
+	mc->gpio_cp_dump_int  = pdata->gpio_cp_dump_int;
 	mc->gpio_flm_uart_sel = pdata->gpio_flm_uart_sel;
 	mc->gpio_slave_wakeup = pdata->gpio_slave_wakeup;
-	mc->gpio_host_active = pdata->gpio_host_active;
-	mc->gpio_host_wakeup = pdata->gpio_host_wakeup;
+	mc->gpio_host_active  = pdata->gpio_host_active;
+	mc->gpio_host_wakeup  = pdata->gpio_host_wakeup;
 #endif
-	mc->gpio_link_switch = pdata->gpio_link_switch;
+	mc->gpio_dynamic_switching = pdata->gpio_dynamic_switching;
 	mc->need_switch_to_usb = false;
 
 	if (!mc->gpio_cp_on || !mc->gpio_cp_reset || !mc->gpio_phone_active) {
@@ -272,9 +276,10 @@ int cmc221_init_modemctl_device(struct modem_ctl *mc, struct modem_data *pdata)
 	cmc221_get_ops(mc);
 	dev_set_drvdata(mc->dev, mc);
 
-	mc->irq_phone_active = pdata->irq_phone_active;
+	pdev = to_platform_device(mc->dev);
+	mc->irq_phone_active = platform_get_irq_byname(pdev, STR_CP_ACTIVE_IRQ);
 	if (!mc->irq_phone_active) {
-		mif_err("%s: ERR! get irq_phone_active fail\n", mc->name);
+		mif_err("%s: ERR! get cp_active_irq fail\n", mc->name);
 		return -1;
 	}
 	mif_err("%s: PHONE_ACTIVE IRQ# = %d\n", mc->name, mc->irq_phone_active);
@@ -296,8 +301,8 @@ int cmc221_init_modemctl_device(struct modem_ctl *mc, struct modem_data *pdata)
 	}
 
 	flag = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING | IRQF_NO_SUSPEND;
-	if (mc->gpio_link_switch) {
-		irq = gpio_to_irq(mc->gpio_link_switch);
+	if (mc->gpio_dynamic_switching) {
+		irq = gpio_to_irq(mc->gpio_dynamic_switching);
 		mif_err("%s: DYNAMIC_SWITCH IRQ# = %d\n", mc->name, irq);
 		ret = request_irq(irq, dynamic_switching_handler, flag,
 				"dynamic_switching", mc);

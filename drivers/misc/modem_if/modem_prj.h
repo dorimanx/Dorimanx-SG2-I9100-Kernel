@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2010 Google, Inc.
  * Copyright (C) 2010 Samsung Electronics.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -24,7 +25,6 @@
 #include <linux/spinlock.h>
 #include <linux/cdev.h>
 #include <linux/types.h>
-#include <linux/platform_data/modem.h>
 
 #define CALLER	(__builtin_return_address(0))
 
@@ -66,34 +66,21 @@
 #define IOCTL_MODEM_SWITCH_MODEM	_IO('o', 0x37)
 #endif
 
-#if defined(CONFIG_UMTS_MODEM_SS222)
-#define IOCTL_LTE_MODEM_AIRPLAIN_ON	_IOWR('o', 0x25, unsigned int)
-#define IOCTL_LTE_MODEM_AIRPLAIN_OFF	_IOWR('o', 0x26, unsigned int)
-
-#define IOCTL_MODEM_SET_AP_STATE	_IO('o', 0x38)
-#define IOCTL_MODEM_CLEAR_AP_STATE	_IO('o', 0x39)
-#define IOCTL_MODEM_GET_CP_STATE	_IO('o', 0x3A)
-#endif
-
-#define IOCTL_MODEM_RAMDUMP_START	_IO('o', 0xCE)
-#define IOCTL_MODEM_RAMDUMP_STOP	_IO('o', 0xCF)
-
-#define IOCTL_MODEM_XMIT_BOOT		_IO('o', 0x3F)
 #define IOCTL_DPRAM_SEND_BOOT		_IO('o', 0x40)
 #define IOCTL_DPRAM_INIT_STATUS		_IO('o', 0x43)
+
+/* ioctl command definitions. */
+#define IOCTL_DPRAM_PHONE_POWON		_IO('o', 0xd0)
+#define IOCTL_DPRAM_PHONEIMG_LOAD	_IO('o', 0xd1)
+#define IOCTL_DPRAM_NVDATA_LOAD		_IO('o', 0xd2)
+#define IOCTL_DPRAM_PHONE_BOOTSTART	_IO('o', 0xd3)
+
+#define IOCTL_DPRAM_PHONE_UPLOAD_STEP1	_IO('o', 0xde)
+#define IOCTL_DPRAM_PHONE_UPLOAD_STEP2	_IO('o', 0xdf)
 
 /* ioctl command for IPC Logger */
 #define IOCTL_MIF_LOG_DUMP		_IO('o', 0x51)
 #define IOCTL_MIF_DPRAM_DUMP		_IO('o', 0x52)
-
-/* ioctl command definitions. */
-#define IOCTL_DPRAM_PHONE_POWON		_IO('o', 0xD0)
-#define IOCTL_DPRAM_PHONEIMG_LOAD	_IO('o', 0xD1)
-#define IOCTL_DPRAM_NVDATA_LOAD		_IO('o', 0xD2)
-#define IOCTL_DPRAM_PHONE_BOOTSTART	_IO('o', 0xD3)
-
-#define IOCTL_DPRAM_PHONE_UPLOAD_STEP1	_IO('o', 0xDE)
-#define IOCTL_DPRAM_PHONE_UPLOAD_STEP2	_IO('o', 0xDF)
 
 /* modem status */
 #define MODEM_OFF		0
@@ -128,8 +115,6 @@
 #define MIF_MAX_NAME_LEN	64
 #define MIF_MAX_STR_LEN		32
 
-#define CP_CRASH_TAG		"CP Crash "
-
 /* Does modem ctl structure will use state ? or status defined below ?*/
 enum modem_state {
 	STATE_OFFLINE,
@@ -145,26 +130,6 @@ enum modem_state {
 	STATE_MODEM_SWITCH,
 #endif
 };
-
-static const char const *cp_state_str[] = {
-	[STATE_OFFLINE]		= "OFFLINE",
-	[STATE_CRASH_RESET]	= "CRASH_RESET",
-	[STATE_CRASH_EXIT]	= "CRASH_EXIT",
-	[STATE_BOOTING]		= "BOOTING",
-	[STATE_ONLINE]		= "ONLINE",
-	[STATE_NV_REBUILDING]	= "NV_REBUILDING",
-	[STATE_LOADER_DONE]	= "LOADER_DONE",
-	[STATE_SIM_ATTACH]	= "SIM_ATTACH",
-	[STATE_SIM_DETACH]	= "SIM_DETACH",
-#if defined(CONFIG_SEC_DUAL_MODEM_MODE)
-	[STATE_MODEM_SWITCH]	= "MODEM_SWITCH",
-#endif
-};
-
-static const inline char *get_cp_state_str(int state)
-{
-	return cp_state_str[state];
-}
 
 enum com_state {
 	COM_NONE,
@@ -185,18 +150,6 @@ enum link_mode {
 struct sim_state {
 	bool online;	/* SIM is online? */
 	bool changed;	/* online is changed? */
-};
-
-struct modem_firmware {
-	char *binary;
-	int size;
-};
-
-struct cp_ramdump_status {
-	u32 dump_size;
-	u32 addr;
-	u32 rcvd;
-	u32 rest;
 };
 
 #define HDLC_START		0x7F
@@ -443,11 +396,11 @@ struct link_device {
 	enum modem_link link_type;
 	unsigned aligned;
 
-	/* SIPC version */
-	enum sipc_ver ipc_version;
-
 	/* Maximum IPC device = the last IPC device (e.g. IPC_RFS) + 1 */
 	int max_ipc_dev;
+
+	/* SIPC version */
+	enum sipc_ver ipc_version;
 
 	/* Modem data */
 	struct modem_data *mdm_data;
@@ -460,12 +413,6 @@ struct link_device {
 
 	/* Operation mode of the link device */
 	enum link_mode mode;
-
-	/* completion for waiting for link initialization */
-	struct completion init_cmpl;
-
-	/* completion for waiting for PIF initialization in a CP */
-	struct completion pif_cmpl;
 
 	struct io_device *fmt_iods[4];
 
@@ -520,26 +467,20 @@ struct link_device {
 	int (*send)(struct link_device *ld, struct io_device *iod,
 			struct sk_buff *skb);
 
-	/* method for CP booting */
-	int (*xmit_boot)(struct link_device *ld, struct io_device *iod,
-			unsigned long arg);
+	int (*udl_start)(struct link_device *ld, struct io_device *iod);
 
-	/* methods for CP firmware upgrade */
-	int (*dload_start)(struct link_device *ld, struct io_device *iod);
-	int (*firm_update)(struct link_device *ld, struct io_device *iod,
-			unsigned long arg);
-
-	/* methods for CP crash dump */
 	int (*force_dump)(struct link_device *ld, struct io_device *iod);
+
 	int (*dump_start)(struct link_device *ld, struct io_device *iod);
+
+	int (*modem_update)(struct link_device *ld, struct io_device *iod,
+			unsigned long arg);
+
 	int (*dump_update)(struct link_device *ld, struct io_device *iod,
 			unsigned long arg);
-	int (*dump_finish)(struct link_device *ld, struct io_device *iod,
-			unsigned long arg);
 
-	/* IOCTL extension */
 	int (*ioctl)(struct link_device *ld, struct io_device *iod,
-			unsigned cmd, unsigned long arg);
+			unsigned cmd, unsigned long _arg);
 };
 
 /** rx_alloc_skb - allocate an skbuff and set skb's iod, ld
@@ -575,11 +516,6 @@ struct modemctl_ops {
 	int (*modem_boot_done) (struct modem_ctl *);
 	int (*modem_force_crash_exit) (struct modem_ctl *);
 	int (*modem_dump_reset) (struct modem_ctl *);
-#if defined(CONFIG_UMTS_MODEM_SS222)
-	int (*set_ap_status) (struct modem_ctl *);
-	int (*clear_ap_status) (struct modem_ctl *);
-	int (*get_cp_status) (struct modem_ctl *);
-#endif
 };
 
 /* for IPC Logger */
@@ -613,10 +549,6 @@ struct modem_shared {
 	struct mif_storage storage;
 	spinlock_t lock;
 
-	/* CP crash information */
-	char cp_crash_info[530];
-	struct cp_ramdump_status dump_stat;
-
 	/* loopbacked IP address
 	 * default is 0.0.0.0 (disabled)
 	 * after you setted this, you can use IP packet loopback using this IP.
@@ -636,45 +568,35 @@ struct modem_ctl {
 	struct sim_state sim_state;
 
 	unsigned gpio_cp_on;
-	unsigned gpio_cp_off;
 	unsigned gpio_reset_req_n;
 	unsigned gpio_cp_reset;
-
-	/* for broadcasting AP's PM state (active or sleep) */
 	unsigned gpio_pda_active;
-
-	/* for checking aliveness of CP */
 	unsigned gpio_phone_active;
-	int irq_phone_active;
-
-	/* for AP-CP power management (PM) handshaking */
-	unsigned gpio_ap_wakeup;
-	int irq_ap_wakeup;
-	unsigned gpio_ap_status;
-	unsigned gpio_cp_wakeup;
-	unsigned gpio_cp_status;
-	int irq_cp_status;
-
-	/* for USB/HSIC PM */
-	unsigned gpio_host_wakeup;
-	int irq_host_wakeup;
-	unsigned gpio_host_active;
-	unsigned gpio_slave_wakeup;
-
 	unsigned gpio_cp_dump_int;
 	unsigned gpio_ap_dump_int;
 	unsigned gpio_flm_uart_sel;
-	unsigned gpio_cp_warm_reset;
 #if defined(CONFIG_MACH_M0_CTC)
 	unsigned gpio_flm_uart_sel_rev06;
 #endif
-
+	unsigned gpio_cp_warm_reset;
+	unsigned gpio_cp_off;
 	unsigned gpio_sim_detect;
+	unsigned gpio_dynamic_switching;
+
+	int irq_phone_active;
 	int irq_sim_detect;
 
-#ifdef CONFIG_LINK_DEVICE_PLD
-	unsigned gpio_fpga_cs_n;
-#endif
+#ifdef CONFIG_LTE_MODEM_CMC221
+	const struct attribute_group *group;
+	unsigned gpio_slave_wakeup;
+	unsigned gpio_host_wakeup;
+	unsigned gpio_host_active;
+	int      irq_host_wakeup;
+
+	struct delayed_work dwork;
+#endif /*CONFIG_LTE_MODEM_CMC221*/
+
+	struct work_struct work;
 
 #if defined(CONFIG_MACH_U1_KOR_LGT)
 	unsigned gpio_cp_reset_msm;
@@ -695,13 +617,9 @@ struct modem_ctl {
 	unsigned gpio_cp_ctrl2;
 #endif
 
-	/* Switch with 2 links in a modem */
-	unsigned gpio_link_switch;
-
-	const struct attribute_group *group;
-
-	struct delayed_work dwork;
-	struct work_struct work;
+#ifdef CONFIG_LINK_DEVICE_PLD
+	unsigned gpio_fpga_cs_n;
+#endif
 
 	struct modemctl_ops ops;
 	struct io_device *iod;
@@ -718,6 +636,7 @@ struct modem_ctl {
 
 	bool sim_shutdown_req;
 	void (*modem_complete)(struct modem_ctl *mc);
+
 };
 
 int sipc4_init_io_device(struct io_device *iod);

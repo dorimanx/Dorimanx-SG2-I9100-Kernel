@@ -92,7 +92,7 @@ struct pld_link_device {
 	u32 size;		/* DPRAM size			*/
 
 	/* DPRAM IRQ GPIO# */
-	unsigned gpio_ipc_int2ap;
+	unsigned gpio_dpram_int;
 
 	/* DPRAM IRQ from CP */
 	int irq;
@@ -100,12 +100,16 @@ struct pld_link_device {
 	char irq_name[MIF_MAX_NAME_LEN];
 
 	/* Link to DPRAM control functions dependent on each platform */
-	struct modemlink_dpram_data *dpram;
+	struct modemlink_dpram_control *dpctl;
 
 	/* Physical configuration -> logical configuration */
-	struct memif_boot_map bt_map;
-	struct memif_dload_map dl_map;
-	struct memif_uload_map ul_map;
+	union {
+		struct dpram_boot_map bt_map;
+		struct qc_dpram_boot_map qc_bt_map;
+	};
+
+	struct dpram_dload_map dl_map;
+	struct dpram_uload_map ul_map;
 
 	/* IPC device map */
 	struct dpram_ipc_map ipc_map;
@@ -135,6 +139,8 @@ struct pld_link_device {
 	struct tasklet_struct dl_tsk;
 	struct completion udl_start_complete;
 	struct completion udl_cmd_complete;
+	struct dpram_udl_check udl_check;
+	struct dpram_udl_param udl_param;
 
 	/* For CP crash dump */
 	struct timer_list crash_ack_timer;

@@ -93,10 +93,8 @@ static int g2d_sysmmu_fault_handler(enum S5P_SYSMMU_INTERRUPT_TYPE itype,
 			((fault_addr & LV2_PT_MASK) >> LV2_SHIFT);
 	printk(KERN_ERR "Level 2 descriptor(0x%lx)\n", *lv2d);
 	if (*lv2d == 0) {
-		if (g2d_dev->faulted_addr)
-			g2d_mmutable_value_replace(g2d_dev->mm, g2d_dev->faulted_addr, 0);
 		g2d_mmutable_value_replace(g2d_dev->mm, fault_addr,
-			(g2d_dev->dummy_page_addr & ~LV2_VALUE_BASE_MASK) | LV2_VALUE_META);
+			(g2d_dev->reserved_mem.base & ~LV2_VALUE_BASE_MASK) | LV2_VALUE_META);
 		g2d_dev->faulted_addr = fault_addr;
 	} else
 		g2d_clean_outer_pagetable(g2d_dev->mm, fault_addr, 4);

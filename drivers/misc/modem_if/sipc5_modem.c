@@ -77,31 +77,27 @@ static struct modem_shared *create_modem_shared_data(void)
 static struct modem_ctl *create_modemctl_device(struct platform_device *pdev,
 		struct modem_shared *msd)
 {
-	struct modem_data *pdata = pdev->dev.platform_data;
-	struct modem_ctl *modemctl;
 	int ret = 0;
+	struct modem_data *pdata;
+	struct modem_ctl *modemctl;
+	struct device *dev = &pdev->dev;
 
 	/* create modem control device */
 	modemctl = kzalloc(sizeof(struct modem_ctl), GFP_KERNEL);
-	if (!modemctl) {
-		mif_err("%s: modemctl kzalloc fail\n", pdata->name);
-		mif_err("%s: xxx\n", pdata->name);
+	if (!modemctl)
 		return NULL;
-	}
 
 	modemctl->msd = msd;
-	modemctl->dev = &pdev->dev;
+	modemctl->dev = dev;
 	modemctl->phone_state = STATE_OFFLINE;
 
+	pdata = pdev->dev.platform_data;
 	modemctl->mdm_data = pdata;
 	modemctl->name = pdata->name;
 
 	/* init modemctl device for getting modemctl operations */
 	ret = call_modem_init_func(modemctl, pdata);
 	if (ret) {
-		mif_err("%s: call_modem_init_func fail (err %d)\n",
-			pdata->name, ret);
-		mif_err("%s: xxx\n", pdata->name);
 		kfree(modemctl);
 		return NULL;
 	}
@@ -144,7 +140,7 @@ static struct io_device *create_io_device(struct modem_io_t *io_t,
 		modemctl->iod = iod;
 	if (iod->format == IPC_BOOT) {
 		modemctl->bootd = iod;
-		mif_err("BOOT device = %s\n", iod->name);
+		mif_info("Bood device = %s\n", iod->name);
 	}
 
 	/* link between io device and modem shared */
@@ -165,7 +161,7 @@ static struct io_device *create_io_device(struct modem_io_t *io_t,
 		return NULL;
 	}
 
-	mif_err("%s is created\n", iod->name);
+	mif_debug("%s is created!!!\n", iod->name);
 	return iod;
 }
 
@@ -173,6 +169,7 @@ static int attach_devices(struct io_device *iod, enum modem_link tx_link)
 {
 	struct modem_shared *msd = iod->msd;
 	struct link_device *ld;
+	unsigned ch;
 
 	/* find link type for this io device */
 	list_for_each_entry(ld, &msd->link_dev_list, list) {
@@ -240,19 +237,19 @@ static int __devinit modem_probe(struct platform_device *pdev)
 	struct modem_ctl *modemctl = NULL;
 	struct io_device *iod[pdata->num_iodevs];
 	struct link_device *ld;
-	mif_err("%s: +++\n", pdata->name);
 
+	mif_err("%s\n", pdev->name);
 	memset(iod, 0, sizeof(iod));
 
 	msd = create_modem_shared_data();
 	if (!msd) {
-		mif_err("%s: msd == NULL\n", pdata->name);
+		mif_err("msd == NULL\n");
 		goto err_free_modemctl;
 	}
 
 	modemctl = create_modemctl_device(pdev, msd);
 	if (!modemctl) {
-		mif_err("%s: modemctl == NULL\n", pdata->name);
+		mif_err("modemctl == NULL\n");
 		goto err_free_modemctl;
 	}
 
@@ -265,7 +262,7 @@ static int __devinit modem_probe(struct platform_device *pdev)
 			if (!ld)
 				goto err_free_modemctl;
 
-			mif_err("%s: %s link created\n", pdata->name, ld->name);
+			mif_err("link created: %s\n", ld->name);
 			ld->link_type = i;
 			ld->mc = modemctl;
 			ld->msd = msd;
@@ -278,7 +275,7 @@ static int __devinit modem_probe(struct platform_device *pdev)
 		iod[i] = create_io_device(&pdata->iodevs[i], msd, modemctl,
 				pdata);
 		if (!iod[i]) {
-			mif_err("%s: iod[%d] == NULL\n", pdata->name, i);
+			mif_err("iod[%d] == NULL\n", i);
 			goto err_free_modemctl;
 		}
 
@@ -287,7 +284,8 @@ static int __devinit modem_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, modemctl);
 
-	mif_err("%s: ---\n", pdata->name);
+	mif_err("Complete!!!\n");
+
 	return 0;
 
 err_free_modemctl:
@@ -301,7 +299,6 @@ err_free_modemctl:
 	if (msd != NULL)
 		kfree(msd);
 
-	mif_err("%s: xxx\n", pdata->name);
 	return -ENOMEM;
 }
 

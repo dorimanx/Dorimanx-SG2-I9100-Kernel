@@ -1166,7 +1166,7 @@ static void command_handler(struct pld_link_device *pld, u16 cmd)
 		mif_info("%s: SILENT_NV_REBUILDING\n", ld->name);
 		break;
 
-	case INT_CMD_NORMAL_POWER_OFF:
+	case INT_CMD_NORMAL_PWR_OFF:
 		/*ToDo:*/
 		/*kernel_sec_set_cp_ack()*/;
 		break;
@@ -1350,8 +1350,8 @@ static int pld_table_init(struct pld_link_device *pld)
 	dp_base = pld->base;
 
 	/* Map for IPC */
-	if (pld->dpram->ipc_map) {
-		memcpy(&pld->ipc_map, pld->dpram->ipc_map,
+	if (pld->dpctl->ipc_map) {
+		memcpy(&pld->ipc_map, pld->dpctl->ipc_map,
 			sizeof(struct dpram_ipc_map));
 	}
 
@@ -1374,7 +1374,7 @@ static int pld_table_init(struct pld_link_device *pld)
 	} else {
 		pld->bt_map.magic = (u32 *)(dp_base);
 		pld->bt_map.buff = (u8 *)(dp_base + DP_BOOT_BUFF_OFFSET);
-		pld->bt_map.space = pld->size - 8;
+		pld->bt_map.size = pld->size - 8;
 	}
 
 	/* Map for download (FOTA, UDL, etc.) */
@@ -1439,7 +1439,7 @@ struct link_device *pld_create_link_device(struct platform_device *pdev)
 	struct link_device *ld = NULL;
 	struct resource *res = NULL;
 	resource_size_t res_size;
-	struct modemlink_dpram_data *dpram = NULL;
+	struct modemlink_dpram_control *dpctl = NULL;
 	unsigned long task_data;
 	int ret = 0;
 	int i = 0;
@@ -1455,11 +1455,11 @@ struct link_device *pld_create_link_device(struct platform_device *pdev)
 	mif_info("modem = %s\n", mdm_data->name);
 	mif_info("link device = %s\n", mdm_data->link_name);
 
-	if (!mdm_data->dpram) {
-		mif_info("ERR! no mdm_data->dpram\n");
+	if (!mdm_data->dpram_ctl) {
+		mif_info("ERR! mdm_data->dpram_ctl == NULL\n");
 		goto err;
 	}
-	dpram = mdm_data->dpram;
+	dpctl = mdm_data->dpram_ctl;
 
 	/* Alloc DPRAM link device structure */
 	pld = kzalloc(sizeof(struct pld_link_device), GFP_KERNEL);
@@ -1475,17 +1475,17 @@ struct link_device *pld_create_link_device(struct platform_device *pdev)
 	ld->ipc_version = mdm_data->ipc_version;
 
 	/* Retrieve the most basic data for IPC from the modem data */
-	pld->dpram = dpram;
-	pld->type = dpram->type;
+	pld->dpctl = dpctl;
+	pld->type = dpctl->dp_type;
 
 	if (mdm_data->ipc_version < SIPC_VER_50) {
-		if (!mdm_data->max_ipc_dev) {
+		if (!dpctl->max_ipc_dev) {
 			mif_info("ERR! no max_ipc_dev\n");
 			goto err;
 		}
 
-		ld->aligned = dpram->aligned;
-		ld->max_ipc_dev = mdm_data->max_ipc_dev;
+		ld->aligned = dpctl->aligned;
+		ld->max_ipc_dev = dpctl->max_ipc_dev;
 	} else {
 		ld->aligned = 1;
 		ld->max_ipc_dev = MAX_SIPC5_DEV;
@@ -1516,7 +1516,7 @@ struct link_device *pld_create_link_device(struct platform_device *pdev)
 		pld->ext_ioctl = pld->ext_op->ioctl;
 
 	/* Retrieve DPRAM resource */
-	if (!dpram->base) {
+	if (!dpctl->dp_base) {
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 		if (!res) {
 			mif_info("%s: ERR! platform_get_resource fail\n",
@@ -1525,11 +1525,11 @@ struct link_device *pld_create_link_device(struct platform_device *pdev)
 		}
 		res_size = resource_size(res);
 
-		dpram->base = ioremap_nocache(res->start, res_size);
-		dpram->size = res_size;
+		dpctl->dp_base = ioremap_nocache(res->start, res_size);
+		dpctl->dp_size = res_size;
 	}
-	pld->base = dpram->base;
-	pld->size = dpram->size;
+	pld->base = dpctl->dp_base;
+	pld->size = dpctl->dp_size;
 
 	mif_info("%s: type %d, aligned %d, base 0x%08X, size %d\n",
 		ld->name, pld->type, ld->aligned, (int)pld->base, pld->size);
@@ -1589,16 +1589,23 @@ struct link_device *pld_create_link_device(struct platform_device *pdev)
 	}
 
 	/* Retrieve DPRAM IRQ GPIO# */
-	pld->gpio_ipc_int2ap = mdm_data->gpio_ipc_int2ap;
+	pld->gpio_dpram_int = mdm_data->gpio_dpram_int;
 
 	/* Retrieve DPRAM IRQ# */
-	pld->irq = mdm_data->irq_ipc_int2ap;
+	if (!dpctl->dpram_irq) {
+		dpctl->dpram_irq = platform_get_irq_byname(pdev, "dpram_irq");
+		if (dpctl->dpram_irq < 0) {
+			mif_info("%s: ERR! platform_get_irq_byname fail\n",
+				ld->name);
+			goto err;
+		}
+	}
+	pld->irq = dpctl->dpram_irq;
 
 	/* Retrieve DPRAM IRQ flags */
-	if (mdm_data->irqf_ipc_int2ap)
-		pld->irq_flags = dpram->irqf_ipc_int2ap;
-	else
-		pld->irq_flags = (IRQF_NO_SUSPEND | IRQF_TRIGGER_LOW);
+	if (!dpctl->dpram_irq_flags)
+		dpctl->dpram_irq_flags = (IRQF_NO_SUSPEND | IRQF_TRIGGER_LOW);
+	pld->irq_flags = dpctl->dpram_irq_flags;
 
 	/* Register DPRAM interrupt handler */
 	snprintf(pld->irq_name, MIF_MAX_NAME_LEN, "%s_irq", ld->name);

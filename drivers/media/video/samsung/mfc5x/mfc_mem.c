@@ -559,8 +559,8 @@ int mfc_init_mem_mgr(struct mfc_dev *dev)
 	cma_infos[0].free_size   = 0x03100000;
 	cma_infos[0].count   = 1;
 #elif defined(CONFIG_MACH_GC1)
-	cma_infos[0].lower_bound = 0x50200000;
-	cma_infos[0].upper_bound = 0x53300000;
+	cma_infos[0].lower_bound = 0x50400000;
+	cma_infos[0].upper_bound = 0x53500000;
 	cma_infos[0].total_size  = 0x03100000;
 	cma_infos[0].free_size   = 0x03100000;
 	cma_infos[0].count   = 1;
@@ -623,7 +623,7 @@ int mfc_init_mem_mgr(struct mfc_dev *dev)
 #if defined(CONFIG_MACH_M0)
 	base[0] = 0x5c100000;
 #elif defined(CONFIG_MACH_GC1)
-	base[0] = 0x50200000;
+	base[0] = 0x50400000;
 #endif
 	dev->mem_infos[0].base = base[0];
 	dev->mem_infos[0].size = size;

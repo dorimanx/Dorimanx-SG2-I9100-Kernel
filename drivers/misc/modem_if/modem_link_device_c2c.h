@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2010 Google, Inc.
  * Copyright (C) 2010 Samsung Electronics.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -7,159 +8,209 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
  * GNU General Public License for more details.
  *
  */
+#include <linux/wakelock.h>
 
 #ifndef __MODEM_LINK_DEVICE_C2C_H__
 #define __MODEM_LINK_DEVICE_C2C_H__
 
-#include "modem_link_device_memory.h"
-#include <mach/c2c.h>
+#define DPRAM_ERR_MSG_LEN		128
+#define DPRAM_ERR_DEVICE		"c2cerr"
 
-/*
-	magic_code +
-	access_enable +
-	fmt_tx_head + fmt_tx_tail + fmt_tx_buff +
-	raw_tx_head + raw_tx_tail + raw_tx_buff +
-	fmt_rx_head + fmt_rx_tail + fmt_rx_buff +
-	raw_rx_head + raw_rx_tail + raw_rx_buff +
-	mbx_cp2ap +
-	mbx_ap2cp
- =	2 +
-	2 +
-	4 + 4 + 1332 +
-	4 + 4 + (4564+2088956) +
-	4 + 4 + 1332 +
-	4 + 4 + (9124+2088956) +
-	2 +
-	2
- =	4 MB
-*/
-#define C2C_4M_FMT_TX_BUFF_SZ	1332
-#define C2C_4M_RAW_TX_BUFF_SZ	(4564+2088956)
-#define C2C_4M_FMT_RX_BUFF_SZ	1332
-#define C2C_4M_RAW_RX_BUFF_SZ	(9124+2088956)
+#define MAX_IDX				2
 
-struct c2c_ipc_4m_map {
-	u16 magic;
-	u16 access;
+#define DPRAM_BASE_PTR			0x4000000
 
-	u32 fmt_tx_head;
-	u32 fmt_tx_tail;
-	u8  fmt_tx_buff[C2C_4M_FMT_TX_BUFF_SZ];
+#define DPRAM_START_ADDRESS		0
+#define DPRAM_MAGIC_CODE_ADDRESS	DPRAM_START_ADDRESS
+#define DPRAM_GOTA_MAGIC_CODE_SIZE		0x4
+#define DPRAM_PDA2PHONE_FORMATTED_START_ADDRESS	\
+	(DPRAM_START_ADDRESS + DPRAM_GOTA_MAGIC_CODE_SIZE)
+#define BSP_DPRAM_BASE_SIZE		0x1ff8
+#define DPRAM_END_OF_ADDRESS		(BSP_DPRAM_BASE_SIZE - 1)
+#define DPRAM_INTERRUPT_SIZE		0x2
+#define DPRAM_PDA2PHONE_INTERRUPT_ADDRESS	\
+	(DPRAM_START_ADDRESS + BSP_DPRAM_BASE_SIZE -  DPRAM_INTERRUPT_SIZE*2)
+#define DPRAM_PHONE2PDA_INTERRUPT_ADDRESS	\
+	(DPRAM_START_ADDRESS + BSP_DPRAM_BASE_SIZE)
+#define DPRAM_BUFFER_SIZE			\
+	(DPRAM_PHONE2PDA_INTERRUPT_ADDRESS -\
+	DPRAM_PDA2PHONE_FORMATTED_START_ADDRESS)
+#define DPRAM_INDEX_SIZE		0x2
 
-	u32 raw_tx_head;
-	u32 raw_tx_tail;
-	u8  raw_tx_buff[C2C_4M_RAW_TX_BUFF_SZ];
+#define MAGIC_DMDL			0x4445444C
+#define MAGIC_UMDL			0x4445444D
 
-	u32 fmt_rx_head;
-	u32 fmt_rx_tail;
-	u8  fmt_rx_buff[C2C_4M_FMT_RX_BUFF_SZ];
+#define DPRAM_PACKET_DATA_SIZE		0x3f00
+#define DPRAM_PACKET_HEADER_SIZE	0x7
 
-	u32 raw_rx_head;
-	u32 raw_rx_tail;
-	u8  raw_rx_buff[C2C_4M_RAW_RX_BUFF_SZ];
-} __packed;
+#define INT_GOTA_MASK_VALID		0xA000
+#define INT_DPRAM_DUMP_MASK_VALID		0xA000
+#define MASK_CMD_RECEIVE_READY_NOTIFICATION	0xA100
+#define MASK_CMD_DOWNLOAD_START_REQUEST		0xA200
+#define MASK_CMD_DOWNLOAD_START_RESPONSE	0xA301
+#define MASK_CMD_IMAGE_SEND_REQUEST		0xA400
+#define MASK_CMD_IMAGE_SEND_RESPONSE		0xA500
+#define MASK_CMD_SEND_DONE_REQUEST		0xA600
+#define MASK_CMD_SEND_DONE_RESPONSE		0xA701
+#define MASK_CMD_STATUS_UPDATE_NOTIFICATION	0xA800
+#define MASK_CMD_UPDATE_DONE_NOTIFICATION	0xA900
+#define MASK_CMD_EFS_CLEAR_RESPONSE		0xAB00
+#define MASK_CMD_ALARM_BOOT_OK			0xAC00
+#define MASK_CMD_ALARM_BOOT_FAIL		0xAD00
 
-struct shmem_link_device;
+#define WRITEIMG_HEADER_SIZE			8
+#define WRITEIMG_TAIL_SIZE			4
+#define WRITEIMG_BODY_SIZE			\
+	(DPRAM_BUFFER_SIZE - WRITEIMG_HEADER_SIZE - WRITEIMG_TAIL_SIZE)
 
-struct shmem_link_device {
+#define DPDN_DEFAULT_WRITE_LEN			WRITEIMG_BODY_SIZE
+#define CMD_DL_START_REQ			0x9200
+#define CMD_IMG_SEND_REQ			0x9400
+#define CMD_DL_SEND_DONE_REQ			0x9600
+
+#define CMD_UL_START_REQ		0x9200
+#define CMD_UL_START_READY		0x9400
+#define CMD_UL_SEND_RESP		0x9601
+#define CMD_UL_SEND_DONE_RESP		0x9801
+#define CMD_UL_SEND_REQ			0xA500
+#define CMD_UL_START_RESPONSE		0xA301
+#define CMD_UL_SEND_DONE_REQ		0xA700
+#define CMD_RECEIVE_READY_NOTIFICATION	0xA100
+
+#define MASK_CMD_RESULT_FAIL		0x0002
+#define MASK_CMD_RESULT_SUCCESS		0x0001
+
+#define START_INDEX			0x007F
+#define END_INDEX			0x007E
+
+#define CMD_IMG_SEND_REQ		0x9400
+
+#define CRC_TAB_SIZE			256
+#define CRC_16_L_SEED			0xFFFF
+
+struct c2c_device {
+	/* DPRAM memory addresses */
+	u16		*in_head_addr;
+	u16		*in_tail_addr;
+	u8		*in_buff_addr;
+	unsigned long	in_buff_size;
+
+	u16		*out_head_addr;
+	u16		*out_tail_addr;
+	u8		*out_buff_addr;
+	unsigned long	out_buff_size;
+
+	unsigned long	in_head_saved;
+	unsigned long	in_tail_saved;
+	unsigned long	out_head_saved;
+	unsigned long	out_tail_saved;
+
+	u16		mask_req_ack;
+	u16		mask_res_ack;
+	u16		mask_send;
+};
+
+struct memory_region {
+	u8 *control;
+	u8 *fmt_out;
+	u8 *raw_out;
+	u8 *fmt_in;
+	u8 *raw_in;
+	u8 *mbx;
+};
+
+struct UldDataHeader {
+	u8 bop;
+	u16 total_frame;
+	u16 curr_frame;
+	u16 len;
+};
+
+struct c2c_link_device {
 	struct link_device ld;
 
-	enum shmem_type type;
+	struct modem_data *pdata;
 
-	/* SHM (SHARED MEMORY) address and size */
-	unsigned long start;	/* physical "start" address of SHM */
-	u32 size;
-	u8 __iomem *base;	/* virtual address of the "start" */
+	/*only c2c*/
+	struct wake_lock c2c_wake_lock;
+	atomic_t raw_txq_req_ack_rcvd;
+	atomic_t fmt_txq_req_ack_rcvd;
+	u8 net_stop_flag;
+	int phone_sync;
+	u8 phone_status;
 
-	/* SHM IRQ GPIO# */
-	unsigned gpio_ap_wakeup;
-	int irq_ap_wakeup;
-	unsigned gpio_ap_status;
+	 struct work_struct xmit_work_struct;
 
-	unsigned gpio_cp_wakeup;
-	unsigned gpio_cp_status;
+	struct workqueue_struct *gota_wq;
+	struct work_struct gota_cmd_work;
 
-	/* Physical configuration -> logical configuration */
-	struct memif_boot_map bt_map;
-	struct memif_dload_map dl_map;
-	struct memif_uload_map ul_map;
+	struct c2c_device dev_map[MAX_IDX];
 
-	/* IPC device map */
-	struct shmem_ipc_map ipc_map;
+	struct wake_lock dumplock;
 
-	/* Pointers (aliases) to IPC device map */
-	u16 __iomem *magic;
-	u16 __iomem *access;
-	struct shmem_ipc_device *dev[MAX_IPC_DEV];
-	u16 __iomem *mbx2ap;
-	u16 __iomem *mbx2cp;
+	u8 c2c_read_data[131072];
 
-	/* Wakelock for SHM device */
-	struct wake_lock wlock;
-	char wlock_name[MIF_MAX_NAME_LEN];
+	int c2c_init_cmd_wait_condition;
+	wait_queue_head_t c2c_init_cmd_wait_q;
 
-	/* This must be set just one time at 1st CP boot succeess. */
-	bool setup_done;
+	int modem_pif_init_wait_condition;
+	wait_queue_head_t modem_pif_init_done_wait_q;
 
-	/* for UDL */
-	struct tasklet_struct ul_tsk;
-	struct tasklet_struct dl_tsk;
-	struct completion udl_cmpl;
+	struct completion gota_download_start_complete;
 
-	/*
-	** for CP crash dump
-	*/
-	bool forced_cp_crash;
-	struct timer_list crash_ack_timer;
-	struct timer_list crash_timer;
-	struct completion crash_cmpl;
-	/* If this field is wanted to be used, it must be initialized only in
-	 * the "ld->dump_start" method.
-	 */
-	struct delayed_work crash_dwork;
-	/* Count of CP crash dump packets received */
-	int crash_rcvd;
+	int gota_send_done_cmd_wait_condition;
+	wait_queue_head_t gota_send_done_cmd_wait_q;
 
-	/* for locking TX process */
-	spinlock_t tx_lock[MAX_IPC_DEV];
+	int gota_update_done_cmd_wait_condition;
+	wait_queue_head_t gota_update_done_cmd_wait_q;
 
-	/* for retransmission under SHM flow control after TXQ full state */
-	atomic_t res_required[MAX_IPC_DEV];
-	struct completion req_ack_cmpl[MAX_IPC_DEV];
+	int upload_send_req_wait_condition;
+	wait_queue_head_t upload_send_req_wait_q;
 
-	/* for efficient RX process */
-	struct tasklet_struct rx_tsk;
-	struct io_device *iod[MAX_IPC_DEV];
+	int upload_send_done_wait_condition;
+	wait_queue_head_t upload_send_done_wait_q;
 
-	/* for wake-up/sleep control */
-	atomic_t accessing;
+	int upload_start_req_wait_condition;
+	wait_queue_head_t upload_start_req_wait_q;
 
-	/* Multi-purpose miscellaneous buffer */
-	u8 *buff;
+	int upload_packet_start_condition;
+	wait_queue_head_t upload_packet_start_wait_q;
 
-	/* Alias to SHM IRQ handler */
-	irqreturn_t (*irq_handler)(int irq, void *data);
+	u16 gota_irq_handler_cmd;
 
-	/* for logging SHM status */
-	struct mem_stat_queue stat_list;
+	u16 c2c_dump_handler_cmd;
 
-	/* for SHM dump */
-#ifndef CONFIG_SAMSUNG_PRODUCT_SHIP
-	char dump_path[MIF_MAX_PATH_LEN];
-	char trace_path[MIF_MAX_PATH_LEN];
-	struct trace_queue dump_list;
-	struct trace_queue trace_list;
-	struct delayed_work dump_dwork;
-	struct delayed_work trace_dwork;
-#endif
+	int dump_region_number;
+
+	unsigned int is_c2c_err ;
+
+	int c2c_dump_start;
+	int gota_start;
+
+	char c2c_err_buf[DPRAM_ERR_MSG_LEN];
+
+	struct fasync_struct *c2c_err_async_q;
+
+	void (*clear_interrupt)(struct c2c_link_device *);
+
+	struct memory_region m_region;
+
+	unsigned long  fmt_out_buff_size;
+	unsigned long  raw_out_buff_size;
+	unsigned long  fmt_in_buff_size;
+	unsigned long  raw_in_buff_size;
+
+	struct delayed_work delayed_tx;
+	struct sk_buff *delayed_skb;
+	u8 delayed_count;
 };
 
 /* converts from struct link_device* to struct xxx_link_device* */
-#define to_shmem_link_device(linkdev) \
-		container_of(linkdev, struct shmem_link_device, ld)
-#endif
+#define to_c2c_link_device(linkdev) \
+			container_of(linkdev, struct c2c_link_device, ld)
 
+#endif

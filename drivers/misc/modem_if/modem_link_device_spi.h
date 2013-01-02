@@ -145,9 +145,11 @@ struct link_pm_data {
 struct spi_link_device {
 	struct link_device ld;
 
+	/* Link to SPI control functions dependent on each platform */
+	int max_ipc_dev;
+
 	/* Wakelock for SPI device */
 	struct wake_lock spi_wake_lock;
-
 	/* Workqueue for modem bin transfers */
 	struct workqueue_struct *ipc_spi_wq;
 

@@ -11,7 +11,6 @@
  * GNU General Public License for more details.
  *
  */
-
 #ifndef __MODEM_LINK_DEVICE_MEMORY_H__
 #define __MODEM_LINK_DEVICE_MEMORY_H__
 
@@ -19,7 +18,6 @@
 #include <linux/wakelock.h>
 #include <linux/workqueue.h>
 #include <linux/timer.h>
-#include <linux/notifier.h>
 #include <linux/platform_data/modem.h>
 
 #include "modem_prj.h"
@@ -92,28 +90,22 @@
 #define INT_MASK_RES_ACK_SET \
 	(INT_MASK_RES_ACK_F | INT_MASK_RES_ACK_R | INT_MASK_RES_ACK_RFS)
 
-#define INT_CMD_MASK(x)			((x) & 0xF)
-#define INT_CMD_INIT_START		0x1
-#define INT_CMD_INIT_END		0x2
-#define INT_CMD_REQ_ACTIVE		0x3
-#define INT_CMD_RES_ACTIVE		0x4
-#define INT_CMD_REQ_TIME_SYNC		0x5
-#define INT_CMD_CRASH_RESET		0x7
-#define INT_CMD_PHONE_START		0x8
-#define INT_CMD_ERR_DISPLAY		0x9
-#define INT_CMD_CRASH_EXIT		0x9
-#define INT_CMD_CP_DEEP_SLEEP		0xA
-#define INT_CMD_NV_REBUILDING		0xB
-#define INT_CMD_EMER_DOWN		0xC
-#define INT_CMD_PIF_INIT_DONE		0xD
+#define INT_CMD_MASK(x)		((x) & 0xF)
+#define INT_CMD_INIT_START	0x1
+#define INT_CMD_INIT_END	0x2
+#define INT_CMD_REQ_ACTIVE	0x3
+#define INT_CMD_RES_ACTIVE	0x4
+#define INT_CMD_REQ_TIME_SYNC	0x5
+#define INT_CMD_CRASH_RESET	0x7
+#define INT_CMD_PHONE_START	0x8
+#define INT_CMD_ERR_DISPLAY	0x9
+#define INT_CMD_CRASH_EXIT	0x9
+#define INT_CMD_CP_DEEP_SLEEP	0xA
+#define INT_CMD_NV_REBUILDING	0xB
+#define INT_CMD_EMER_DOWN	0xC
+#define INT_CMD_PIF_INIT_DONE	0xD
 #define INT_CMD_SILENT_NV_REBUILDING	0xE
-#define INT_CMD_NORMAL_POWER_OFF	0xF
-
-/* AP_IDPRAM PM control command with QSC6085 */
-#define INT_CMD_IDPRAM_SUSPEND_REQ	0xD
-#define INT_CMD_IDPRAM_SUSPEND_ACK	0xB
-#define INT_CMD_IDPRAM_WAKEUP_START	0xE
-#define INT_CMD_IDPRAM_RESUME_REQ	0xC
+#define INT_CMD_NORMAL_PWR_OFF	0xF
 
 #define START_FLAG		0x7F
 #define END_FLAG		0x7E
@@ -131,8 +123,6 @@
 #define DUMP_TIMEOUT		(30 * HZ)
 #define DUMP_START_TIMEOUT	(100 * HZ)
 #define DUMP_WAIT_TIMEOUT	(HZ >> 10)	/* 1/1024 second */
-
-#define IDPRAM_SUSPEND_REQ_TIMEOUT	(50 * HZ)
 
 #define RES_ACK_WAIT_TIMEOUT	10		/* 10 ms */
 #define REQ_ACK_DELAY		10		/* 10 ms */
@@ -166,28 +156,6 @@ enum circ_ptr_type {
 	TAIL,
 };
 
-struct memif_boot_map {
-	u32 __iomem *magic;
-	u8  __iomem *buff;
-	u32 __iomem *req;
-	u32 __iomem *resp;
-	u32          space;
-};
-
-struct memif_dload_map {
-	u32 __iomem *magic;
-	u8  __iomem *buff;
-	u32 space;
-};
-
-struct memif_uload_map {
-	u32 __iomem *magic;
-	u8  __iomem *cmd;
-	u32 cmd_size;
-	u8  __iomem *buff;
-	u32 space;
-};
-
 struct dpram_boot_img {
 	char *addr;
 	int size;
@@ -205,23 +173,64 @@ struct dpram_boot_frame {
 	char data[MAX_PAYLOAD_SIZE];
 };
 
+/* buffer type for modem image */
 struct dpram_dump_arg {
 	char *buff;		/* pointer to the buffer	*/
 	int buff_size;		/* buffer size			*/
 	unsigned req;		/* AP->CP request		*/
 	unsigned resp;		/* CP->AP response		*/
-	int cmd;		/* AP->CP command		*/
+	bool cmd;		/* AP->CP command		*/
 };
 
-/* DPRAM upload/download header */
-struct dpram_udl_header {
+struct dpram_boot_map {
+	u32 __iomem *magic;
+	u8  __iomem *buff;
+	u32 __iomem *req;
+	u32 __iomem *resp;
+	u32          size;
+};
+
+struct qc_dpram_boot_map {
+	u8 __iomem *buff;
+	u16 __iomem *frame_size;
+	u16 __iomem *tag;
+	u16 __iomem *count;
+};
+
+struct dpram_dload_map {
+	u32 __iomem *magic;
+	u8  __iomem *buff;
+};
+
+struct dpram_uload_map {
+	u32 __iomem *magic;
+	u8  __iomem *buff;
+};
+
+struct ul_header {
 	u8  bop;
-	u16 num_frames;
+	u16 total_frame;
 	u16 curr_frame;
 	u16 len;
 } __packed;
 
-struct memif_circ_status {
+struct dpram_udl_param {
+	unsigned char *addr;
+	unsigned int size;
+	unsigned int count;
+	unsigned int tag;
+};
+
+struct dpram_udl_check {
+	unsigned int total_size;
+	unsigned int rest_size;
+	unsigned int send_size;
+	unsigned int copy_start;
+	unsigned int copy_complete;
+	unsigned int boot_complete;
+};
+
+struct dpram_circ_status {
 	u8 *buff;
 	unsigned int qsize;	/* the size of a circular buffer */
 	unsigned int in;
@@ -229,43 +238,11 @@ struct memif_circ_status {
 	int size;		/* the size of free space or received data */
 };
 
-#define SHM_4M_FMT_TX_BUFF_SZ	1332
-#define SHM_4M_RAW_TX_BUFF_SZ	(4564+2088952)
-#define SHM_4M_FMT_RX_BUFF_SZ	1332
-#define SHM_4M_RAW_RX_BUFF_SZ	(9124+2088956)
-
-struct shmem_ipc_4m_map {
-	u16 magic;
-	u16 access;
-
-	u32 fmt_tx_head;
-	u32 fmt_tx_tail;
-	u8  fmt_tx_buff[SHM_4M_FMT_TX_BUFF_SZ];
-
-	u32 raw_tx_head;
-	u32 raw_tx_tail;
-	u8  raw_tx_buff[SHM_4M_RAW_TX_BUFF_SZ];
-
-	u32 fmt_rx_head;
-	u32 fmt_rx_tail;
-	u8  fmt_rx_buff[SHM_4M_FMT_RX_BUFF_SZ];
-
-	u32 raw_rx_head;
-	u32 raw_rx_tail;
-	u8  raw_rx_buff[SHM_4M_RAW_RX_BUFF_SZ];
-
-	u16 mbx2ap;
-	u16 mbx2cp;
-} __packed;
-
 #define DP_BOOT_BUFF_OFFSET	4
-#define DP_DLOAD_MAGIC_SIZE	4
 #define DP_DLOAD_BUFF_OFFSET	4
-#define DP_ULOAD_MAGIC_SIZE	4
 #define DP_ULOAD_BUFF_OFFSET	4
 #define DP_BOOT_REQ_OFFSET	0
 #define DP_BOOT_RESP_OFFSET	8
-#define DP_MBX_SET_SIZE		4
 
 static inline bool circ_valid(u32 qsize, u32 in, u32 out)
 {
@@ -607,7 +584,7 @@ static inline struct mem_status *msq_get_data_slot(struct mem_stat_queue *msq)
 struct trace_data {
 	struct timespec ts;
 	enum dev_format dev;
-	struct memif_circ_status stat;
+	struct dpram_circ_status stat;
 	u8 *data;
 	int size;
 };

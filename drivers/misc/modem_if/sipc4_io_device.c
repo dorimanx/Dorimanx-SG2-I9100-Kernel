@@ -1,4 +1,6 @@
-/*
+/* /linux/drivers/misc/modem_if/modem_io_device.c
+ *
+ * Copyright (C) 2010 Google, Inc.
  * Copyright (C) 2010 Samsung Electronics.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -25,6 +27,9 @@
 #include <linux/device.h>
 
 #include <linux/platform_data/modem.h>
+#ifdef CONFIG_LINK_DEVICE_C2C
+#include <linux/platform_data/c2c.h>
+#endif
 #include "modem_prj.h"
 #include "modem_utils.h"
 
@@ -35,7 +40,7 @@
  * So, give restriction to allocation size below 1 page to prevent
  * big pages broken.
  */
-#define MAX_RXDATA_SIZE		(4096 - 512)
+#define MAX_RXDATA_SIZE		0x0E00	/* 4 * 1024 - 512 */
 #define MAX_BOOTDATA_SIZE	0x4008	/* EBL package format*/
 #define MAX_MULTI_FMT_SIZE	0x4000	/* 16 * 1024 */
 
@@ -246,6 +251,22 @@ static int rx_hdlc_head_check(struct io_device *iod, struct link_device *ld,
 		hdr->start = HDLC_START;
 		hdr->len = 0;
 
+		/* debug print */
+		switch (iod->format) {
+		case IPC_FMT:
+		case IPC_RAW:
+		case IPC_MULTI_RAW:
+		case IPC_RFS:
+			/* TODO: print buf...  */
+			break;
+
+		case IPC_CMD:
+		case IPC_BOOT:
+		case IPC_RAMDUMP:
+		default:
+			break;
+		}
+
 		buf += len;
 		done_len += len;
 		rest -= len; /* rest, call by value */
@@ -389,6 +410,12 @@ static int rx_multi_fmt_frame(struct sk_buff *rx_skb)
 		/* If there has been no multiple frame with this ID */
 		if (!(fh->control & 0x80)) {
 			/* It is a single frame because the "more" bit is 0. */
+#if 0
+			mif_err("\n<%s> Rx FMT frame (len %d)\n",
+				iod->name, rcvd);
+			print_sipc4_fmt_frame(data);
+			mif_err("\n");
+#endif
 			skb_queue_tail(&iod->sk_rx_q,
 					fragdata(iod, ld)->skb_recv);
 			mif_debug("wake up wq of %s\n", iod->name);
@@ -423,6 +450,12 @@ static int rx_multi_fmt_frame(struct sk_buff *rx_skb)
 		/* It is the last frame because the "more" bit is 0. */
 		mif_info("The Last (ID %d, %d bytes received)\n",
 			id, skb->len);
+#if 0
+		mif_err("\n<%s> Rx FMT frame (len %d)\n",
+			iod->name, skb->len);
+		print_sipc4_fmt_frame(skb->data);
+		mif_err("\n");
+#endif
 		skb_queue_tail(&iod->sk_rx_q, skb);
 		iod->skb[id] = NULL;
 		mif_info("wake up wq of %s\n", iod->name);
@@ -459,6 +492,12 @@ static int rx_multi_fmt_frame_sipc42(struct sk_buff *rx_skb)
 		/* If there has been no multiple frame with this ID */
 		if (!(fh->control & 0x80)) {
 			/* It is a single frame because the "more" bit is 0. */
+#if 0
+			mif_err("\n<%s> Rx FMT frame (len %d)\n",
+				iod->name, rcvd);
+			print_sipc4_fmt_frame(data);
+			mif_err("\n");
+#endif
 			skb_queue_tail(&real_iod->sk_rx_q,
 					fragdata(iod, ld)->skb_recv);
 			mif_debug("wake up wq of %s\n", iod->name);
@@ -492,6 +531,12 @@ static int rx_multi_fmt_frame_sipc42(struct sk_buff *rx_skb)
 		/* It is the last frame because the "more" bit is 0. */
 		mif_err("The Last (ID %d, %d bytes received)\n",
 			id, skb->len);
+#if 0
+		mif_err("\n<%s> Rx FMT frame (len %d)\n",
+			iod->name, skb->len);
+		print_sipc4_fmt_frame(skb->data);
+		mif_err("\n");
+#endif
 		skb_queue_tail(&real_iod->sk_rx_q, skb);
 		real_iod->skb[id] = NULL;
 		mif_info("wake up wq of %s\n", real_iod->name);
@@ -511,14 +556,14 @@ static int rx_iodev_skb_raw(struct sk_buff *skb)
 	const char source[ETH_ALEN] = SOURCE_MAC_ADDR;
 
 	/* check the real_iod is open? */
-	/*
+#if defined(CONFIG_MACH_U1_KOR_LGT)
 	if (atomic_read(&iod->opened) == 0) {
 		mif_err("<%s> is not opened.\n",
 			iod->name);
 		pr_skb("drop packet", skb);
 		return -ENOENT;
 	}
-	*/
+#endif /* CONFIG_MACH_U1_KOR_LGT */
 
 	switch (iod->io_typ) {
 	case IODEV_MISC:
@@ -775,6 +820,55 @@ exit:
 	return err;
 }
 
+static int rx_rfs_packet(struct io_device *iod, struct link_device *ld,
+					const char *data, unsigned size)
+{
+	int err = 0;
+	int pad = 0;
+	int rcvd = 0;
+	struct sk_buff *skb;
+
+	if (data[0] != HDLC_START) {
+		mif_err("Dropping RFS packet ... "
+		       "size = %d, start = %02X %02X %02X %02X\n",
+			size,
+			data[0], data[1], data[2], data[3]);
+		return -EINVAL;
+	}
+
+	if (data[size-1] != HDLC_END) {
+		for (pad = 1; pad < 4; pad++)
+			if (data[(size-1)-pad] == HDLC_END)
+				break;
+
+		if (pad >= 4) {
+			char *b = (char *)data;
+			unsigned sz = size;
+			mif_err("size %d, No END_FLAG!!!\n", size);
+			mif_err("end = %02X %02X %02X %02X\n",
+				b[sz-4], b[sz-3], b[sz-2], b[sz-1]);
+			return -EINVAL;
+		} else {
+			mif_info("padding = %d\n", pad);
+		}
+	}
+
+	skb = rx_alloc_skb(size, iod, ld);
+	if (unlikely(!skb)) {
+		mif_err("alloc_skb fail\n");
+		return -ENOMEM;
+	}
+
+	/* copy the RFS haeder to skb->data */
+	rcvd = size - sizeof(hdlc_start) - sizeof(hdlc_end) - pad;
+	memcpy(skb_put(skb, rcvd), ((char *)data + sizeof(hdlc_start)), rcvd);
+
+	fragdata(iod, ld)->skb_recv = skb;
+	err = rx_iodev_skb(fragdata(iod, ld)->skb_recv);
+
+	return err;
+}
+
 /* called from link device when a packet arrives for this io device */
 static int io_dev_recv_data_from_link_dev(struct io_device *iod,
 		struct link_device *ld, const char *data, unsigned int len)
@@ -798,9 +892,14 @@ static int io_dev_recv_data_from_link_dev(struct io_device *iod,
 	*/
 
 	switch (iod->format) {
+	case IPC_RFS:
+#ifdef CONFIG_IPC_CMC22x_OLD_RFS
+		err = rx_rfs_packet(iod, ld, data, len);
+		return err;
+#endif
+
 	case IPC_FMT:
 	case IPC_RAW:
-	case IPC_RFS:
 	case IPC_MULTI_RAW:
 		if (iod->waketime)
 			wake_lock_timeout(&iod->wakelock, iod->waketime);
@@ -863,17 +962,12 @@ static int io_dev_recv_data_from_link_dev(struct io_device *iod,
 static void io_dev_modem_state_changed(struct io_device *iod,
 			enum modem_state state)
 {
-	struct modem_ctl *mc = iod->mc;
-	int old_state = mc->phone_state;
+	iod->mc->phone_state = state;
+	mif_err("modem state changed. (iod: %s, state: %d)\n",
+		iod->name, state);
 
-	if (old_state != state) {
-		mc->phone_state = state;
-		mif_err("%s state changed (%s -> %s)\n", mc->name,
-			get_cp_state_str(old_state), get_cp_state_str(state));
-	}
-
-	if (state == STATE_CRASH_RESET || state == STATE_CRASH_EXIT ||
-	    state == STATE_NV_REBUILDING)
+	if ((state == STATE_CRASH_RESET) || (state == STATE_CRASH_EXIT)
+		|| (state == STATE_NV_REBUILDING))
 		wake_up(&iod->wq);
 }
 
@@ -986,32 +1080,32 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case IOCTL_MODEM_ON:
-		mif_debug("%s: IOCTL_MODEM_ON\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_ON\n");
 		return iod->mc->ops.modem_on(iod->mc);
 
 	case IOCTL_MODEM_OFF:
-		mif_debug("%s: IOCTL_MODEM_OFF\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_OFF\n");
 		return iod->mc->ops.modem_off(iod->mc);
 
 	case IOCTL_MODEM_RESET:
-		mif_debug("%s: IOCTL_MODEM_RESET\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_RESET\n");
 		return iod->mc->ops.modem_reset(iod->mc);
 
 	case IOCTL_MODEM_BOOT_ON:
-		mif_debug("%s: IOCTL_MODEM_BOOT_ON\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_BOOT_ON\n");
 		return iod->mc->ops.modem_boot_on(iod->mc);
 
 	case IOCTL_MODEM_BOOT_OFF:
-		mif_debug("%s: IOCTL_MODEM_BOOT_OFF\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_BOOT_OFF\n");
 		return iod->mc->ops.modem_boot_off(iod->mc);
 
 	/* TODO - will remove this command after ril updated */
 	case IOCTL_MODEM_BOOT_DONE:
-		mif_debug("%s: IOCTL_MODEM_BOOT_DONE\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_BOOT_DONE\n");
 		return 0;
 
 	case IOCTL_MODEM_STATUS:
-		mif_debug("%s: IOCTL_MODEM_STATUS\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_STATUS\n");
 
 		p_state = iod->mc->phone_state;
 		if ((p_state == STATE_CRASH_RESET) ||
@@ -1034,7 +1128,7 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return p_state;
 
 	case IOCTL_MODEM_PROTOCOL_SUSPEND:
-		mif_info("%s: IOCTL_MODEM_PROTOCOL_SUSPEND\n", iod->name);
+		mif_info("misc_ioctl : IOCTL_MODEM_PROTOCOL_SUSPEND\n");
 
 		if (iod->format != IPC_MULTI_RAW)
 			return -EINVAL;
@@ -1042,16 +1136,8 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		iodevs_for_each(iod->msd, iodev_netif_stop, 0);
 		return 0;
 
-	case IOCTL_MODEM_DL_START:
-		mif_info("%s: IOCTL_MODEM_DL_START\n", iod->name);
-		return ld->dload_start(ld, iod);
-
-	case IOCTL_MODEM_FW_UPDATE:
-		mif_info("%s: IOCTL_MODEM_FW_UPDATE\n", iod->name);
-		return ld->firm_update(ld, iod, arg);
-
 	case IOCTL_MODEM_PROTOCOL_RESUME:
-		mif_info("%s: IOCTL_MODEM_PROTOCOL_RESUME\n", iod->name);
+		mif_info("misc_ioctl : IOCTL_MODEM_PROTOCOL_RESUME\n");
 
 		if (iod->format != IPC_MULTI_RAW)
 			return -EINVAL;
@@ -1060,29 +1146,21 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return 0;
 
 	case IOCTL_MODEM_DUMP_START:
-		mif_err("%s: IOCTL_MODEM_DUMP_START\n", iod->name);
-		return ld->dump_start(ld, iod);
-
-	case IOCTL_MODEM_RAMDUMP_START:
-		mif_err("%s: IOCTL_MODEM_RAMDUMP_START\n", iod->name);
+		mif_err("misc_ioctl : IOCTL_MODEM_DUMP_START\n");
 		return ld->dump_start(ld, iod);
 
 	case IOCTL_MODEM_DUMP_UPDATE:
-		mif_debug("%s: IOCTL_MODEM_DUMP_UPDATE\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_DUMP_UPDATE\n");
 		return ld->dump_update(ld, iod, arg);
 
-	case IOCTL_MODEM_RAMDUMP_STOP:
-		mif_info("%s: IOCTL_MODEM_RAMDUMP_STOP\n", iod->name);
-		return ld->dump_finish(ld, iod, arg);
-
 	case IOCTL_MODEM_FORCE_CRASH_EXIT:
-		mif_debug("%s: IOCTL_MODEM_FORCE_CRASH_EXIT\n", iod->name);
+		mif_debug("misc_ioctl : IOCTL_MODEM_FORCE_CRASH_EXIT\n");
 		if (iod->mc->ops.modem_force_crash_exit)
 			return iod->mc->ops.modem_force_crash_exit(iod->mc);
 		return -EINVAL;
 
 	case IOCTL_MODEM_CP_UPLOAD:
-		mif_err("%s: IOCTL_MODEM_CP_UPLOAD\n", iod->name);
+		mif_err("misc_ioctl : IOCTL_MODEM_CP_UPLOAD\n");
 		if (copy_from_user(cpinfo_buf + strlen(cpinfo_buf),
 			(void __user *)arg, MAX_CPINFO_SIZE) != 0)
 			panic("CP Crash");
@@ -1091,12 +1169,12 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return 0;
 
 	case IOCTL_MODEM_DUMP_RESET:
-		mif_err("%s: IOCTL_MODEM_DUMP_RESET\n", iod->name);
+		mif_err("misc_ioctl : IOCTL_MODEM_DUMP_RESET\n");
 		return iod->mc->ops.modem_dump_reset(iod->mc);
 
 #if defined(CONFIG_SEC_DUAL_MODEM_MODE)
 	case IOCTL_MODEM_SWITCH_MODEM:
-		mif_err("%s: IOCTL_MODEM_SWITCH_MODEM\n", iod->name);
+		mif_err("misc_ioctl : IOCTL_MODEM_SWITCH_MODEM\n");
 		iod->mc->phone_state = STATE_MODEM_SWITCH;
 		wake_up(&iod->wq);
 		return 0;
@@ -1115,7 +1193,7 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case IOCTL_MIF_DPRAM_DUMP:
 #ifdef CONFIG_LINK_DEVICE_DPRAM
 		if (iod->mc->mdm_data->link_types & LINKTYPE(LINKDEV_DPRAM)) {
-			size = iod->mc->mdm_data->dpram->size;
+			size = iod->mc->mdm_data->dpram_ctl->dp_size;
 			ret = copy_to_user((void __user *)arg, &size,
 				sizeof(unsigned long));
 			if (ret < 0)
@@ -1133,7 +1211,7 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (ld->ioctl)
 			return ld->ioctl(ld, iod, cmd, arg);
 
-		mif_err("%s: ioctl 0x%X is not defined\n", iod->name, cmd);
+		mif_err("misc_ioctl : ioctl 0x%X is not defined.\n", cmd);
 		return -EINVAL;
 	}
 	return 0;
@@ -1242,6 +1320,31 @@ static ssize_t misc_write(struct file *filp, const char __user *buf,
 
 	skb_put(skb, calc_padding_size(iod, ld, skb->len));
 
+#if 0
+	if (iod->format == IPC_FMT) {
+		mif_err("\n<%s> Tx HDLC FMT frame (len %d)\n",
+			iod->name, skb->len);
+		print_sipc4_hdlc_fmt_frame(skb->data);
+		mif_err("\n");
+	}
+#endif
+#if 0
+	if (iod->format == IPC_RAW) {
+		mif_err("\n<%s> Tx HDLC RAW frame (len %d)\n",
+			iod->name, skb->len);
+		mif_print_data(skb->data, (skb->len < 64 ? skb->len : 64));
+		mif_err("\n");
+	}
+#endif
+#if 0
+	if (iod->format == IPC_RFS) {
+		mif_err("\n<%s> Tx HDLC RFS frame (len %d)\n",
+			iod->name, skb->len);
+		mif_print_data(skb->data, (skb->len < 64 ? skb->len : 64));
+		mif_err("\n");
+	}
+#endif
+
 	/* send data with sk_buff, link device will put sk_buff
 	 * into the specific sk_buff_q and run work-q to send data
 	 */
@@ -1348,6 +1451,43 @@ static ssize_t misc_read(struct file *filp, char *buf, size_t count,
 	return pktsize;
 }
 
+#ifdef CONFIG_LINK_DEVICE_C2C
+static int misc_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+	int r = 0;
+	unsigned long size = 0;
+	unsigned long pfn = 0;
+	unsigned long offset = 0;
+	struct io_device *iod = (struct io_device *)filp->private_data;
+
+	if (!vma)
+		return -EFAULT;
+
+	size = vma->vm_end - vma->vm_start;
+	offset = vma->vm_pgoff << PAGE_SHIFT;
+	if (offset + size > (C2C_CP_RGN_SIZE + C2C_SH_RGN_SIZE)) {
+		mif_err("offset + size > C2C_CP_RGN_SIZE\n");
+		return -EINVAL;
+	}
+
+	/* Set the noncacheable property to the region */
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	vma->vm_flags |= VM_RESERVED | VM_IO;
+
+	pfn = __phys_to_pfn(C2C_CP_RGN_ADDR + offset);
+	r = remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot);
+	if (r) {
+		mif_err("Failed in remap_pfn_range()!!!\n");
+		return -EAGAIN;
+	}
+
+	mif_err("VA = 0x%08lx, offset = 0x%lx, size = %lu\n",
+		vma->vm_start, offset, size);
+
+	return 0;
+}
+#endif
+
 static const struct file_operations misc_io_fops = {
 	.owner = THIS_MODULE,
 	.open = misc_open,
@@ -1356,6 +1496,9 @@ static const struct file_operations misc_io_fops = {
 	.unlocked_ioctl = misc_ioctl,
 	.write = misc_write,
 	.read = misc_read,
+#ifdef CONFIG_LINK_DEVICE_C2C
+	.mmap = misc_mmap,
+#endif
 };
 
 static int vnet_open(struct net_device *ndev)

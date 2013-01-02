@@ -1,4 +1,5 @@
-/*
+/* /linux/drivers/misc/modem_if/sipc5_io_device.c
+ *
  * Copyright (C) 2010 Samsung Electronics.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -25,6 +26,9 @@
 #include <linux/device.h>
 
 #include <linux/platform_data/modem.h>
+#ifdef CONFIG_LINK_DEVICE_C2C
+#include <linux/platform_data/c2c.h>
+#endif
 #include "modem_prj.h"
 #include "modem_utils.h"
 
@@ -127,7 +131,7 @@ static struct device_attribute attr_txlink =
 	__ATTR(txlink, S_IRUGO | S_IWUSR, show_txlink, store_txlink);
 
 /**
- * check_sipc5_frame_cfg
+ * rx_check_frame_cfg
  * @cfg: configuration field of a link layer header
  * @frm: pointer to the sipc5_frame_data buffer
  *
@@ -139,7 +143,7 @@ static struct device_attribute attr_txlink =
  * Must be invoked only when the configuration field of the link layer header
  * is validated with sipc5_start_valid() function
  */
-static int check_sipc5_frame_cfg(u8 cfg, struct sipc5_frame_data *frm)
+static int rx_check_frame_cfg(u8 cfg, struct sipc5_frame_data *frm)
 {
 	frm->config = cfg;
 
@@ -162,7 +166,7 @@ static int check_sipc5_frame_cfg(u8 cfg, struct sipc5_frame_data *frm)
 }
 
 /**
- * build_sipc5_meta_data
+ * rx_build_meta_data
  * @ld: pointer to the link device
  * @frm: pointer to the sipc5_frame_data buffer
  *
@@ -173,7 +177,7 @@ static int check_sipc5_frame_cfg(u8 cfg, struct sipc5_frame_data *frm)
  * 4) Calculates the length of an IPC message packet in the link layer frame
  *
  */
-static void build_sipc5_meta_data(struct link_device *ld,
+static void rx_build_meta_data(struct link_device *ld,
 		struct sipc5_frame_data *frm)
 {
 	u16 *sz16 = (u16 *)(frm->hdr + SIPC5_LEN_OFFSET);
@@ -196,7 +200,7 @@ static void build_sipc5_meta_data(struct link_device *ld,
 }
 
 /**
- * build_sipc5_link_header
+ * tx_build_link_header
  * @frm: pointer to the sipc5_frame_data buffer
  * @iod: pointer to the IO device
  * @ld: pointer to the link device
@@ -205,7 +209,7 @@ static void build_sipc5_meta_data(struct link_device *ld,
  * Builds the meta data for an SIPC5 frame and the link layer header of it
  * Returns the link layer header length for an SIPC5 frame or 0 for other frame
  */
-static unsigned build_sipc5_link_header(struct sipc5_frame_data *frm,
+static unsigned tx_build_link_header(struct sipc5_frame_data *frm,
 		struct io_device *iod, struct link_device *ld, ssize_t count)
 {
 	u8 *buff = frm->hdr;
@@ -257,32 +261,7 @@ static unsigned build_sipc5_link_header(struct sipc5_frame_data *frm,
 	return frm->hdr_len;
 }
 
-static int netif_flow_ctrl(struct link_device *ld, struct sk_buff *skb)
-{
-	u8 cmd = skb->data[0];
-
-	if (cmd == FLOW_CTRL_SUSPEND) {
-		if (ld->suspend_netif_tx)
-			goto exit;
-		ld->suspend_netif_tx = true;
-		mif_netif_stop(ld);
-		mif_info("%s: FLOW_CTRL_SUSPEND\n", ld->name);
-	} else if (cmd == FLOW_CTRL_RESUME) {
-		if (!ld->suspend_netif_tx)
-			goto exit;
-		ld->suspend_netif_tx = false;
-		mif_netif_wake(ld);
-		mif_info("%s: FLOW_CTRL_RESUME\n", ld->name);
-	} else {
-		mif_info("%s: ERR! invalid command %02X\n", ld->name, cmd);
-	}
-
-exit:
-	dev_kfree_skb_any(skb);
-	return 0;
-}
-
-static inline int queue_skb_to_iod(struct sk_buff *skb, struct io_device *iod)
+static inline int enqueue_skb_to_iod(struct sk_buff *skb, struct io_device *iod)
 {
 	struct sk_buff_head *rxq = &iod->sk_rx_q;
 	struct sk_buff *victim;
@@ -302,41 +281,6 @@ static inline int queue_skb_to_iod(struct sk_buff *skb, struct io_device *iod)
 	}
 }
 
-static int rx_loopback(struct sk_buff *skb)
-{
-	struct io_device *iod = skbpriv(skb)->iod;
-	struct link_device *ld = get_current_link(iod);
-	struct sipc5_frame_data frm;
-	unsigned headroom;
-	unsigned tailroom = 0;
-	int ret;
-
-	headroom = build_sipc5_link_header(&frm, iod, ld, skb->len);
-
-	if (ld->aligned)
-		tailroom = sipc5_calc_padding_size(headroom + skb->len);
-
-	/* We need not to expand skb in here. dev_alloc_skb (in rx_alloc_skb)
-	 * already alloc 32bytes padding in headroom. 32bytes are enough.
-	 */
-
-	/* store IPC link header to start of skb
-	 * this is skb_push not skb_put. different with misc_write.
-	 */
-	memcpy(skb_push(skb, headroom), frm.hdr, headroom);
-
-	/* store padding */
-	if (tailroom)
-		skb_put(skb, tailroom);
-
-	/* forward */
-	ret = ld->send(ld, iod, skb);
-	if (ret < 0)
-		mif_err("%s->%s: ld->send fail: %d\n", iod->name,
-				ld->name, ret);
-	return ret;
-}
-
 static int rx_fmt_frame(struct sk_buff *skb)
 {
 	struct io_device *iod = skbpriv(skb)->iod;
@@ -354,7 +298,7 @@ static int rx_fmt_frame(struct sk_buff *skb)
 			/*
 			** It is a single frame because the "more" bit is 0.
 			*/
-			queue_skb_to_iod(skb, iod);
+			enqueue_skb_to_iod(skb, iod);
 			wake_up(&iod->wq);
 			return 0;
 		}
@@ -391,7 +335,7 @@ static int rx_fmt_frame(struct sk_buff *skb)
 		/* It is the last frame because the "more" bit is 0. */
 		mif_debug("%s: end multi-frame (ID:%d rcvd:%d)\n",
 			iod->name, id, rx_skb->len);
-		queue_skb_to_iod(rx_skb, iod);
+		enqueue_skb_to_iod(rx_skb, iod);
 		iod->skb[id] = NULL;
 		wake_up(&iod->wq);
 	}
@@ -403,7 +347,7 @@ static int rx_raw_misc(struct sk_buff *skb)
 {
 	struct io_device *iod = skbpriv(skb)->iod; /* same with real_iod */
 
-	queue_skb_to_iod(skb, iod);
+	enqueue_skb_to_iod(skb, iod);
 	wake_up(&iod->wq);
 
 	return 0;
@@ -458,6 +402,66 @@ static int rx_multi_pdp(struct sk_buff *skb)
 	return ret;
 }
 
+static int rx_loopback(struct sk_buff *skb)
+{
+	struct io_device *iod = skbpriv(skb)->iod;
+	struct link_device *ld = get_current_link(iod);
+	struct sipc5_frame_data frm;
+	unsigned headroom;
+	unsigned tailroom = 0;
+	int ret;
+
+	headroom = tx_build_link_header(&frm, iod, ld, skb->len);
+
+	if (ld->aligned)
+		tailroom = sipc5_calc_padding_size(headroom + skb->len);
+
+	/* We need not to expand skb in here. dev_alloc_skb (in rx_alloc_skb)
+	 * already alloc 32bytes padding in headroom. 32bytes are enough.
+	 */
+
+	/* store IPC link header to start of skb
+	 * this is skb_push not skb_put. different with misc_write.
+	 */
+	memcpy(skb_push(skb, headroom), frm.hdr, headroom);
+
+	/* store padding */
+	if (tailroom)
+		skb_put(skb, tailroom);
+
+	/* forward */
+	ret = ld->send(ld, iod, skb);
+	if (ret < 0)
+		mif_err("%s->%s: ld->send fail: %d\n", iod->name,
+				ld->name, ret);
+	return ret;
+}
+
+static int rx_netif_flow_ctrl(struct link_device *ld, struct sk_buff *skb)
+{
+	u8 cmd = skb->data[0];
+
+	if (cmd == FLOW_CTRL_SUSPEND) {
+		if (ld->suspend_netif_tx)
+			goto exit;
+		ld->suspend_netif_tx = true;
+		mif_netif_stop(ld);
+		mif_info("%s: FLOW_CTRL_SUSPEND\n", ld->name);
+	} else if (cmd == FLOW_CTRL_RESUME) {
+		if (!ld->suspend_netif_tx)
+			goto exit;
+		ld->suspend_netif_tx = false;
+		mif_netif_wake(ld);
+		mif_info("%s: FLOW_CTRL_RESUME\n", ld->name);
+	} else {
+		mif_info("%s: ERR! invalid command %02X\n", ld->name, cmd);
+	}
+
+exit:
+	dev_kfree_skb_any(skb);
+	return 0;
+}
+
 static int rx_demux(struct link_device *ld, struct sk_buff *skb)
 {
 	struct io_device *iod = NULL;
@@ -470,7 +474,7 @@ static int rx_demux(struct link_device *ld, struct sk_buff *skb)
 	}
 
 	if (unlikely(ch == SIPC5_CH_ID_FLOW_CTRL))
-		return netif_flow_ctrl(ld, skb);
+		return rx_netif_flow_ctrl(ld, skb);
 
 	/* IP loopback */
 	if (ch == DATA_LOOPBACK_CHANNEL && ld->msd->loopback_ipaddr)
@@ -506,7 +510,7 @@ static int rx_demux(struct link_device *ld, struct sk_buff *skb)
 }
 
 /* Check and store link layer header, then alloc an skb */
-static int rx_header_from_buff(struct io_device *iod, struct link_device *ld,
+static int rx_header_from_serial(struct io_device *iod, struct link_device *ld,
 		u8 *buff, unsigned size, struct sipc5_frame_data *frm)
 {
 	char *link = ld->name;
@@ -521,7 +525,7 @@ static int rx_header_from_buff(struct io_device *iod, struct link_device *ld,
 			mif_info("%s: ERR! wrong start (0x%02x)\n", link, cfg);
 			return -EBADMSG;
 		}
-		check_sipc5_frame_cfg(cfg, frm);
+		rx_check_frame_cfg(cfg, frm);
 
 		/* Copy the link layer header to the header buffer */
 		len = min(frm->hdr_len, size);
@@ -538,7 +542,7 @@ static int rx_header_from_buff(struct io_device *iod, struct link_device *ld,
 		link, frm->hdr_len, frm->hdr_rcvd);
 
 	if (frm->hdr_rcvd >= frm->hdr_len) {
-		build_sipc5_meta_data(ld, frm);
+		rx_build_meta_data(ld, frm);
 		skb = rx_alloc_skb(frm->data_len, iod, ld);
 		fragdata(iod, ld)->skb_recv = skb;
 		skbpriv(skb)->ch_id = frm->ch_id;
@@ -548,8 +552,8 @@ static int rx_header_from_buff(struct io_device *iod, struct link_device *ld,
 	return len;
 }
 
-/* Copy payload to skb */
-static int rx_payload_from_buff(struct io_device *iod, struct link_device *ld,
+/* copy data to skb */
+static int rx_payload_from_serial(struct io_device *iod, struct link_device *ld,
 		u8 *buff, unsigned size, struct sipc5_frame_data *frm)
 {
 	struct sk_buff *skb = fragdata(iod, ld)->skb_recv;
@@ -575,7 +579,7 @@ static int rx_payload_from_buff(struct io_device *iod, struct link_device *ld,
 	return len;
 }
 
-static int recv_frame_from_buff(struct io_device *iod, struct link_device *ld,
+static int rx_frame_from_serial(struct io_device *iod, struct link_device *ld,
 		const char *data, unsigned size)
 {
 	struct sipc5_frame_data *frm = &fragdata(iod, ld)->f_data;
@@ -591,7 +595,7 @@ static int recv_frame_from_buff(struct io_device *iod, struct link_device *ld,
 	if (frm->hdr_rcvd >= frm->hdr_len && frm->data_rcvd < frm->data_len) {
 		/*
 		** There is an skb that is waiting for more SIPC5 data.
-		** In this case, rx_header_from_buff() must be skipped.
+		** In this case, rx_header_from_serial() must be skipped.
 		*/
 		mif_debug("%s: FRM data.len:%d data.rcvd:%d -> recv_data\n",
 			link, frm->data_len, frm->data_rcvd);
@@ -600,7 +604,7 @@ static int recv_frame_from_buff(struct io_device *iod, struct link_device *ld,
 
 next_frame:
 	/* Receive and analyze header, then prepare an akb */
-	err = done = rx_header_from_buff(iod, ld, buff, rest, frm);
+	err = done = rx_header_from_serial(iod, ld, buff, rest, frm);
 	if (err < 0)
 		goto err_exit;
 
@@ -618,7 +622,7 @@ recv_data:
 
 	mif_debug("%s: done:%d rest:%d -> rx_payload()\n", link, done, rest);
 
-	done = rx_payload_from_buff(iod, ld, buff, rest, frm);
+	done = rx_payload_from_serial(iod, ld, buff, rest, frm);
 	buff += done;
 	rest -= done;
 
@@ -688,6 +692,140 @@ err_range:
 	return size;
 }
 
+/**
+ * rx_header_from_mem
+ * @ld: pointer to the link device
+ * @buff: pointer to the frame
+ * @rest: size of the frame
+ * @frm: pointer to the sipc5_frame_data buffer
+ *
+ * 1) Verifies a link layer header configuration of a frame
+ * 2) Stores the link layer header to the header buffer
+ * 3) Builds and stores the meta data of the frame into a meta data buffer
+ * 4) Verifies the length of the frame
+ *
+ * Returns SIPC5 header length
+ */
+static int rx_header_from_mem(struct link_device *ld, u8 *buff, unsigned rest,
+		struct sipc5_frame_data *frm)
+{
+	char *link = ld->name;
+	u8 cfg = buff[0];
+
+	/* Verify link layer header configuration */
+	if (unlikely(!sipc5_start_valid(cfg))) {
+		mif_info("%s: ERR! wrong start (0x%02x)\n", link, cfg);
+		return -EBADMSG;
+	}
+	rx_check_frame_cfg(cfg, frm);
+
+	/* Store the link layer header to the header buffer */
+	memcpy(frm->hdr, buff, frm->hdr_len);
+	frm->hdr_rcvd = frm->hdr_len;
+
+	/* Build and store the meta data of this frame */
+	rx_build_meta_data(ld, frm);
+
+	/* Verify frame length */
+	if (unlikely(frm->len > rest)) {
+		mif_info("%s: ERR! frame length %d > rest %d\n",
+			link, frm->len, rest);
+		return -EBADMSG;
+	}
+
+	return frm->hdr_rcvd;
+}
+
+/* copy data to skb */
+static int rx_payload_from_mem(struct sk_buff *skb, u8 *buff, unsigned len)
+{
+	/* If there is no skb, data must be dropped. */
+	if (skb)
+		memcpy(skb_put(skb, len), buff, len);
+	return len;
+}
+
+static int rx_frame_from_mem(struct io_device *iod, struct link_device *ld,
+		const char *data, unsigned size)
+{
+	struct sipc5_frame_data *frm = &fragdata(iod, ld)->f_data;
+	struct sk_buff *skb;
+	char *link = ld->name;
+	u8 *buff = (u8 *)data;
+	int rest = (int)size;
+	int len;
+	int done;
+
+	mif_debug("%s: size = %d\n", link, size);
+
+	while (rest > 0) {
+		/* Initialize the frame data buffer */
+		memset(frm, 0, sizeof(struct sipc5_frame_data));
+		skb = NULL;
+
+		/* Receive and analyze link layer header */
+		done = rx_header_from_mem(ld, buff, rest, frm);
+		if (unlikely(done < 0))
+			return -EBADMSG;
+
+		/* Verify rest size */
+		rest -= done;
+		if (rest < 0) {
+			mif_info("%s: ERR! rx_header -> rest %d\n", link, rest);
+			return -ERANGE;
+		}
+
+		/* Move buff pointer to the payload */
+		buff += done;
+
+		/* Prepare an akb */
+		len = frm->data_len;
+		skb = rx_alloc_skb(len, iod, ld);
+
+		/* Store channel ID and control fields to the CB of the skb */
+		skbpriv(skb)->ch_id = frm->ch_id;
+		skbpriv(skb)->control = frm->control;
+
+		/* Receive payload */
+		mif_debug("%s: done:%d rest:%d len:%d -> rx_payload()\n",
+			link, done, rest, len);
+		done = rx_payload_from_mem(skb, buff, len);
+		rest -= done;
+		if (rest < 0) {
+			mif_info("%s: ERR! rx_payload() -> rest %d\n",
+				link, rest);
+			if (skb)
+				dev_kfree_skb_any(skb);
+			return -ERANGE;
+		}
+		buff += done;
+
+		/* A padding size is applied to access the next IPC frame. */
+		if (frm->padding) {
+			done = sipc5_calc_padding_size(frm->len);
+			if (done > rest) {
+				mif_info("%s: ERR! padding %d > rest %d\n",
+					link, done, rest);
+				if (skb)
+					dev_kfree_skb_any(skb);
+				return -ERANGE;
+			}
+			buff += done;
+			rest -= done;
+		}
+
+		if (likely(skb)) {
+			mif_debug("%s: len:%d -> rx_demux()\n", link, skb->len);
+			if (rx_demux(ld, skb) < 0)
+				dev_kfree_skb_any(skb);
+		} else {
+			mif_debug("%s: len:%d -> drop\n", link, skb->len);
+		}
+	}
+
+	return 0;
+}
+
 /* called from link device when a packet arrives for this io device */
 static int io_dev_recv_data_from_link_dev(struct io_device *iod,
 		struct link_device *ld, const char *data, unsigned int len)
@@ -714,7 +852,11 @@ static int io_dev_recv_data_from_link_dev(struct io_device *iod,
 		if (iod->waketime)
 			wake_lock_timeout(&iod->wakelock, iod->waketime);
 
-		err = recv_frame_from_buff(iod, ld, data, len);
+		if (ld->link_type == LINKDEV_DPRAM && ld->aligned)
+			err = rx_frame_from_mem(iod, ld, data, len);
+		else
+			err = rx_frame_from_serial(iod, ld, data, len);
+
 		if (err < 0)
 			mif_info("%s: ERR! rx_frame_from_link fail (err %d)\n",
 				link, err);
@@ -735,7 +877,7 @@ static int io_dev_recv_data_from_link_dev(struct io_device *iod,
 
 		memcpy(skb_put(skb, len), data, len);
 
-		queue_skb_to_iod(skb, iod);
+		enqueue_skb_to_iod(skb, iod);
 		wake_up(&iod->wq);
 
 		return len;
@@ -746,7 +888,7 @@ static int io_dev_recv_data_from_link_dev(struct io_device *iod,
 	}
 }
 
-static int recv_frame_from_skb(struct io_device *iod, struct link_device *ld,
+static int rx_frame_from_skb(struct io_device *iod, struct link_device *ld,
 		struct sk_buff *skb)
 {
 	struct sipc5_frame_data *frm = &fragdata(iod, ld)->f_data;
@@ -761,14 +903,14 @@ static int recv_frame_from_skb(struct io_device *iod, struct link_device *ld,
 	*/
 
 	/* Analyze the configuration of the link layer header */
-	check_sipc5_frame_cfg(cfg, frm);
+	rx_check_frame_cfg(cfg, frm);
 
 	/* Store the link layer header to the header buffer */
 	memcpy(frm->hdr, skb->data, frm->hdr_len);
 	frm->hdr_rcvd = frm->hdr_len;
 
 	/* Build and store the meta data of this frame */
-	build_sipc5_meta_data(ld, frm);
+	rx_build_meta_data(ld, frm);
 
 	/*
 	** The length of the frame has already been checked in the link device.
@@ -807,9 +949,9 @@ static int io_dev_recv_skb_from_link_dev(struct io_device *iod,
 		if (iod->waketime)
 			wake_lock_timeout(&iod->wakelock, iod->waketime);
 
-		err = recv_frame_from_skb(iod, ld, skb);
+		err = rx_frame_from_skb(iod, ld, skb);
 		if (err < 0)
-			mif_info("%s: ERR! recv_frame_from_skb fail (err %d)\n",
+			mif_info("%s: ERR! rx_frame_from_skb fail (err %d)\n",
 				link, err);
 
 		return err;
@@ -826,14 +968,10 @@ static int io_dev_recv_skb_from_link_dev(struct io_device *iod,
 static void io_dev_modem_state_changed(struct io_device *iod,
 			enum modem_state state)
 {
-	struct modem_ctl *mc = iod->mc;
-	int old_state = mc->phone_state;
+	mif_info("%s: %s state changed (state %d)\n",
+		iod->name, iod->mc->name, state);
 
-	if (old_state != state) {
-		mc->phone_state = state;
-		mif_err("%s state changed (%s -> %s)\n", mc->name,
-			get_cp_state_str(old_state), get_cp_state_str(state));
-	}
+	iod->mc->phone_state = state;
 
 	if (state == STATE_CRASH_RESET || state == STATE_CRASH_EXIT ||
 	    state == STATE_NV_REBUILDING)
@@ -942,61 +1080,55 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	int p_state;
 	struct io_device *iod = (struct io_device *)filp->private_data;
 	struct link_device *ld = get_current_link(iod);
-	struct modem_ctl *mc = iod->mc;
-	int err;
-	char *buff;
-	void __user *user_buff;
+	char cpinfo_buf[530] = "CP Crash ";
 	unsigned long size;
+	int ret;
 
 	switch (cmd) {
 	case IOCTL_MODEM_ON:
-		mif_err("%s: IOCTL_MODEM_ON\n", iod->name);
-		if (!mc->ops.modem_on) {
-			mif_err("%s: !mc->ops.modem_on\n", iod->name);
-			return -ENODEV;
-		}
-		return mc->ops.modem_on(mc);
+		mif_info("%s: IOCTL_MODEM_ON\n", iod->name);
+		return iod->mc->ops.modem_on(iod->mc);
 
 	case IOCTL_MODEM_OFF:
-		mif_err("%s: IOCTL_MODEM_OFF\n", iod->name);
-		return mc->ops.modem_off(mc);
+		mif_info("%s: IOCTL_MODEM_OFF\n", iod->name);
+		return iod->mc->ops.modem_off(iod->mc);
 
 	case IOCTL_MODEM_RESET:
-		mif_err("%s: IOCTL_MODEM_RESET\n", iod->name);
-		return mc->ops.modem_reset(mc);
+		mif_info("%s: IOCTL_MODEM_RESET\n", iod->name);
+		return iod->mc->ops.modem_reset(iod->mc);
 
 	case IOCTL_MODEM_BOOT_ON:
-		mif_err("%s: IOCTL_MODEM_BOOT_ON\n", iod->name);
-		return mc->ops.modem_boot_on(mc);
+		mif_info("%s: IOCTL_MODEM_BOOT_ON\n", iod->name);
+		return iod->mc->ops.modem_boot_on(iod->mc);
 
 	case IOCTL_MODEM_BOOT_OFF:
-		mif_err("%s: IOCTL_MODEM_BOOT_OFF\n", iod->name);
-		return mc->ops.modem_boot_off(mc);
+		mif_info("%s: IOCTL_MODEM_BOOT_OFF\n", iod->name);
+		return iod->mc->ops.modem_boot_off(iod->mc);
 
 	case IOCTL_MODEM_BOOT_DONE:
 		mif_err("%s: IOCTL_MODEM_BOOT_DONE\n", iod->name);
-		if (mc->ops.modem_boot_done)
-			return mc->ops.modem_boot_done(mc);
+		if (iod->mc->ops.modem_boot_done)
+			return iod->mc->ops.modem_boot_done(iod->mc);
 		else
 			return 0;
 
 	case IOCTL_MODEM_STATUS:
 		mif_debug("%s: IOCTL_MODEM_STATUS\n", iod->name);
 
-		p_state = mc->phone_state;
+		p_state = iod->mc->phone_state;
 		if ((p_state == STATE_CRASH_RESET) ||
 		    (p_state == STATE_CRASH_EXIT)) {
-			mif_info("%s: IOCTL_MODEM_STATUS (state %s)\n",
-				iod->name, get_cp_state_str(p_state));
-		} else if (mc->sim_state.changed) {
-			int s_state = mc->sim_state.online ?
+			mif_info("%s: IOCTL_MODEM_STATUS (state %d)\n",
+				iod->name, p_state);
+		} else if (iod->mc->sim_state.changed) {
+			int s_state = iod->mc->sim_state.online ?
 					STATE_SIM_ATTACH : STATE_SIM_DETACH;
-			mc->sim_state.changed = false;
+			iod->mc->sim_state.changed = false;
 			return s_state;
 		} else if (p_state == STATE_NV_REBUILDING) {
-			mif_info("%s: IOCTL_MODEM_STATUS (state %s)\n",
-				iod->name, get_cp_state_str(p_state));
-			mc->phone_state = STATE_ONLINE;
+			mif_info("%s: IOCTL_MODEM_STATUS (state %d)\n",
+				iod->name, p_state);
+			iod->mc->phone_state = STATE_ONLINE;
 		}
 		return p_state;
 
@@ -1020,92 +1152,56 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		iodevs_for_each(iod->msd, iodev_netif_wake, 0);
 		return 0;
 
-	case IOCTL_MODEM_XMIT_BOOT:
-		mif_info("%s: IOCTL_MODEM_XMIT_BOOT\n", iod->name);
-		return ld->xmit_boot(ld, iod, arg);
-
-	case IOCTL_MODEM_DL_START:
-		mif_info("%s: IOCTL_MODEM_DL_START\n", iod->name);
-		return ld->dload_start(ld, iod);
-
-	case IOCTL_MODEM_FW_UPDATE:
-		mif_info("%s: IOCTL_MODEM_FW_UPDATE\n", iod->name);
-		return ld->firm_update(ld, iod, arg);
-
 	case IOCTL_MODEM_DUMP_START:
-		mif_err("%s: IOCTL_MODEM_DUMP_START\n", iod->name);
-		return ld->dump_start(ld, iod);
-
-	case IOCTL_MODEM_RAMDUMP_START:
-		mif_info("%s: IOCTL_MODEM_RAMDUMP_START\n", iod->name);
+		mif_info("%s: IOCTL_MODEM_DUMP_START\n", iod->name);
 		return ld->dump_start(ld, iod);
 
 	case IOCTL_MODEM_DUMP_UPDATE:
-		mif_err("%s: IOCTL_MODEM_DUMP_UPDATE\n", iod->name);
+		mif_debug("%s: IOCTL_MODEM_DUMP_UPDATE\n", iod->name);
 		return ld->dump_update(ld, iod, arg);
 
-	case IOCTL_MODEM_RAMDUMP_STOP:
-		mif_info("%s: IOCTL_MODEM_RAMDUMP_STOP\n", iod->name);
-		return ld->dump_finish(ld, iod, arg);
-
 	case IOCTL_MODEM_FORCE_CRASH_EXIT:
-		mif_err("%s: IOCTL_MODEM_FORCE_CRASH_EXIT\n", iod->name);
-		if (mc->ops.modem_force_crash_exit)
-			return mc->ops.modem_force_crash_exit(mc);
+		mif_info("%s: IOCTL_MODEM_FORCE_CRASH_EXIT\n", iod->name);
+		if (iod->mc->ops.modem_force_crash_exit)
+			return iod->mc->ops.modem_force_crash_exit(iod->mc);
 		return -EINVAL;
 
 	case IOCTL_MODEM_CP_UPLOAD:
 		mif_info("%s: IOCTL_MODEM_CP_UPLOAD\n", iod->name);
-		strcpy(iod->msd->cp_crash_info, CP_CRASH_TAG);
-		if (arg) {
-			buff = iod->msd->cp_crash_info + strlen(CP_CRASH_TAG);
-			user_buff = (void __user *)arg;
-			err = copy_from_user(buff, user_buff, MAX_CPINFO_SIZE);
-		}
-		panic(iod->msd->cp_crash_info);
+		if (copy_from_user(cpinfo_buf + strlen(cpinfo_buf),
+			(void __user *)arg, MAX_CPINFO_SIZE) != 0)
+			return -EFAULT;
+		panic(cpinfo_buf);
 		return 0;
 
 	case IOCTL_MODEM_DUMP_RESET:
 		mif_info("%s: IOCTL_MODEM_DUMP_RESET\n", iod->name);
-		return mc->ops.modem_dump_reset(mc);
+		return iod->mc->ops.modem_dump_reset(iod->mc);
 
 	case IOCTL_MIF_LOG_DUMP:
 		iodevs_for_each(iod->msd, iodev_dump_status, 0);
-		user_buff = (void __user *)arg;
 		size = MAX_MIF_BUFF_SIZE;
-		err = copy_to_user(user_buff, &size, sizeof(unsigned long));
-		if (err < 0)
+		ret = copy_to_user((void __user *)arg, &size,
+			sizeof(unsigned long));
+		if (ret < 0)
 			return -EFAULT;
-		mif_dump_log(mc->msd, iod);
+
+		mif_dump_log(iod->mc->msd, iod);
 		return 0;
 
 	case IOCTL_MIF_DPRAM_DUMP:
 #ifdef CONFIG_LINK_DEVICE_DPRAM
-		if (mc->mdm_data->link_types & LINKTYPE(LINKDEV_DPRAM)) {
-			size = mc->mdm_data->dpram->size;
-			err = copy_to_user((void __user *)arg, &size,
+		if (iod->mc->mdm_data->link_types & LINKTYPE(LINKDEV_DPRAM)) {
+			size = iod->mc->mdm_data->dpram_ctl->dp_size;
+			ret = copy_to_user((void __user *)arg, &size,
 				sizeof(unsigned long));
-			if (err < 0)
+			if (ret < 0)
 				return -EFAULT;
 			mif_dump_dpram(iod);
 			return 0;
 		}
 #endif
 		return -EINVAL;
-
-#ifdef CONFIG_UMTS_MODEM_SS222
-	case IOCTL_MODEM_SET_AP_STATE:
-		mif_err("%s: IOCTL_MODEM_SET_AP_STATE\n", iod->name);
-		return mc->ops.set_ap_status(mc);
-
-	case IOCTL_MODEM_CLEAR_AP_STATE:
-		mif_err("%s: IOCTL_MODEM_CLEAR_AP_STATE\n", iod->name);
-		return mc->ops.clear_ap_status(mc);
-
-	case IOCTL_MODEM_GET_CP_STATE:
-		mif_err("%s: IOCTL_MODEM_GET_CP_STATE\n", iod->name);
-		return mc->ops.get_cp_status(mc);
-#endif
 
 	default:
 		 /* If you need to handle the ioctl for specific link device,
@@ -1117,7 +1213,6 @@ static long misc_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		mif_info("%s: ERR! cmd 0x%X not defined.\n", iod->name, cmd);
 		return -EINVAL;
 	}
-
 	return 0;
 }
 
@@ -1136,7 +1231,7 @@ static ssize_t misc_write(struct file *filp, const char __user *data,
 	if (iod->format <= IPC_RFS && iod->id == 0)
 		return -EINVAL;
 
-	headroom = build_sipc5_link_header(&frm, iod, ld, count);
+	headroom = tx_build_link_header(&frm, iod, ld, count);
 
 	if (ld->aligned)
 		tailroom = sipc5_calc_padding_size(headroom + count);
@@ -1243,6 +1338,43 @@ static ssize_t misc_read(struct file *filp, char *buf, size_t count,
 	return copied;
 }
 
+#ifdef CONFIG_LINK_DEVICE_C2C
+static int misc_mmap(struct file *filp, struct vm_area_struct *vma)
+{
+	int r = 0;
+	unsigned long size = 0;
+	unsigned long pfn = 0;
+	unsigned long offset = 0;
+	struct io_device *iod = (struct io_device *)filp->private_data;
+
+	if (!vma)
+		return -EFAULT;
+
+	size = vma->vm_end - vma->vm_start;
+	offset = vma->vm_pgoff << PAGE_SHIFT;
+	if (offset + size > (C2C_CP_RGN_SIZE + C2C_SH_RGN_SIZE)) {
+		mif_info("ERR: offset + size > C2C_CP_RGN_SIZE\n");
+		return -EINVAL;
+	}
+
+	/* Set the noncacheable property to the region */
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	vma->vm_flags |= VM_RESERVED | VM_IO;
+
+	pfn = __phys_to_pfn(C2C_CP_RGN_ADDR + offset);
+	r = remap_pfn_range(vma, vma->vm_start, pfn, size, vma->vm_page_prot);
+	if (r) {
+		mif_info("ERR: Failed in remap_pfn_range()!!!\n");
+		return -EAGAIN;
+	}
+
+	mif_info("%s: VA = 0x%08lx, offset = 0x%lx, size = %lu\n",
+		iod->name, vma->vm_start, offset, size);
+
+	return 0;
+}
+#endif
+
 static const struct file_operations misc_io_fops = {
 	.owner = THIS_MODULE,
 	.open = misc_open,
@@ -1251,6 +1383,9 @@ static const struct file_operations misc_io_fops = {
 	.unlocked_ioctl = misc_ioctl,
 	.write = misc_write,
 	.read = misc_read,
+#ifdef CONFIG_LINK_DEVICE_C2C
+	.mmap = misc_mmap,
+#endif
 };
 
 static int vnet_open(struct net_device *ndev)
@@ -1300,7 +1435,7 @@ static int vnet_xmit(struct sk_buff *skb, struct net_device *ndev)
 			skb_pull(skb, sizeof(struct ethhdr));
 	}
 
-	headroom = build_sipc5_link_header(&frm, iod, ld, skb->len);
+	headroom = tx_build_link_header(&frm, iod, ld, skb->len);
 
 	/* ip loop-back */
 	ip_header = (struct iphdr *)skb->data;

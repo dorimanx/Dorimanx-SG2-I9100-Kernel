@@ -331,6 +331,11 @@ static int exynos4_usb_phy1_resume(struct platform_device *pdev)
 	u32 phypwr;
 	int err;
 
+	if (!strcmp(pdev->name, "s5p-ohci")) {
+		if (!exynos4_usb_host_phy_is_on())
+			return 1;
+	}
+
 	if (exynos4_usb_host_phy_is_on()) {
 		/* set to resume HSIC 0 and 1 and standard of PHY1 */
 		phypwr = readl(EXYNOS4_PHYPWR);
@@ -1027,16 +1032,11 @@ int exynos4_check_usb_op(void)
 		if (phypwr & (PHY1_STD_FORCE_SUSPEND
 			| EXYNOS4212_HSIC0_FORCE_SUSPEND
 			| EXYNOS4212_HSIC1_FORCE_SUSPEND)) {
+#if defined(CONFIG_LINK_DEVICE_HSIC) || defined(CONFIG_LINK_DEVICE_USB) \
+		|| defined(CONFIG_MDM_HSIC_PM)
 			/* HSIC LPA: LPA USB phy retention reume call the usb
 			* reset resume, so we should let CP to HSIC L3 mode. */
-#if defined(CONFIG_LINK_DEVICE_HSIC) || defined(CONFIG_LINK_DEVICE_USB)
 			set_hsic_lpa_states(STATE_HSIC_LPA_ENTER);
-#elif defined(CONFIG_MDM_HSIC_PM)
-			ret = set_hsic_lpa_states(STATE_HSIC_LPA_ENTER);
-			if (ret < 0) {
-				op = 1;
-				goto done;
-			}
 #endif
 			/* unset to normal of Host */
 			writel(readl(EXYNOS4_PHYPWR)

@@ -1933,25 +1933,27 @@ int mfc_init_decoding(struct mfc_inst_ctx *ctx, union mfc_args *args)
 #endif
 
 #ifdef CONFIG_BUSFREQ_OPP
-	if (atomic_read(&ctx->dev->dmcthreshold_lock_cnt) == 0) {
-		mfc_info("Implement set dmc_max_threshold\n");
-		if (soc_is_exynos4212()) {
-			dmc_max_threshold =
-				EXYNOS4212_DMC_MAX_THRESHOLD + 20;
-		} else if (soc_is_exynos4412()) {
-			if (samsung_rev() >= EXYNOS4412_REV_2_0)
+	if (HD_MOVIE_SIZE_MULTIPLY_WIDTH_HEIGHT > (ctx->width * ctx->height)) {
+		if (atomic_read(&ctx->dev->dmcthreshold_lock_cnt) == 0) {
+			mfc_info("Implement set dmc_max_threshold\n");
+			if (soc_is_exynos4212()) {
 				dmc_max_threshold =
-					PRIME_DMC_MAX_THRESHOLD + 20;
-			else
-				dmc_max_threshold =
-					EXYNOS4412_DMC_MAX_THRESHOLD + 20;
-		} else {
-			pr_err("Unsupported model.\n");
-			return -EINVAL;
+					EXYNOS4212_DMC_MAX_THRESHOLD + 5;
+			} else if (soc_is_exynos4412()) {
+				if (samsung_rev() >= EXYNOS4412_REV_2_0)
+					dmc_max_threshold =
+						PRIME_DMC_MAX_THRESHOLD + 5;
+				else
+					dmc_max_threshold =
+						EXYNOS4412_DMC_MAX_THRESHOLD + 5;
+			} else {
+				pr_err("Unsupported model.\n");
+				return -EINVAL;
+			}
 		}
+		atomic_inc(&ctx->dev->dmcthreshold_lock_cnt);
+		ctx->dmcthreshold_flag = true;
 	}
-	atomic_inc(&ctx->dev->dmcthreshold_lock_cnt);
-	ctx->dmcthreshold_flag = true;
 #endif
 	/*
 	 * allocate & set codec buffers
