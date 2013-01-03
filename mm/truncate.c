@@ -107,7 +107,6 @@ truncate_complete_page(struct address_space *mapping, struct page *page)
 
 	cancel_dirty_page(page, PAGE_CACHE_SIZE);
 
-	clear_page_mlock(page);
 	ClearPageMappedToDisk(page);
 	delete_from_page_cache(page);
 	return 0;
@@ -132,24 +131,17 @@ invalidate_complete_page(struct address_space *mapping, struct page *page)
 	if (page_has_private(page) && !try_to_release_page(page, 0))
 		return 0;
 
-	clear_page_mlock(page);
 	ret = remove_mapping(mapping, page);
 
 	return ret;
 }
 
-#ifdef CONFIG_MACH_P4NOTE
-static int unmap_mapcount = -99;
-#endif
 int truncate_inode_page(struct address_space *mapping, struct page *page)
 {
 	if (page_mapped(page)) {
 		unmap_mapping_range(mapping,
 				   (loff_t)page->index << PAGE_CACHE_SHIFT,
 				   PAGE_CACHE_SIZE, 0);
-#ifdef CONFIG_MACH_P4NOTE
-		unmap_mapcount = atomic_read(&(page)->_mapcount);
-#endif
 	}
 	return truncate_complete_page(mapping, page);
 }
@@ -190,7 +182,7 @@ int invalidate_inode_page(struct page *page)
 }
 
 /**
- * truncate_inode_pages - truncate range of pages specified by start & end byte offsets
+ * truncate_inode_pages_range - truncate range of pages specified by start & end byte offsets
  * @mapping: mapping to truncate
  * @lstart: offset from which to truncate
  * @lend: offset to which to truncate
@@ -342,6 +334,14 @@ unsigned long invalidate_mapping_pages(struct address_space *mapping,
 	unsigned long count = 0;
 	int i;
 
+	/*
+	 * Note: this function may get called on a shmem/tmpfs mapping:
+	 * pagevec_lookup() might then return 0 prematurely (because it
+	 * got a gangful of swap entries); but it's hardly worth worrying
+	 * about - it can rarely have anything to free from such a mapping
+	 * (most pages are dirty), and already skips over any difficulties.
+	 */
+
 	pagevec_init(&pvec, 0);
 	while (index <= end && pagevec_lookup(&pvec, mapping, index,
 			min(end - index, (pgoff_t)PAGEVEC_SIZE - 1) + 1)) {
@@ -391,8 +391,6 @@ invalidate_complete_page2(struct address_space *mapping, struct page *page)
 
 	if (page_has_private(page) && !try_to_release_page(page, GFP_KERNEL))
 		return 0;
-
-	clear_page_mlock(page);
 
 	spin_lock_irq(&mapping->tree_lock);
 	if (PageDirty(page))

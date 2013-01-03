@@ -148,9 +148,9 @@ unsigned long move_page_tables(struct vm_area_struct *vma,
 {
 	unsigned long extent, next, old_end;
 	pmd_t *old_pmd, *new_pmd;
+	bool need_flush = false;
 	unsigned long mmun_start;	/* For mmu_notifiers */
 	unsigned long mmun_end;		/* For mmu_notifiers */
-	bool need_flush = false;
 
 	old_end = old_addr + len;
 	flush_cache_range(vma, old_addr, old_end);
@@ -200,8 +200,6 @@ unsigned long move_page_tables(struct vm_area_struct *vma,
 	}
 	if (likely(need_flush))
 		flush_tlb_range(vma, old_end-len, old_addr);
-
-	mmu_notifier_invalidate_range_end(vma->vm_mm, old_end-len, old_end);
 
 	mmu_notifier_invalidate_range_end(vma->vm_mm, mmun_start, mmun_end);
 

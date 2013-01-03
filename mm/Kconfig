@@ -134,10 +134,13 @@ config HAVE_MEMBLOCK
 config HAVE_MEMBLOCK_NODE_MAP
 	boolean
 
-config MEMORY_ISOLATION
+config ARCH_DISCARD_MEMBLOCK
 	boolean
 
-config ARCH_DISCARD_MEMBLOCK
+config NO_BOOTMEM
+	boolean
+
+config MEMORY_ISOLATION
 	boolean
 
 # eventually, we can have this option just 'select SPARSEMEM'
@@ -203,6 +206,7 @@ config BALLOON_COMPACTION
 # support for memory compaction
 config COMPACTION
 	bool "Allow for memory compaction"
+	def_bool y
 	select MIGRATION
 	depends on MMU
 	help
@@ -330,7 +334,7 @@ config NOMMU_INITIAL_TRIM_EXCESS
 
 config TRANSPARENT_HUGEPAGE
 	bool "Transparent Hugepage Support"
-	depends on X86 && MMU
+	depends on HAVE_ARCH_TRANSPARENT_HUGEPAGE
 	select COMPACTION
 	help
 	  Transparent Hugepages allows the kernel to use huge pages and

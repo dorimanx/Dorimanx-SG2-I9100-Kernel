@@ -1299,7 +1299,6 @@ SYSCALL_DEFINE6(mmap_pgoff, unsigned long, addr, unsigned long, len,
 		 * A dummy user value is used because we are not locking
 		 * memory so no accounting is necessary
 		 */
-		len = ALIGN(len, huge_page_size(&default_hstate));
 		file = hugetlb_file_setup(HUGETLB_ANON_FILE, addr, len,
 				VM_NORESERVE,
 				&user, HUGETLB_ANONHUGE_INODE,

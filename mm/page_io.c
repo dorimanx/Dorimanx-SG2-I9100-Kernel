@@ -207,7 +207,7 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 		struct file *swap_file = sis->swap_file;
 		struct address_space *mapping = swap_file->f_mapping;
 		struct iovec iov = {
-			.iov_base = page_address(page),
+			.iov_base = kmap(page),
 			.iov_len  = PAGE_SIZE,
 		};
 
@@ -220,6 +220,7 @@ int swap_writepage(struct page *page, struct writeback_control *wbc)
 		ret = mapping->a_ops->direct_IO(KERNEL_WRITE,
 						&kiocb, &iov,
 						kiocb.ki_pos, 1);
+		kunmap(page);
 		if (ret == PAGE_SIZE) {
 			count_vm_event(PSWPOUT);
 			ret = 0;
