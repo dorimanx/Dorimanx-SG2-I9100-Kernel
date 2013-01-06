@@ -278,7 +278,7 @@ static void __maybe_unused pcpu_next_pop(struct pcpu_chunk *chunk,
  * @size: bytes to allocate
  *
  * Allocate @size bytes.  If @size is smaller than PAGE_SIZE,
- * kzalloc() is used; otherwise, vmalloc() is used.  The returned
+ * kzalloc() is used; otherwise, vzalloc() is used.  The returned
  * memory is always zeroed.
  *
  * CONTEXT:
@@ -303,7 +303,7 @@ static void *pcpu_mem_zalloc(size_t size)
  * @ptr: memory to free
  * @size: size of the area
  *
- * Free @ptr.  @ptr should have been allocated using pcpu_mem_alloc().
+ * Free @ptr.  @ptr should have been allocated using pcpu_mem_zalloc().
  */
 static void pcpu_mem_free(void *ptr, size_t size)
 {

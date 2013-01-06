@@ -89,7 +89,7 @@ arch/arm/boot/compressed/vmlinux
 # ready kernel ignore
 READY/Kernel_Dorimanx-*
 READY/boot/zImage
-READY-JB/Kernel_Dorimanx-*
+READY-JB/Kernel_*
 READY-JB/boot/zImage
 # stgit generated dirs
 patches-*

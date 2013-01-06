@@ -1,66 +1,10 @@
-#ifndef _LINUX_MEMPOLICY_H
-#define _LINUX_MEMPOLICY_H 1
-
-#include <linux/errno.h>
-
 /*
  * NUMA memory policies for Linux.
  * Copyright 2003,2004 Andi Kleen SuSE Labs
  */
+#ifndef _LINUX_MEMPOLICY_H
+#define _LINUX_MEMPOLICY_H 1
 
-/*
- * Both the MPOL_* mempolicy mode and the MPOL_F_* optional mode flags are
- * passed by the user to either set_mempolicy() or mbind() in an 'int' actual.
- * The MPOL_MODE_FLAGS macro determines the legal set of optional mode flags.
- */
-
-/* Policies */
-enum {
-	MPOL_DEFAULT,
-	MPOL_PREFERRED,
-	MPOL_BIND,
-	MPOL_INTERLEAVE,
-	MPOL_MAX,	/* always last member of enum */
-};
-
-enum mpol_rebind_step {
-	MPOL_REBIND_ONCE,	/* do rebind work at once(not by two step) */
-	MPOL_REBIND_STEP1,	/* first step(set all the newly nodes) */
-	MPOL_REBIND_STEP2,	/* second step(clean all the disallowed nodes)*/
-	MPOL_REBIND_NSTEP,
-};
-
-/* Flags for set_mempolicy */
-#define MPOL_F_STATIC_NODES	(1 << 15)
-#define MPOL_F_RELATIVE_NODES	(1 << 14)
-
-/*
- * MPOL_MODE_FLAGS is the union of all possible optional mode flags passed to
- * either set_mempolicy() or mbind().
- */
-#define MPOL_MODE_FLAGS	(MPOL_F_STATIC_NODES | MPOL_F_RELATIVE_NODES)
-
-/* Flags for get_mempolicy */
-#define MPOL_F_NODE	(1<<0)	/* return next IL mode instead of node mask */
-#define MPOL_F_ADDR	(1<<1)	/* look up vma using address */
-#define MPOL_F_MEMS_ALLOWED (1<<2) /* return allowed memories */
-
-/* Flags for mbind */
-#define MPOL_MF_STRICT	(1<<0)	/* Verify existing pages in the mapping */
-#define MPOL_MF_MOVE	(1<<1)	/* Move pages owned by this process to conform to mapping */
-#define MPOL_MF_MOVE_ALL (1<<2)	/* Move every page to conform to mapping */
-#define MPOL_MF_INTERNAL (1<<3)	/* Internal flags start here */
-
-/*
- * Internal flags that share the struct mempolicy flags word with
- * "mode flags".  These flags are allocated from bit 0 up, as they
- * are never OR'ed into the mode in mempolicy API arguments.
- */
-#define MPOL_F_SHARED  (1 << 0)	/* identify shared policies */
-#define MPOL_F_LOCAL   (1 << 1)	/* preferred local allocation */
-#define MPOL_F_REBINDING (1 << 2)	/* identify policies in rebinding */
-
-#ifdef __KERNEL__
 
 #include <linux/mmzone.h>
 #include <linux/slab.h>
@@ -68,6 +12,7 @@ enum mpol_rebind_step {
 #include <linux/spinlock.h>
 #include <linux/nodemask.h>
 #include <linux/pagemap.h>
+#include <uapi/linux/mempolicy.h>
 
 struct mm_struct;
 
@@ -154,11 +99,11 @@ static inline void mpol_get(struct mempolicy *pol)
 		atomic_inc(&pol->refcnt);
 }
 
-extern int __mpol_equal(struct mempolicy *a, struct mempolicy *b);
-static inline int mpol_equal(struct mempolicy *a, struct mempolicy *b)
+extern bool __mpol_equal(struct mempolicy *a, struct mempolicy *b);
+static inline bool mpol_equal(struct mempolicy *a, struct mempolicy *b)
 {
 	if (a == b)
-		return 1;
+		return true;
 	return __mpol_equal(a, b);
 }
 
@@ -215,8 +160,8 @@ static inline void check_highest_zone(enum zone_type k)
 		policy_zone = k;
 }
 
-int do_migrate_pages(struct mm_struct *mm,
-	const nodemask_t *from_nodes, const nodemask_t *to_nodes, int flags);
+int do_migrate_pages(struct mm_struct *mm, const nodemask_t *from,
+		     const nodemask_t *to, int flags);
 
 
 #ifdef CONFIG_TMPFS
@@ -242,13 +187,15 @@ static inline int vma_migratable(struct vm_area_struct *vma)
 	return 1;
 }
 
+extern int mpol_misplaced(struct page *, struct vm_area_struct *, unsigned long);
+
 #else
 
 struct mempolicy {};
 
-static inline int mpol_equal(struct mempolicy *a, struct mempolicy *b)
+static inline bool mpol_equal(struct mempolicy *a, struct mempolicy *b)
 {
-	return 1;
+	return true;
 }
 
 static inline void mpol_put(struct mempolicy *p)
@@ -337,9 +284,8 @@ static inline bool mempolicy_nodemask_intersects(struct task_struct *tsk,
 	return false;
 }
 
-static inline int do_migrate_pages(struct mm_struct *mm,
-			const nodemask_t *from_nodes,
-			const nodemask_t *to_nodes, int flags)
+static inline int do_migrate_pages(struct mm_struct *mm, const nodemask_t *from,
+				   const nodemask_t *to, int flags)
 {
 	return 0;
 }
@@ -360,7 +306,11 @@ static inline int mpol_to_str(char *buffer, int maxlen, struct mempolicy *pol)
 	return 0;
 }
 
-#endif /* CONFIG_NUMA */
-#endif /* __KERNEL__ */
+static inline int mpol_misplaced(struct page *page, struct vm_area_struct *vma,
+				 unsigned long address)
+{
+	return -1; /* no node preference */
+}
 
+#endif /* CONFIG_NUMA */
 #endif

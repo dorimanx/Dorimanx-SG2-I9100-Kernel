@@ -61,6 +61,7 @@ int memblock_add(phys_addr_t base, phys_addr_t size);
 int memblock_remove(phys_addr_t base, phys_addr_t size);
 int memblock_free(phys_addr_t base, phys_addr_t size);
 int memblock_reserve(phys_addr_t base, phys_addr_t size);
+void memblock_trim_memory(phys_addr_t align);
 
 #ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
 void __next_mem_pfn_range(int *idx, int nid, unsigned long *out_start_pfn,
@@ -74,8 +75,7 @@ void __next_mem_pfn_range(int *idx, int nid, unsigned long *out_start_pfn,
  * @p_end: ptr to ulong for end pfn of the range, can be %NULL
  * @p_nid: ptr to int for nid of the range, can be %NULL
  *
- * Walks over configured memory ranges.  Available after early_node_map is
- * populated.
+ * Walks over configured memory ranges.
  */
 #define for_each_mem_pfn_range(i, nid, p_start, p_end, p_nid)		\
 	for (i = -1, __next_mem_pfn_range(&i, nid, p_start, p_end, p_nid); \
@@ -83,7 +83,7 @@ void __next_mem_pfn_range(int *idx, int nid, unsigned long *out_start_pfn,
 #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
 
 void __next_free_mem_range(u64 *idx, int nid, phys_addr_t *out_start,
-				  phys_addr_t *out_end, int *out_nid);
+			   phys_addr_t *out_end, int *out_nid);
 
 /**
  * for_each_free_mem_range - iterate through free memblock areas
@@ -155,9 +155,9 @@ phys_addr_t memblock_alloc(phys_addr_t size, phys_addr_t align);
 #define MEMBLOCK_ALLOC_ACCESSIBLE	0
 
 phys_addr_t memblock_alloc_base(phys_addr_t size, phys_addr_t align,
-			phys_addr_t max_addr);
+				phys_addr_t max_addr);
 phys_addr_t __memblock_alloc_base(phys_addr_t size, phys_addr_t align,
-			phys_addr_t max_addr);
+				  phys_addr_t max_addr);
 phys_addr_t memblock_phys_mem_size(void);
 phys_addr_t memblock_start_of_DRAM(void);
 phys_addr_t memblock_end_of_DRAM(void);
@@ -182,6 +182,7 @@ static inline void memblock_dump_all(void)
  * @limit: New limit value (physical address)
  */
 void memblock_set_current_limit(phys_addr_t limit);
+
 
 /*
  * pfn conversion functions
@@ -234,8 +235,8 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
 
 
 #ifdef CONFIG_ARCH_DISCARD_MEMBLOCK
-#define __init_memblock __init
-#define __initdata_memblock __initdata
+#define __init_memblock __meminit
+#define __initdata_memblock __meminitdata
 #else
 #define __init_memblock
 #define __initdata_memblock

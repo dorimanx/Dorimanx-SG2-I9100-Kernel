@@ -31,7 +31,7 @@
 /*
  * PAGE_ALLOC_COSTLY_ORDER is the order at which allocations are deemed
  * costly to service.  That is between allocation orders which should
- * coelesce naturally under reasonable reclaim pressure and those which
+ * coalesce naturally under reasonable reclaim pressure and those which
  * will not.
  */
 #define PAGE_ALLOC_COSTLY_ORDER 3
@@ -188,7 +188,7 @@ static inline int is_unevictable_lru(enum lru_list lru)
 struct zone_reclaim_stat {
 	/*
 	 * The pageout code in vmscan.c keeps track of how many of the
-	 * mem/swap backed and file backed pages are refeferenced.
+	 * mem/swap backed and file backed pages are referenced.
 	 * The higher the rotated/scanned ratio, the more valuable
 	 * that cache is.
 	 *
@@ -507,14 +507,14 @@ struct zone {
 	 * rarely used fields:
 	 */
 	const char		*name;
-//#ifdef CONFIG_MEMORY_ISOLATION
+#ifdef CONFIG_MEMORY_ISOLATION
 	/*
 	 * the number of MIGRATE_ISOLATE *pageblock*.
 	 * We need this for free page counting. Look at zone_watermark_ok_safe.
 	 * It's protected by zone->lock
 	 */
 	int		nr_pageblock_isolate;
-//#endif
+#endif
 } ____cacheline_internodealigned_in_smp;
 
 typedef enum {
@@ -740,6 +740,19 @@ typedef struct pglist_data {
 	int kswapd_max_order;
 	struct timer_list watermark_timer;
 	enum zone_type classzone_idx;
+#ifdef CONFIG_NUMA_BALANCING
+	/*
+	 * Lock serializing the per destination node AutoNUMA memory
+	 * migration rate limiting data.
+	 */
+	spinlock_t numabalancing_migrate_lock;
+
+	/* Rate limiting time interval */
+	unsigned long numabalancing_migrate_next_window;
+
+	/* Number of pages migrated during the rate limiting time interval */
+	unsigned long numabalancing_migrate_nr_pages;
+#endif
 } pg_data_t;
 
 #define node_present_pages(nid)	(NODE_DATA(nid)->node_present_pages)
@@ -816,7 +829,7 @@ extern int movable_zone;
 
 static inline int zone_movable_is_highmem(void)
 {
-#if defined(CONFIG_HIGHMEM) && defined(CONFIG_HAVE_MEMBLOCK_NODE)
+#if defined(CONFIG_HIGHMEM) && defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP)
 	return movable_zone == ZONE_HIGHMEM;
 #else
 	return 0;

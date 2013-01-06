@@ -664,10 +664,6 @@ static enum page_references page_check_references(struct page *page,
 		 */
 		SetPageReferenced(page);
 
-#ifndef CONFIG_DMA_CMA
-		if (referenced_page)
-			return PAGEREF_ACTIVATE;
-#else
 		if (referenced_page || referenced_ptes > 1)
 			return PAGEREF_ACTIVATE;
 
@@ -676,7 +672,7 @@ static enum page_references page_check_references(struct page *page,
 		 */
 		if (vm_flags & VM_EXEC)
 			return PAGEREF_ACTIVATE;
-#endif
+
 		return PAGEREF_KEEP;
 	}
 
@@ -1028,14 +1024,10 @@ int __isolate_lru_page(struct page *page, isolate_mode_t mode)
 	if (!PageLRU(page))
 		return ret;
 
-#ifndef CONFIG_DMA_CMA
 	/* Compaction should not handle unevictable pages but CMA can do so */
 	if (PageUnevictable(page) && !(mode & ISOLATE_UNEVICTABLE))
 		return ret;
-#else
-		printk(KERN_ERR "%s[%d] Unevictable page %p\n",
-					__func__, __LINE__, page);
-#endif
+
 	ret = -EBUSY;
 
 	/*
@@ -3146,11 +3138,7 @@ unsigned long shrink_all_memory(unsigned long nr_to_reclaim)
 	struct reclaim_state reclaim_state;
 	struct scan_control sc = {
 		.gfp_mask = GFP_HIGHUSER_MOVABLE,
-#if defined(CONFIG_SLP) && defined(CONFIG_FULL_PAGE_RECLAIM)
-		.may_swap = 0,
-#else
 		.may_swap = 1,
-#endif
 		.may_unmap = 1,
 		.may_writepage = 1,
 		.nr_to_reclaim = nr_to_reclaim,

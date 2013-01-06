@@ -1357,7 +1357,7 @@ static struct page *new_slab(struct kmem_cache *s, gfp_t flags, int node)
 		goto out;
 
 	inc_slabs_node(s, page_to_nid(page), page->objects);
-	page->slab = s;
+	page->slab_cache = s;
 	__SetPageSlab(page);
 	if (page->pfmemalloc)
 		SetPageSlabPfmemalloc(page);
@@ -1424,7 +1424,7 @@ static void rcu_free_slab(struct rcu_head *h)
 	else
 		page = container_of((struct list_head *)h, struct page, lru);
 
-	__free_slab(page->slab, page);
+	__free_slab(page->slab_cache, page);
 }
 
 static void free_slab(struct kmem_cache *s, struct page *page)
@@ -2617,9 +2617,9 @@ void kmem_cache_free(struct kmem_cache *s, void *x)
 
 	page = virt_to_head_page(x);
 
-	if (kmem_cache_debug(s) && page->slab != s) {
+	if (kmem_cache_debug(s) && page->slab_cache != s) {
 		pr_err("kmem_cache_free: Wrong slab cache. %s but object"
-			" is from  %s\n", page->slab->name, s->name);
+			" is from  %s\n", page->slab_cache->name, s->name);
 		WARN_ON_ONCE(1);
 		return;
 	}
@@ -3429,7 +3429,7 @@ size_t ksize(const void *object)
 		return PAGE_SIZE << compound_order(page);
 	}
 
-	return slab_ksize(page->slab);
+	return slab_ksize(page->slab_cache);
 }
 EXPORT_SYMBOL(ksize);
 
@@ -3486,7 +3486,7 @@ void kfree(const void *x)
 		__free_pages(page, compound_order(page));
 		return;
 	}
-	slab_free(page->slab, page, object, _RET_IP_);
+	slab_free(page->slab_cache, page, object, _RET_IP_);
 }
 EXPORT_SYMBOL(kfree);
 
@@ -3697,11 +3697,11 @@ static void __init kmem_cache_bootstrap_fixup(struct kmem_cache *s)
 
 		if (n) {
 			list_for_each_entry(p, &n->partial, lru)
-				p->slab = s;
+				p->slab_cache = s;
 
 #ifdef CONFIG_SLUB_DEBUG
 			list_for_each_entry(p, &n->full, lru)
-				p->slab = s;
+				p->slab_cache = s;
 #endif
 		}
 	}

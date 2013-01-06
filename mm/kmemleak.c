@@ -69,7 +69,7 @@
 #include <linux/sched.h>
 #include <linux/jiffies.h>
 #include <linux/delay.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/kthread.h>
 #include <linux/rbtree.h>
 #include <linux/fs.h>
@@ -392,7 +392,7 @@ static void dump_object_info(struct kmemleak_object *object)
 }
 
 /*
- * Look-up a memory block metadata (kmemleak_object) in the priority search
+ * Look-up a memory block metadata (kmemleak_object) in the object search
  * tree based on a pointer value. If alias is 0, only values pointing to the
  * beginning of the memory block are allowed. The kmemleak_lock must be held
  * when calling this function.

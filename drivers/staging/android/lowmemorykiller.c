@@ -97,6 +97,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		    other_file < lowmem_minfree[i]) {
 #endif
 			min_score_adj = lowmem_adj[i];
+			target_free = lowmem_minfree[i] - (other_free + other_file);
 			break;
 		}
 	}
@@ -194,8 +195,6 @@ static void __exit lowmem_exit(void)
 }
 
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
-#define OOM_DISABLE	(-17)
-#define OOM_ADJUST_MAX	15
 
 static int lowmem_oom_adj_to_oom_score_adj(int oom_adj)
 {

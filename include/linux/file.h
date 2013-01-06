@@ -12,6 +12,7 @@
 struct file;
 
 extern void fput(struct file *);
+extern void drop_file_write_access(struct file *file);
 
 struct file_operations;
 struct vfsmount;
@@ -67,8 +68,5 @@ extern int get_unused_fd(void);
 extern void put_unused_fd(unsigned int fd);
 
 extern void fd_install(unsigned int fd, struct file *file);
-
-extern void flush_delayed_fput(void);
-extern void __fput_sync(struct file *);
 
 #endif /* __LINUX_FILE_H */

@@ -10,7 +10,7 @@
 
 #include <linux/fs.h>
 #include <linux/pagemap.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/uio.h>
 #include <linux/rmap.h>
 #include <linux/mmu_notifier.h>
@@ -305,6 +305,7 @@ out:
 
 static const struct vm_operations_struct xip_file_vm_ops = {
 	.fault	= xip_file_fault,
+	.page_mkwrite	= filemap_page_mkwrite,
 	.remap_pages = generic_file_remap_pages,
 };
 
@@ -403,6 +404,8 @@ xip_file_write(struct file *filp, const char __user *buf, size_t len,
 	loff_t pos;
 	ssize_t ret;
 
+	sb_start_write(inode->i_sb);
+
 	mutex_lock(&inode->i_mutex);
 
 	if (!access_ok(VERIFY_READ, buf, len)) {
@@ -412,8 +415,6 @@ xip_file_write(struct file *filp, const char __user *buf, size_t len,
 
 	pos = *ppos;
 	count = len;
-
-	vfs_check_frozen(inode->i_sb, SB_FREEZE_WRITE);
 
 	/* We can write back this queue in page reclaim */
 	current->backing_dev_info = mapping->backing_dev_info;
@@ -428,7 +429,9 @@ xip_file_write(struct file *filp, const char __user *buf, size_t len,
 	if (ret)
 		goto out_backing;
 
-	file_update_time(filp);
+	ret = file_update_time(filp);
+	if (ret)
+		goto out_backing;
 
 	ret = __xip_file_write (filp, buf, count, pos, ppos);
 
@@ -436,6 +439,7 @@ xip_file_write(struct file *filp, const char __user *buf, size_t len,
 	current->backing_dev_info = NULL;
  out_up:
 	mutex_unlock(&inode->i_mutex);
+	sb_end_write(inode->i_sb);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(xip_file_write);

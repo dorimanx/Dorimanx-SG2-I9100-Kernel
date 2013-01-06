@@ -1,8 +1,8 @@
-#include <linux/bug.h>
 #ifndef _LINUX_SWAPOPS_H
 #define _LINUX_SWAPOPS_H
 
 #include <linux/radix-tree.h>
+#include <linux/bug.h>
 
 /*
  * swapcache pages are stored in the swapper_space radix tree.  We want to
