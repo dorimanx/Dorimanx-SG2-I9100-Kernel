@@ -147,11 +147,11 @@ static unsigned int get_nr_run_avg(void)
 
 #define DEF_SAMPLING_UP_FACTOR			(1)
 #define MAX_SAMPLING_UP_FACTOR		(100000)
-#define DEF_SAMPLING_DOWN_FACTOR		(1)
+#define DEF_SAMPLING_DOWN_FACTOR		(2)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
 #define DEF_FREQ_STEP_DEC		(5)
 
-#define DEF_SAMPLING_RATE			(50000)
+#define DEF_SAMPLING_RATE			(60000)
 #define MIN_SAMPLING_RATE			(10000)
 #define MAX_HOTPLUG_RATE			(40u)
 
@@ -160,7 +160,7 @@ static unsigned int get_nr_run_avg(void)
 #define DEF_UP_NR_CPUS				(1)
 #define DEF_CPU_UP_RATE				(10)
 #define DEF_CPU_DOWN_RATE			(20)
-#define DEF_FREQ_STEP				(10)
+#define DEF_FREQ_STEP				(30)
 
 #define DEF_START_DELAY				(0)
 
@@ -232,7 +232,6 @@ struct cpufreq_nightmare_cpuinfo {
 	struct work_struct down_work;
 	struct cpufreq_frequency_table *freq_table;
 	unsigned int freq_table_maxsize;
-	/*unsigned int rate_mult;*/
 	unsigned int avg_rate_mult;
 	int cpu;
 	/*
@@ -248,41 +247,6 @@ struct workqueue_struct *dvfs_workqueues;
 
 static unsigned int dbs_enable;	/* number of CPUs using this policy */
 
-
-static int get_index_from_freqtable(struct cpufreq_nightmare_cpuinfo *pcpu, unsigned int freq, unsigned int relation) {
-	unsigned int i;
-	int new_index = 0;
-	/*relation = 1(lowest=higher),0=(highest=lower)*/
-
-	if (freq > pcpu->cur_policy->max)
-		freq = pcpu->cur_policy->max;
-	else if (freq < pcpu->cur_policy->min)
-		freq = pcpu->cur_policy->min;
-
-	for (i = 0; (pcpu->freq_table[i].frequency != CPUFREQ_TABLE_END); i++) {
-		unsigned int freq_table = pcpu->freq_table[i].frequency;
-		if (freq_table == CPUFREQ_ENTRY_INVALID) continue;
-		if ((freq == freq_table) || (freq > freq_table && relation == 0)){
-			new_index=i;
-			break;
-		} else if (freq > freq_table && relation == 1) {
-			new_index = (i - 1);	
-			break;
-		}
-		
-	}
-	return new_index;
-}
-
-static unsigned int get_freq_table_maxsize(struct cpufreq_nightmare_cpuinfo *pcpu) {
-	unsigned int size = 0, i;
-	for (i = 0; (pcpu->freq_table[i].frequency != CPUFREQ_TABLE_END); i++) {
-		unsigned int freq = pcpu->freq_table[i].frequency;
-		if (freq == CPUFREQ_ENTRY_INVALID) continue;
-		size++;
-	}
-	return size;
-}
 
 /*
  * dbs_mutex protects dbs_enable in governor start/stop.
@@ -665,13 +629,6 @@ static ssize_t store_sampling_down_factor(struct kobject *a,
 		return -EINVAL;
 	dbs_tuners_ins.sampling_down_factor = input;
 
-	/* Reset down sampling multiplier in case it was active */
-	for_each_online_cpu(j) {
-		struct cpufreq_nightmare_cpuinfo *dbs_info;
-		dbs_info = &per_cpu(od_cpu_dbs_info, j);
-		/*dbs_info->rate_mult = 1;*/
-		dbs_info->avg_rate_mult = 10;
-	}
 	return count;
 }
 
@@ -929,14 +886,7 @@ static ssize_t store_sampling_up_factor(struct kobject *a,
 	if (ret != 1 || input > MAX_SAMPLING_UP_FACTOR || input < 1)
 		return -EINVAL;
 	dbs_tuners_ins.sampling_up_factor = input;
-
-	for_each_online_cpu(j) {
-		struct cpufreq_nightmare_cpuinfo *dbs_info;
-		dbs_info = &per_cpu(od_cpu_dbs_info, j);
-		/*dbs_info->rate_mult = 1;*/
-		dbs_info->avg_rate_mult = 10;
-	}
-
+	
 	return count;
 }
 
@@ -1350,8 +1300,6 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 			hotplug_histories->usage[num_hist].load[j] = -1;
 		}
 
-		/*freq_avg = __cpufreq_driver_getavg(policy, j);*/		
-
 	}
 	/* calculate the average load across all related CPUs */
 	avg_load = total_load / num_online_cpus();
@@ -1385,9 +1333,7 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 				inc_cpu_load = dbs_tuners_ins.inc_cpu_load;
 	
 			// Check for frequency increase or for frequency decrease			
-			if (load > inc_cpu_load) {
-				/*unsigned int inc = (load * (j_dbs_info->cur_policy->max - j_dbs_info->cur_policy->cur)) / 100;
-				unsigned int inc_step = (dbs_tuners_ins.freq_step * (j_dbs_info->cur_policy->max - j_dbs_info->cur_policy->cur)) / 100;*/
+			if (load >= inc_cpu_load) {
 				unsigned int inc_load = (load * j_dbs_info->cur_policy->min) / 100;
 				unsigned int inc_step = (dbs_tuners_ins.freq_step * j_dbs_info->cur_policy->min) / 100;
 				unsigned int inc;
@@ -1400,27 +1346,17 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 					continue;
 				}
 
-				/*inc -= (dbs_tuners_ins.freq_up_brake * (j_dbs_info->cur_policy->max - j_dbs_info->cur_policy->cur)) / 100;*/
 				inc = inc_load + inc_step;
 				inc -= (dbs_tuners_ins.freq_up_brake * j_dbs_info->cur_policy->min) / 100;
 
-				/*freq_up = min(j_dbs_info->cur_policy->max,j_dbs_info->cur_policy->cur + inc + inc_step);*/
 				freq_up = min(j_dbs_info->cur_policy->max,j_dbs_info->cur_policy->cur + inc);
-				index = get_index_from_freqtable(j_dbs_info,freq_up,1);				
 
-				if (index < 0)
-					index = 0;	
-
-				freq_up = min(j_dbs_info->freq_table[index].frequency,j_dbs_info->cur_policy->max);
-			
 				if (freq_up != j_dbs_info->cur_policy->cur) {
 					__cpufreq_driver_target(j_dbs_info->cur_policy, freq_up, CPUFREQ_RELATION_L);
 				}
 			
 			}	
 			else if (load <	 dec_cpu_load && load > -1) {
-				/*unsigned int dec = ((100 - load) * (j_dbs_info->cur_policy->cur - j_dbs_info->cur_policy->min)) / 100;*/
-				/*unsigned int dec_step = (dbs_tuners_ins.freq_step_dec * (j_dbs_info->cur_policy->cur - j_dbs_info->cur_policy->min)) / 100;*/
 				unsigned int dec_load = ((100 - load) * (j_dbs_info->cur_policy->min)) / 100;				
 				unsigned int dec_step = (dbs_tuners_ins.freq_step_dec * (j_dbs_info->cur_policy->min)) / 100;
 				unsigned int dec;
@@ -1435,21 +1371,11 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 				
 				dec = dec_load + dec_step;
 
-				/*freq_down = max(j_dbs_info->cur_policy->min,j_dbs_info->cur_policy->cur - dec - dec_step);*/
 				freq_down = max(j_dbs_info->cur_policy->min,j_dbs_info->cur_policy->cur - dec);
-				index = get_index_from_freqtable(j_dbs_info,freq_down,0);
-
-				if (index >= j_dbs_info->freq_table_maxsize)
-					index = j_dbs_info->freq_table_maxsize - 1;
-			
-				freq_down = max(j_dbs_info->freq_table[index].frequency,j_dbs_info->cur_policy->min);
 
 				if (freq_down != j_dbs_info->cur_policy->cur) {
 					__cpufreq_driver_target(j_dbs_info->cur_policy, freq_down, CPUFREQ_RELATION_L);
 				}
-			}
-			else {
-				avg_rate_mult++;
 			}
 		}
 	}
@@ -1477,7 +1403,7 @@ static void do_dbs_timer(struct work_struct *work)
 	/* We want all CPUs to do sampling nearly on
 	 * same jiffy
 	 */
-	delay = usecs_to_jiffies((dbs_tuners_ins.sampling_rate * dbs_info->avg_rate_mult) / 10);
+	delay = usecs_to_jiffies((dbs_tuners_ins.sampling_rate * (dbs_info->avg_rate_mult < 10 ? 10 : dbs_info->avg_rate_mult)) / 10);
 
 	if (num_online_cpus() > 1)
 		delay -= jiffies % delay;
@@ -1604,8 +1530,6 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		hotplug_histories->num_hist = 0;
 		start_rq_work();
 
-		freq_table = cpufreq_frequency_get_table(policy->cpu);
-
 		mutex_lock(&dbs_mutex);
 
 		dbs_enable++;
@@ -1614,9 +1538,6 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 			j_dbs_info = &per_cpu(od_cpu_dbs_info, j);
 			j_dbs_info->cur_policy = policy;
 
-			j_dbs_info->freq_table = freq_table;
-			j_dbs_info->freq_table_maxsize = get_freq_table_maxsize(j_dbs_info);
-
 			j_dbs_info->prev_cpu_idle = get_cpu_idle_time(j,
 				&j_dbs_info->prev_cpu_wall);
 			if (dbs_tuners_ins.ignore_nice)
@@ -1624,8 +1545,7 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 					kcpustat_cpu(j).cpustat[CPUTIME_NICE];
 		}
 		this_dbs_info->cpu = cpu;
-		/*this_dbs_info->rate_mult = 1;*/
-		this_dbs_info->avg_rate_mult = 10;
+		this_dbs_info->avg_rate_mult = 20;
 		/*
 		 * Start the timerschedule work, when this governor
 		 * is used for first time
