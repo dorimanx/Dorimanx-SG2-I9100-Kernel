@@ -1,4 +1,0 @@
-./sound/soc/samsung/srp_ulp/srp_fw.h:extern unsigned long rp_fw_cga_len;
-./sound/soc/samsung/srp_ulp/srp_fw.c:unsigned long rp_fw_cga_len = sizeof(rp_fw_cga);
-./sound/soc/samsung/srp_ulp/srp.c:	srp.fw_code_cga_size = rp_fw_cga_len;
-./sound/soc/samsung/srp_ulp/srp.c:	srp.fw_code_cga_size = rp_fw_cga_len;
