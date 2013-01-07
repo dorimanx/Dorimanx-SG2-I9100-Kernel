@@ -60,8 +60,6 @@
 #include <linux/android_pmem.h>
 #endif
 
-#include <linux/exynos_mem.h>
-
 #include <asm/mach/arch.h>
 #include <asm/mach-types.h>
 
@@ -7609,12 +7607,21 @@ static struct s5p_platform_cec hdmi_cec_data __initdata = {
 #endif
 
 #if defined(CONFIG_S5P_MEM_CMA)
+extern struct cma_region *p_regions;
+extern struct cma_region *p_regions_secure;
+extern int size_p_regions;
+extern int size_p_regions_secure;
 static void __init exynos4_cma_region_reserve(struct cma_region *regions_normal,
 					      struct cma_region *regions_secure)
 {
 	struct cma_region *reg;
 	size_t size_secure = 0, align_secure = 0;
 	phys_addr_t paddr = 0;
+
+	p_regions = regions_normal;
+	p_regions_secure = regions_secure;
+	size_p_regions = 0; size_p_regions_secure = 0;
+	for (reg = regions_normal; reg->size != 0; reg++) size_p_regions++;
 
 	for (reg = regions_normal; reg->size != 0; reg++) {
 		if (WARN_ON(cma_early_region_register(reg)))
@@ -7638,21 +7645,12 @@ static void __init exynos4_cma_region_reserve(struct cma_region *regions_normal,
 			if (!memblock_is_region_reserved(reg->start, reg->size)
 			    && memblock_reserve(reg->start, reg->size) >= 0)
 				reg->reserved = 1;
-
-			pr_debug("S5P/CMA: Reserved 0x%08x/0x%08x for '%s'\n",
-				 reg->start, reg->size, reg->name);
-
-			cma_region_descriptor_add(reg->name, reg->start, reg->size);
 		} else {
 			paddr = __memblock_alloc_base(reg->size, reg->alignment,
 						MEMBLOCK_ALLOC_ACCESSIBLE);
 			if (paddr) {
 				reg->start = paddr;
 				reg->reserved = 1;
-
-				pr_debug("S5P/CMA: Reserved 0x%08x/0x%08x for '%s'\n",
-						reg->start, reg->size, reg->name);
-				cma_region_descriptor_add(reg->name, reg->start, reg->size);
 			}
 		}
 
@@ -7678,12 +7676,6 @@ static void __init exynos4_cma_region_reserve(struct cma_region *regions_normal,
 				reg->start = paddr;
 				reg->reserved = 1;
 				paddr += reg->size;
-
-				pr_info("S5P/CMA: "
-					"Reserved 0x%08x/0x%08x for '%s'\n",
-					reg->start, reg->size, reg->name);
-
-				cma_region_descriptor_add(reg->name, reg->start, reg->size);
 
 				if (WARN_ON(cma_early_region_register(reg)))
 					memblock_free(reg->start, reg->size);
