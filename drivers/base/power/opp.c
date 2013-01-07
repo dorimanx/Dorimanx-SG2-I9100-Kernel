@@ -56,6 +56,7 @@
  *
  * This structure stores the OPP information for a given device.
  */
+#if 0 /* Definition moved to header file */
 struct opp {
 	struct list_head node;
 
@@ -65,7 +66,7 @@ struct opp {
 
 	struct device_opp *dev_opp;
 };
-
+#endif
 /**
  * struct device_opp - Device opp structure
  * @node:	list node - contains the devices with OPPs that
@@ -80,13 +81,14 @@ struct opp {
  * a device. This structure is not meant to be shared to users as it is
  * meant for book keeping and private to OPP library
  */
+#if 0 /* Definition moved to header file */
 struct device_opp {
 	struct list_head node;
 
 	struct device *dev;
 	struct list_head opp_list;
 };
-
+#endif
 /*
  * The root of the list of all devices. All device_opp structures branch off
  * from here, with each device_opp containing the list of opp it supports in
@@ -110,7 +112,7 @@ static DEFINE_MUTEX(dev_opp_list_lock);
  * is a RCU protected pointer. This means that device_opp is valid as long
  * as we are under RCU lock.
  */
-static struct device_opp *find_device_opp(struct device *dev)
+struct device_opp *find_device_opp(struct device *dev)
 {
 	struct device_opp *tmp_dev_opp, *dev_opp = ERR_PTR(-ENODEV);
 

@@ -513,9 +513,10 @@ int ieee80211_data_from_8023(struct sk_buff *skb, const u8 *addr,
 		if (head_need)
 			skb_orphan(skb);
 
-		if (pskb_expand_head(skb, head_need, 0, GFP_ATOMIC))
+		if (pskb_expand_head(skb, head_need, 0, GFP_ATOMIC)) {
+			pr_err("failed to reallocate Tx buffer\n");
 			return -ENOMEM;
-
+		}
 		skb->truesize += head_need;
 	}
 
@@ -746,9 +747,9 @@ void cfg80211_process_wdev_events(struct wireless_dev *wdev)
 				NULL);
 			break;
 		case EVENT_ROAMED:
-			__cfg80211_roamed(wdev, ev->rm.bss, ev->rm.req_ie,
-					  ev->rm.req_ie_len, ev->rm.resp_ie,
-					  ev->rm.resp_ie_len);
+			__cfg80211_roamed(wdev, ev->rm.channel, ev->rm.bssid,
+					  ev->rm.req_ie, ev->rm.req_ie_len,
+					  ev->rm.resp_ie, ev->rm.resp_ie_len);
 			break;
 		case EVENT_DISCONNECTED:
 			__cfg80211_disconnected(wdev->netdev,
