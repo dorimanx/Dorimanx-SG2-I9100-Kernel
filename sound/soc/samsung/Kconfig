@@ -155,7 +155,7 @@ config SND_SOC_SAMSUNG_USE_DMA_WRAPPER
 
 config SND_SOC_SAMSUNG_I2S_SEC
 	bool "I2S operate secondary FIFO"
-        depends on SND_SAMSUNG_LP || SND_SAMSUNG_ALP
+        depends on SND_SAMSUNG_LP || SND_SAMSUNG_ALP || SND_SAMSUNG_RP
 
 choice
 	prompt "Samsung I2S Audio type"
