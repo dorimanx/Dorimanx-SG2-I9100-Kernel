@@ -259,7 +259,48 @@ int exynos_mem_mmap(struct file *filp, struct vm_area_struct *vma)
 		pfn = mem->phybase;
 	}
 
+<<<<<<< HEAD
 	if(!s5p_is_cma_region(start, size))
+=======
+	pr_info("[%s] requesting access to (0x%08x)-(0x%08x)\n", 
+		__func__, start, (start + size));
+
+	b = (struct simple_cma_descriptor*)&cmad_container;
+
+	/* Go over all of the defined CMA blocks */
+	for(i = 0; i < cmad_container_stored; i++) {
+
+		pr_info("[%s] Checking space paddr(0x%08x)-(0x%08x) from '%s'\n",
+			__func__, b->start, (b->start + b->size), b->name);
+
+		/* Check if the requested space is within this current CMA block */
+		if(start >= b->start && (start + size) <= (b->start + b->size)){
+
+			/* Further only conditionally whitelist spaces that we know 
+			 * break device functionality if we don't allow access.
+			 *
+			 * Add exceptions as we go.			
+			 */
+			
+			if(strcmp(b->name, "s3c-fimc") == 0 ||
+					strcmp(b->name, "fimc1") == 0 ||
+					strcmp(b->name, "fimc2") == 0 ||
+					strcmp(b->name, "fimc3") == 0) {
+				allowed = true;
+				pr_info("[%s] Accessing space 0x%08x/0x%08x for '%s'\n",
+					__func__, b->start, b->size, b->name);
+			}
+
+		}
+
+		b++;
+	}
+
+	if (!allowed) {
+		/* The requested memory space isn't in any CMA block, deny access */
+		pr_err("[%s] invalid paddr(0x%08x)-(0x%08x), accessing outside of DMA spaces\n",
+			__func__, start, (start + size));
+>>>>>>> upstream/master-jelly-bean
 		return -EINVAL;
 
 	/* TODO: currently lowmem is only avaiable */
