@@ -70,7 +70,7 @@ void __init s5p_cma_region_reserve(struct cma_region *regions_normal,
 			pr_debug("S5P/CMA: "
 				 "Reserved 0x%08x/0x%08x for '%s'\n",
 				 reg->start, reg->size, reg->name);
-
+			
 			cma_region_descriptor_add(reg->name, reg->start, reg->size);
 
 			paddr = reg->start;

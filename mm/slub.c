@@ -1092,11 +1092,11 @@ static noinline struct kmem_cache_node *free_debug_processing(
 	if (!check_object(s, page, object, SLUB_RED_ACTIVE))
 		goto out;
 
-	if (unlikely(s != page->slab)) {
+	if (unlikely(s != page->slab_cache)) {
 		if (!PageSlab(page)) {
 			slab_err(s, page, "Attempt to free object(0x%p) "
 				"outside of slab", object);
-		} else if (!page->slab) {
+		} else if (!page->slab_cache) {
 			printk(KERN_ERR
 				"SLUB <none>: no slab for object 0x%p.\n",
 						object);
@@ -2459,6 +2459,7 @@ static void __slab_free(struct kmem_cache *s, struct page *page,
 	void *prior;
 	void **object = (void *)x;
 	int was_frozen;
+	int inuse;
 	struct page new;
 	unsigned long counters;
 	struct kmem_cache_node *n = NULL;
@@ -2471,17 +2472,13 @@ static void __slab_free(struct kmem_cache *s, struct page *page,
 		return;
 
 	do {
-		if (unlikely(n)) {
-			spin_unlock_irqrestore(&n->list_lock, flags);
-			n = NULL;
-		}
 		prior = page->freelist;
 		counters = page->counters;
 		set_freepointer(s, object, prior);
 		new.counters = counters;
 		was_frozen = new.frozen;
 		new.inuse--;
-		if ((!new.inuse || !prior) && !was_frozen) {
+		if ((!new.inuse || !prior) && !was_frozen && !n) {
 
 			if (!kmem_cache_debug(s) && !prior)
 
@@ -2506,6 +2503,7 @@ static void __slab_free(struct kmem_cache *s, struct page *page,
 
 			}
 		}
+		inuse = new.inuse;
 
 	} while (!cmpxchg_double_slab(s, page,
 		prior, counters,
@@ -2531,17 +2529,25 @@ static void __slab_free(struct kmem_cache *s, struct page *page,
                 return;
         }
 
-	if (unlikely(!new.inuse && n->nr_partial > s->min_partial))
-		goto slab_empty;
-
 	/*
-	 * Objects left in the slab. If it was not on the partial list before
-	 * then add it.
+	 * was_frozen may have been set after we acquired the list_lock in
+	 * an earlier loop. So we need to check it here again.
 	 */
-	if (kmem_cache_debug(s) && unlikely(!prior)) {
-		remove_full(s, page);
-		add_partial(n, page, DEACTIVATE_TO_TAIL);
-		stat(s, FREE_ADD_PARTIAL);
+	if (was_frozen)
+		stat(s, FREE_FROZEN);
+	else {
+		if (unlikely(!inuse && n->nr_partial > s->min_partial))
+                        goto slab_empty;
+
+		/*
+		 * Objects left in the slab. If it was not on the partial list before
+		 * then add it.
+		 */
+		if (unlikely(!prior)) {
+			remove_full(s, page);
+			add_partial(n, page, DEACTIVATE_TO_TAIL);
+			stat(s, FREE_ADD_PARTIAL);
+		}
 	}
 	spin_unlock_irqrestore(&n->list_lock, flags);
 	return;
@@ -3454,8 +3460,8 @@ bool verify_mem_not_deleted(const void *x)
 	}
 
 	slab_lock(page);
-	if (on_freelist(page->slab, page, object)) {
-		object_err(page->slab, page, object, "Object is on free-list");
+	if (on_freelist(page->slab_cache, page, object)) {
+		object_err(page->slab_cache, page, object, "Object is on free-list");
 		rv = false;
 	} else {
 		rv = true;
