@@ -273,12 +273,7 @@ extern void set_mc1n2_codec_data(struct mc1n2_setup *setup);
 
 static struct platform_device *u1_snd_device;
 
-static void __exit u1_audio_exit(void)
-{
-	platform_device_unregister(u1_snd_device);
-}
-
-int __init u1_audio_init(void)
+int u1_audio_init(void)
 {
 	int ret;
 
@@ -298,7 +293,7 @@ int __init u1_audio_init(void)
 	return ret;
 }
 
-int __init u1_audio_init_jbsammy(void)
+int u1_audio_init_jbsammy(void)
 {
 	int ret;
 
@@ -317,6 +312,19 @@ int __init u1_audio_init_jbsammy(void)
 
 	return ret;
 }
+
+int u1_audio_init_dummy(void)
+{
+	return 0;
+}
+
+static void __exit u1_audio_exit(void)
+{
+        platform_device_unregister(u1_snd_device);
+}
+
+module_init(u1_audio_init_dummy);
+module_exit(u1_audio_exit);
 
 MODULE_AUTHOR("aitdark, aitdark.park@samsung.com");
 MODULE_DESCRIPTION("ALSA SoC U1 MC1N2");
