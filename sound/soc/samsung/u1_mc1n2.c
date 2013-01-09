@@ -192,10 +192,10 @@ static struct snd_soc_ops u1_hifi_ops = {
 static struct snd_soc_dai_link u1_dai[] = {
 #if defined(CONFIG_SND_SAMSUNG_LP) || defined(CONFIG_SND_SAMSUNG_ALP)
 	{ /* Sec_Fifo DAI i/f */
-			.name = "MC1N2 Sec_FIFO TX",
-			.stream_name = "Sec_Dai",
-			.cpu_dai_name = "samsung-i2s.4",
-			.codec_dai_name = "mc1n2-da0i",
+		.name = "MC1N2 Sec_FIFO TX",
+		.stream_name = "Sec_Dai",
+		.cpu_dai_name = "samsung-i2s.4",
+		.codec_dai_name = "mc1n2-da0i",
 #ifndef CONFIG_SND_SOC_SAMSUNG_USE_DMA_WRAPPER
 		.platform_name = "samsung-audio-idma",
 #else
@@ -220,10 +220,10 @@ static struct snd_soc_dai_link u1_dai[] = {
 
 static struct snd_soc_dai_link u1_dai_jbsammy[] = {
 	{ /* Sec_Fifo DAI i/f */
-			.name = "MC1N2 Sec_FIFO TX",
-			.stream_name = "Sec_Dai",
-			.cpu_dai_name = "samsung-i2s.4",
-			.codec_dai_name = "mc1n2-da0i",
+		.name = "MC1N2 Sec_FIFO TX",
+		.stream_name = "Sec_Dai",
+		.cpu_dai_name = "samsung-i2s.4",
+		.codec_dai_name = "mc1n2-da0i",
 #ifndef CONFIG_SND_SOC_SAMSUNG_USE_DMA_WRAPPER
 		.platform_name = "samsung-audio-idma",
 #else
@@ -273,7 +273,12 @@ extern void set_mc1n2_codec_data(struct mc1n2_setup *setup);
 
 static struct platform_device *u1_snd_device;
 
-static int __init u1_audio_init(void)
+static void __exit u1_audio_exit(void)
+{
+	platform_device_unregister(u1_snd_device);
+}
+
+int __init u1_audio_init(void)
 {
 	int ret;
 
@@ -293,7 +298,7 @@ static int __init u1_audio_init(void)
 	return ret;
 }
 
-static int __init u1_audio_init_jbsammy(void)
+int __init u1_audio_init_jbsammy(void)
 {
 	int ret;
 
@@ -312,21 +317,6 @@ static int __init u1_audio_init_jbsammy(void)
 
 	return ret;
 }
-
-int reload_sound_drivers_jbsammy(void)
-{		
-	int ret = 1;
-	module_init(u1_audio_init_jbsammy);
-	return ret;
-}
-
-
-static void __exit u1_audio_exit(void)
-{
-	platform_device_unregister(u1_snd_device);
-}
-
-module_init(u1_audio_init);
 
 MODULE_AUTHOR("aitdark, aitdark.park@samsung.com");
 MODULE_DESCRIPTION("ALSA SoC U1 MC1N2");
