@@ -134,8 +134,17 @@ extern void down_write_nested(struct rw_semaphore *sem, int subclass);
  */
 extern void down_read_non_owner(struct rw_semaphore *sem);
 extern void up_read_non_owner(struct rw_semaphore *sem);
+extern void _down_write_nest_lock(struct rw_semaphore *sem, struct lockdep_map *nest_lock);
+
+# define down_write_nest_lock(sem, nest_lock)			\
+do {								\
+	typecheck(struct lockdep_map *, &(nest_lock)->dep_map);	\
+	_down_write_nest_lock(sem, &(nest_lock)->dep_map);	\
+} while (0);
+
 #else
 # define down_read_nested(sem, subclass)		down_read(sem)
+# define down_write_nest_lock(sem, nest_lock)	down_read(sem)
 # define down_write_nested(sem, subclass)	down_write(sem)
 # define down_read_non_owner(sem)		down_read(sem)
 # define up_read_non_owner(sem)			up_read(sem)

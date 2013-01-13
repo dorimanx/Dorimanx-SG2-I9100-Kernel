@@ -413,13 +413,12 @@ static const struct file_operations proc_lstats_operations = {
 
 static int proc_oom_score(struct task_struct *task, char *buffer)
 {
-	unsigned long totalpages = totalram_pages + total_swap_pages;
 	unsigned long points = 0;
 
 	read_lock(&tasklist_lock);
 	if (pid_alive(task))
-		points = oom_badness(task, NULL, NULL, totalpages) *
-						1000 / totalpages;
+		points = oom_badness(task, NULL, NULL,
+					totalram_pages + total_swap_pages);
 	read_unlock(&tasklist_lock);
 	return sprintf(buffer, "%lu\n", points);
 }
@@ -550,9 +549,9 @@ int proc_setattr(struct dentry *dentry, struct iattr *attr)
 	if (error)
 		return error;
 
-	setattr_copy(inode, attr);
-	mark_inode_dirty(inode);
-	return 0;
+    setattr_copy(inode, attr);
+    mark_inode_dirty(inode);
+    return 0;
 }
 
 static const struct inode_operations proc_def_inode_operations = {
@@ -940,6 +939,105 @@ static const struct file_operations proc_environ_operations = {
 	.llseek		= generic_file_llseek,
 };
 
+static ssize_t oom_adjust_read(struct file *file, char __user *buf,
+				size_t count, loff_t *ppos)
+{
+	struct task_struct *task = get_proc_task(file->f_path.dentry->d_inode);
+	char buffer[PROC_NUMBUF];
+	size_t len;
+	int oom_adjust = OOM_DISABLE;
+	unsigned long flags;
+
+	if (!task)
+		return -ESRCH;
+
+	if (lock_task_sighand(task, &flags)) {
+		oom_adjust = task->signal->oom_adj;
+		unlock_task_sighand(task, &flags);
+	}
+
+	put_task_struct(task);
+
+	len = snprintf(buffer, sizeof(buffer), "%i\n", oom_adjust);
+
+	return simple_read_from_buffer(buf, count, ppos, buffer, len);
+}
+
+static ssize_t oom_adjust_write(struct file *file, const char __user *buf,
+				size_t count, loff_t *ppos)
+{
+	struct task_struct *task;
+	char buffer[PROC_NUMBUF];
+	int oom_adjust;
+	unsigned long flags;
+	int err;
+
+	memset(buffer, 0, sizeof(buffer));
+	if (count > sizeof(buffer) - 1)
+		count = sizeof(buffer) - 1;
+	if (copy_from_user(buffer, buf, count)) {
+		err = -EFAULT;
+		goto out;
+	}
+
+	err = kstrtoint(strstrip(buffer), 0, &oom_adjust);
+	if (err)
+		goto out;
+	if ((oom_adjust < OOM_ADJUST_MIN || oom_adjust > OOM_ADJUST_MAX) &&
+	     oom_adjust != OOM_DISABLE) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	task = get_proc_task(file->f_path.dentry->d_inode);
+	if (!task) {
+		err = -ESRCH;
+		goto out;
+	}
+
+	task_lock(task);
+	if (!task->mm) {
+		err = -EINVAL;
+		goto err_task_lock;
+	}
+
+	if (!lock_task_sighand(task, &flags)) {
+		err = -ESRCH;
+		goto err_task_lock;
+	}
+
+	if (oom_adjust < task->signal->oom_adj && !capable(CAP_SYS_RESOURCE)) {
+		err = -EACCES;
+		goto err_sighand;
+	}
+
+	/*
+	 * Warn that /proc/pid/oom_adj is deprecated, see
+	 * Documentation/feature-removal-schedule.txt.
+	 */
+	WARN_ONCE(1, "%s (%d): /proc/%d/oom_adj is deprecated, please use /proc/%d/oom_score_adj instead.\n",
+		  current->comm, task_pid_nr(current), task_pid_nr(task),
+		  task_pid_nr(task));
+	task->signal->oom_adj = oom_adjust;
+	/*
+	 * Scale /proc/pid/oom_score_adj appropriately ensuring that a maximum
+	 * value is always attainable.
+	 */
+	if (task->signal->oom_adj == OOM_ADJUST_MAX)
+		task->signal->oom_score_adj = OOM_SCORE_ADJ_MAX;
+	else
+		task->signal->oom_score_adj = (oom_adjust * OOM_SCORE_ADJ_MAX) /
+								-OOM_DISABLE;
+	trace_oom_score_adj_update(task);
+err_sighand:
+	unlock_task_sighand(task, &flags);
+err_task_lock:
+	task_unlock(task);
+	put_task_struct(task);
+out:
+	return err < 0 ? err : count;
+}
+
 static int oom_adjust_permission(struct inode *inode, int mask,
 				 unsigned int flags)
 {
@@ -971,6 +1069,12 @@ static int oom_adjust_permission(struct inode *inode, int mask,
 
 static const struct inode_operations proc_oom_adjust_inode_operations = {
 	.permission	= oom_adjust_permission,
+};
+
+static const struct file_operations proc_oom_adjust_operations = {
+	.read		= oom_adjust_read,
+	.write		= oom_adjust_write,
+	.llseek		= generic_file_llseek,
 };
 
 static ssize_t oom_score_adj_read(struct file *file, char __user *buf,
@@ -1046,7 +1150,15 @@ static ssize_t oom_score_adj_write(struct file *file, const char __user *buf,
 	if (has_capability_noaudit(current, CAP_SYS_RESOURCE))
 		task->signal->oom_score_adj_min = (short)oom_score_adj;
 	trace_oom_score_adj_update(task);
-
+	/*
+	 * Scale /proc/pid/oom_adj appropriately ensuring that OOM_DISABLE is
+	 * always attainable.
+	 */
+	if (task->signal->oom_score_adj == OOM_SCORE_ADJ_MIN)
+		task->signal->oom_adj = OOM_DISABLE;
+	else
+		task->signal->oom_adj = (oom_score_adj * OOM_ADJUST_MAX) /
+							OOM_SCORE_ADJ_MAX;
 err_sighand:
 	unlock_task_sighand(task, &flags);
 err_task_lock:
@@ -2685,6 +2797,7 @@ static const struct pid_entry tgid_base_stuff[] = {
 	REG("cgroup",  S_IRUGO, proc_cgroup_operations),
 #endif
 	INF("oom_score",  S_IRUGO, proc_oom_score),
+	ANDROID("oom_adj",S_IRUGO|S_IWUSR, oom_adjust),
 	REG("oom_score_adj", S_IRUGO|S_IWUSR, proc_oom_score_adj_operations),
 #ifdef CONFIG_ANDROID
 	REG("oom_killed", S_IRUGO, proc_oom_killed_operations),
@@ -3032,6 +3145,7 @@ static const struct pid_entry tid_base_stuff[] = {
 	REG("cgroup",  S_IRUGO, proc_cgroup_operations),
 #endif
 	INF("oom_score", S_IRUGO, proc_oom_score),
+	REG("oom_adj",   S_IRUGO|S_IWUSR, proc_oom_adjust_operations),
 	REG("oom_score_adj", S_IRUGO|S_IWUSR, proc_oom_score_adj_operations),
 #ifdef CONFIG_ANDROID
 	REG("oom_killed", S_IRUGO, proc_oom_killed_operations),

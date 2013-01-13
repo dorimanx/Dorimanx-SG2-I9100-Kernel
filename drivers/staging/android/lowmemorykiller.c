@@ -38,7 +38,6 @@
 #include <linux/rcupdate.h>
 #include <linux/profile.h>
 #include <linux/notifier.h>
-#include <linux/compaction.h>
 #include <linux/swap.h>
 
 static uint32_t lowmem_debug_level = 1;
@@ -58,8 +57,6 @@ static int lowmem_minfree[6] = {
 static int lowmem_minfree_size = 4;
 
 static unsigned long lowmem_deathpending_timeout;
-
-extern int compact_nodes(bool sync);
 
 #define lowmem_print(level, x...)			\
 	do {						\
@@ -132,8 +129,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		    time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 			task_unlock(p);
 			rcu_read_unlock();
-			if (selected)
-				compact_nodes(false);
 			return 0;
 		}
 		oom_score_adj = p->signal->oom_score_adj;
@@ -172,8 +167,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	lowmem_print(4, "lowmem_shrink %lu, %x, return %d\n",
 		     sc->nr_to_scan, sc->gfp_mask, rem);
 	rcu_read_unlock();
-	if (selected)
-		compact_nodes(false);
 	return rem;
 }
 

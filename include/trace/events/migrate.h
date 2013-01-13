@@ -20,26 +20,29 @@
 TRACE_EVENT(mm_migrate_pages,
 
 	TP_PROTO(unsigned long succeeded, unsigned long failed,
-		 enum migrate_mode mode),
+		 enum migrate_mode mode, int reason),
 
-	TP_ARGS(succeeded, failed, mode),
+	TP_ARGS(succeeded, failed, mode, reason),
 
 	TP_STRUCT__entry(
 		__field(	unsigned long,		succeeded)
 		__field(	unsigned long,		failed)
 		__field(	enum migrate_mode,	mode)
+		__field(	int,			reason)
 	),
 
 	TP_fast_assign(
 		__entry->succeeded	= succeeded;
 		__entry->failed		= failed;
 		__entry->mode		= mode;
+		__entry->reason		= reason;
 	),
 
 	TP_printk("nr_succeeded=%lu nr_failed=%lu mode=%s reason=%s",
 		__entry->succeeded,
 		__entry->failed,
-		__print_symbolic(__entry->mode, MIGRATE_MODE))
+		__print_symbolic(__entry->mode, MIGRATE_MODE),
+		__print_symbolic(__entry->reason, MIGRATE_REASON))
 );
 
 #endif /* _TRACE_MIGRATE_H */
