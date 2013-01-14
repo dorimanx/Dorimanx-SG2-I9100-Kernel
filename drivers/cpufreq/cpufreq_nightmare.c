@@ -421,6 +421,7 @@ struct cpu_usage {
 struct cpu_usage_history {
 	struct cpu_usage usage[MAX_HOTPLUG_RATE];
 	unsigned int num_hist;
+	unsigned int last_num_hist;
 };
 
 struct cpu_usage_history *hotplug_histories;
@@ -1136,7 +1137,7 @@ static int check_up(void)
 		}
 		printk(KERN_ERR "[HOTPLUG IN] %s %d>=%d && %d>%d\n",
 			__func__, min_freq, up_freq, min_rq_avg, up_rq);
-		/*hotplug_histories->num_hist = 0;*/
+		hotplug_histories->num_hist = 0;
 		return 1;
 	}
 	return 0;
@@ -1207,7 +1208,7 @@ static int check_down(void)
 	if ((max_freq <= down_freq && max_rq_avg <= down_rq) || (online >= 2 && max_avg_load < down_avg_load)) {
 		printk(KERN_ERR "[HOTPLUG OUT] %s %d<=%d && %d<%d\n",
 			__func__, max_freq, down_freq, max_rq_avg, down_rq);
-		/*hotplug_histories->num_hist = 0;*/
+		hotplug_histories->num_hist = 0;
 		return 1;
 	}
 
@@ -1233,6 +1234,8 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	/* add total_load, avg_load to get average load */
 	rq_avg = hotplug_histories->usage[num_hist].rq_avg;
 
+	/* get last num_hist used */
+	hotplug_histories->last_num_hist = num_hist;
 	++hotplug_histories->num_hist;
 
 	for_each_cpu(j, policy->cpus) {
@@ -1307,14 +1310,15 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	else if (check_down()) {
 		queue_work_on(this_dbs_info->cpu, dvfs_workqueues,&this_dbs_info->down_work);
 	}
+	if (hotplug_histories->num_hist == max_hotplug_rate)
+		hotplug_histories->num_hist = 0;
 }
 
 
 static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 {
 	int j;
-	int num_hist = hotplug_histories->num_hist - 1;
-	int max_hotplug_rate = max(dbs_tuners_ins.cpu_up_rate,dbs_tuners_ins.cpu_down_rate);
+	int num_hist = hotplug_histories->last_num_hist;
 	int inc_cpu_load = dbs_tuners_ins.inc_cpu_load;
 	int dec_cpu_load = dbs_tuners_ins.dec_cpu_load;
 	unsigned int freq_step = dbs_tuners_ins.freq_step;
@@ -1386,9 +1390,6 @@ static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		}
 		cpufreq_cpu_put(policy);
 	}
-	if (hotplug_histories->num_hist == max_hotplug_rate)
-		hotplug_histories->num_hist = 0;
-
 	return;
 }
 
@@ -1532,6 +1533,7 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		dbs_tuners_ins.max_freq = policy->max;
 		dbs_tuners_ins.min_freq = policy->min;
 		hotplug_histories->num_hist = 0;
+		hotplug_histories->last_num_hist = 0;
 		start_rq_work();
 
 		mutex_lock(&dbs_mutex);
