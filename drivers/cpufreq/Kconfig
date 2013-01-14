@@ -387,11 +387,11 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
-config CPU_FREQ_GOV_ZENERACTIVE
-	tristate "'zeneractive' cpufreq governor"
+config CPU_FREQ_GOV_ZENX
+	tristate "'zenx' cpufreq governor"
 	depends on CPU_FREQ
 	help
-	  'ZenX' - an interactive-based governor
+	  'zenx' - an interactive-based governor
 
 	  This governor provides full CPU hotplugging support
 	  based on average CPU load across all CPUs.
