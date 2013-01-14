@@ -113,14 +113,6 @@ unsigned long dirty_balance_reserve __read_mostly;
 int percpu_pagelist_fraction;
 gfp_t gfp_allowed_mask __read_mostly = GFP_BOOT_MASK;
 
-#ifdef CONFIG_COMPACTION_RETRY_DEBUG
-static inline void show_buddy_info(void);
-#else
-static inline void show_buddy_info(void)
-{
-}
-#endif
-
 #ifdef CONFIG_PM_SLEEP
 /*
  * The following functions are used by the suspend/hibernate code to temporarily
@@ -1413,14 +1405,8 @@ void split_page(struct page *page, unsigned int order)
 		set_page_refcounted(page + i);
 }
 
-/*
- * Similar to the split_page family of functions except that the page
- * required at the given order and being isolated now to prevent races
- * with parallel allocators
- */
-int capture_free_page(struct page *page, int alloc_order, int migratetype)
+static int __isolate_free_page(struct page *page, unsigned int order)
 {
-	unsigned int order;
 	unsigned long watermark;
 	struct zone *zone;
 	int mt;
@@ -1428,7 +1414,6 @@ int capture_free_page(struct page *page, int alloc_order, int migratetype)
 	BUG_ON(!PageBuddy(page));
 
 	zone = page_zone(page);
-	order = page_order(page);
 	mt = get_pageblock_migratetype(page);
 
 	if (mt != MIGRATE_ISOLATE) {
@@ -1437,7 +1422,7 @@ int capture_free_page(struct page *page, int alloc_order, int migratetype)
 		if (!zone_watermark_ok(zone, 0, watermark, 0, 0))
 			return 0;
 
-		__mod_zone_freepage_state(zone, -(1UL << alloc_order), mt);
+		__mod_zone_freepage_state(zone, -(1UL << order), mt);
 	}
 
 	/* Remove page from free list */
@@ -1445,11 +1430,7 @@ int capture_free_page(struct page *page, int alloc_order, int migratetype)
 	zone->free_area[order].nr_free--;
 	rmv_page_order(page);
 
-	if (alloc_order != order)
-		expand(zone, page, alloc_order, order,
-			&zone->free_area[order], migratetype);
-
-	/* Set the pageblock if the captured page is at least a pageblock */
+	/* Set the pageblock if the isolated page is at least a pageblock */
 	if (order >= pageblock_order - 1) {
 		struct page *endpage = page + (1 << order) - 1;
 		for (; page < endpage; page += pageblock_nr_pages) {
@@ -1460,7 +1441,7 @@ int capture_free_page(struct page *page, int alloc_order, int migratetype)
 		}
 	}
 
-	return 1UL << alloc_order;
+	return 1UL << order;
 }
 
 /*
@@ -1478,10 +1459,9 @@ int split_free_page(struct page *page)
 	unsigned int order;
 	int nr_pages;
 
-	BUG_ON(!PageBuddy(page));
 	order = page_order(page);
 
-	nr_pages = capture_free_page(page, order, 0);
+	nr_pages = __isolate_free_page(page, order);
 	if (!nr_pages)
 		return 0;
 
@@ -2111,10 +2091,6 @@ __alloc_pages_may_oom(gfp_t gfp_mask, unsigned int order,
 	int migratetype)
 {
 	struct page *page;
-#ifdef CONFIG_COMPACTION_RETRY
-	struct zoneref *z;
-	struct zone *zone;
-#endif
 
 	/* Acquire the OOM killer lock for the zones in zonelist */
 	if (!try_set_zonelist_oom(zonelist, gfp_mask)) {
@@ -2133,32 +2109,6 @@ __alloc_pages_may_oom(gfp_t gfp_mask, unsigned int order,
 		preferred_zone, migratetype);
 	if (page)
 		goto out;
-
-#ifdef CONFIG_COMPACTION_RETRY
-	/*
-	 * When we reach here, we already tried direct reclaim.
-	 * Therefore it might be possible that we have enough
-	 * free memory but extremely fragmented.
-	 * So we give it a last chance to try memory compaction and get pages.
-	 */
-	if (order) {
-		pr_info("reclaim before oom : retry compaction.\n");
-		show_buddy_info();
-
-		for_each_zone_zonelist_nodemask(zone, z, zonelist,
-					high_zoneidx, nodemask)
-			compact_zone_order(zone, -1, gfp_mask, true);
-
-		show_buddy_info();
-		pr_info("reclaim :end\n");
-		page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL,
-			nodemask, order, zonelist, high_zoneidx,
-			ALLOC_WMARK_HIGH|ALLOC_CPUSET,
-			preferred_zone, migratetype);
-		if (page)
-			goto out;
-	}
-#endif
 
 	if (!(gfp_mask & __GFP_NOFAIL)) {
 		/* The OOM killer will not help higher order allocs */
@@ -2195,8 +2145,6 @@ __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 	bool *contended_compaction, bool *deferred_compaction,
 	unsigned long *did_some_progress)
 {
-	struct page *page = NULL;
-
 	if (!order)
 		return NULL;
 
@@ -2208,16 +2156,12 @@ __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 	current->flags |= PF_MEMALLOC;
 	*did_some_progress = try_to_compact_pages(zonelist, order, gfp_mask,
 						nodemask, sync_migration,
-						contended_compaction, &page);
+						contended_compaction);
 	current->flags &= ~PF_MEMALLOC;
 
-	/* If compaction captured a page, prep and use it */
-	if (page) {
-		prep_new_page(page, order, gfp_mask);
-		goto got_page;
-	}
-
 	if (*did_some_progress != COMPACT_SKIPPED) {
+		struct page *page;
+
 		/* Page migration frees to the PCP lists but we want merging */
 		drain_pages(get_cpu());
 		put_cpu();
@@ -2227,7 +2171,6 @@ __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 				alloc_flags & ~ALLOC_NO_WATERMARKS,
 				preferred_zone, migratetype);
 		if (page) {
-got_page:
 			preferred_zone->compact_blockskip_flush = false;
 			preferred_zone->compact_considered = 0;
 			preferred_zone->compact_defer_shift = 0;
@@ -2437,9 +2380,6 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	unsigned long pages_reclaimed = 0;
 	unsigned long did_some_progress;
 	bool sync_migration = false;
-#ifdef CONFIG_ANDROID_WIP
-	unsigned long start_tick = jiffies;
-#endif
 	bool deferred_compaction = false;
 	bool contended_compaction = false;
 
@@ -3175,37 +3115,6 @@ void show_free_areas(unsigned int filter)
 
 	show_swap_cache_info();
 }
-
-#ifdef CONFIG_COMPACTION_RETRY_DEBUG
-void show_buddy_info(void)
-{
-	struct zone *zone;
-	unsigned long nr[MAX_ORDER], flags, order, total = 0;
-	char buf[256];
-	int len;
-
-	for_each_populated_zone(zone) {
-
-		if (skip_free_areas_node(SHOW_MEM_FILTER_NODES,
-					zone_to_nid(zone)))
-			continue;
-		show_node(zone);
-		len = sprintf(buf, "%s: ", zone->name);
-
-		spin_lock_irqsave(&zone->lock, flags);
-		for (order = 0; order < MAX_ORDER; order++) {
-			nr[order] = zone->free_area[order].nr_free;
-			total += nr[order] << order;
-		}
-		spin_unlock_irqrestore(&zone->lock, flags);
-		for (order = 0; order < MAX_ORDER; order++)
-			len += sprintf(buf + len, "%lu*%lukB ",
-					nr[order], K(1UL) << order);
-		len += sprintf(buf + len, "= %lukB", K(total));
-		pr_err("%s\n", buf);
-	}
-}
-#endif
 
 static void zoneref_set_zone(struct zone *zone, struct zoneref *zoneref)
 {
@@ -5728,7 +5637,7 @@ static inline int pfn_to_bitidx(struct zone *zone, unsigned long pfn)
 	pfn &= (PAGES_PER_SECTION-1);
 	return (pfn >> pageblock_order) * NR_PAGEBLOCK_BITS;
 #else
-	pfn = pfn - zone->zone_start_pfn;
+	pfn = pfn - round_down(zone->zone_start_pfn, pageblock_nr_pages);
 	return (pfn >> pageblock_order) * NR_PAGEBLOCK_BITS;
 #endif /* CONFIG_SPARSEMEM */
 }

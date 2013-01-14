@@ -1,48 +1,62 @@
                        This is Dorimanx Kernel 5.X
 This is ICS Tuned Kernel only! not supporting any 2.x.x roms!
+Kernel is updated to 3.1.Y and beyond.(hybrid)
+This is ICS/JB Tuned Kernel only! not supporting any 2.x.x roms!
 Dual CPU support
 Default CPU governor: HYPER
 CFS CPU SCHEDULER Tweaks.
 Default CPU frequency: 200-1200 MHz (MAX OC up to 1.5Ghz speed!)
-Kernel Support ExTweaks and 3 Profiles.
-Overclocking to 1500 MHz. (via ANY CPU Tweak Apps or ExTweaks)
+Kernel Support STweaks and 5 Profiles.
+Overclocking to 1500 MHz. (via ANY CPU Tweak Apps or STweaks)
 Kernel support 15 CPU steps! 1500Mhz->100Mhz by static default!
-You can set MIN/MAX CPU Freq in Extweaks app! + lots of CPU tweaks.
-Kernel will sleep in deep sleep on 200Mhz->700Mhz as Samsung requesting to prevent SOD.
-Support undervolt/overvolting via sysfs interface/apps interface. and ExTweaks (750-1500mV) (all set to best)
+You can set MIN/MAX CPU Freq in STweaks app! + lots of CPU tweaks.
+Kernel will sleep in deep sleep on 200Mhz->600Mhz as Samsung requesting to prevent SOD.
+Support undervolt/overvolting via sysfs interface/apps interface. and STweaks (750-1500mV) (all set to best)
 Be very careful with voltage settings! (all set already)
-Default I/O Scheduling: SIO
-More I/O Scheduling present in kernel: DEADLINE, VR, NOOP, CFQ
+Default I/O Scheduling: ZEN
+More I/O Scheduling present in kernel: DEADLINE, VR, NOOP, CFQ, BFQ V4, SIO, ROW
 Native USB Tethering.
 Native Wi-Fi Tethering
-File systems support: Ext3/4, FAT32
-Advanced SLUB memory scheduler
+File systems support: Ext3/4, FAT32, NFS, CIFS, NTFS
 Added tweaks to increase I/O Speed.
 Added tweaks to increase CPU speed
-Removed all the debuggers to free the kernel from unneeded jobs
-More Govs present, conservative, performance, luzactive, pegasusq, abyssplug, scary,
-Full run-time PM core functionality
-ZRAM SWAP add more 150/300/600MB compressed RAM, activated by ExTweaks.
+Removed all the debuggers to free kernel from unneeded jobs, and logs.
+More Govs present, conservative, performance, luzactiveq, pegasusq, scary, ondemand(default sleep gov), sleepy, ZenX, Nightmare.
+ZRAM SWAP add more 150/300/600MB compressed RAM, activated by STweaks, set to off by default.
 Tweak camera (better picks quality)
-Kernel Include Siyah Recovery with dual ROM support!
-In Recovery you have section to select kernel profile. Performance, default, battery, default is DEFAULT.
+Kernel Include Siyah Recovery with Dual ROM support!
+In Recovery you have section to select kernel profile. Performance, default, battery, the default is DEFAULT.
 Kernel will Auto ROOT your device!
-You can disable ROOT in ExTweaks app! (download from market!)
-Tuned for I/O Mega Speed SQLite is injected to ROM after install, only for CM9 or AOKP, will not be injected to MIUI/SAMMY ROMS.
-BLN by Myfluxi! lights time out, and blink/breathing effect, see ExTweaks BLN tab to activate!
-Massive script for kernel/rom management made by voku and me
+You can disable ROOT in STweaks app! (download from market!)
+Tuned for I/O Mega Speed SQLite is injected to ROM after install, only for CM9 or AOKP and JB ROMS, will NOT be injected to MIUI/SAMMY ROMS.
+BLN by GM! lights time out, and blink/breathing effect, see STweaks BLN tab to activate!
+New Kernel Management app STweaks by GM! installed with kernel.
+BLN without Wakelock to save battery when BLN active till timed out. by GM.
+Touch Keys Light change with the screen brightness! by GM.
+Massive script for kernel/ROM management made by Voku and me
 It's will work by auto and set lots of tweaks: NET tweaks, GPU tweaks, CPU management, Deep Sleep Tuning, Charging states, and more!
 It's name is cortexbrain-tune.sh
 WE SAFE (MMC_CAP_ERASE not present) in kernel MMC Code!
 MMC code merged with SAMMY Update 7
 FM-RADIO WORKING! (you need Spirit FM PAID!!!!) or original ICS FM APP.
-Touch screen color/touch thresholds in ExTweaks,
-Kernel Cleaning Script is build IN! by VOKU no need to run any external clean scripts.
-BT Support for SAMMY 4.0.4 ported by GM! + BT driver from SAMMY Update 7
-Video/Camera Driver from SAMMY Update 7 + patches
-WIFI Driver 1.15.15 + SAMMY Update 7
-Modem Driver from SAMMY Update 7
-SMP updated from 3.7.Y Kernel!
+Touch screen color + touch thresholds are in STweaks,
+Kernel Cleaning Script is build IN! by VOKU.
+BT Support for SAMMY 4.0.4 ported by GM! + BT driver from SAMMY JB LEAK
+Video(GPU) + Camera Driver from SAMMY JB LEAK + patches
+WIFI Driver 1.28.15
+Modem Driver from SAMMY JB LEAK
+SMP Processor code updated from Kernel 3.6.Y
+RCU + SRCU Processor code updated from Kernel 3.6.Y
+Kernel Code for on screen gestures by Tungstwenty fixed by MARIO1968
+EXT4 Code merged with lots of updates from 3.6.Y kernel
+SLUB fully merged with 3.6.Y kernel
+Memcontrol merged with 3.8.Y kernel.
+VFP updated to MAX from 3.4.Y
+Slide2Wake by FLUXI, (swipe from left to right on turned off screen to wakeup device, tweak can be turned on/off in STweaks, this mod use 5% battery! (Modded by GM for less battery drain)
+Sound boost controls by FLUXI in STweaks.
+New Mali Video Driver combined with old to support ICS + JB-Mail in one kernel by Gokhanmoral!
+Added mdnie interface and made hardcore.s sharpness tweaks optional by GM!
+5 GPU FREQ Steps from 62Mhz to 520Mhz by GM!
 
 
 	Linux kernel release 3.x <http://kernel.org/>
