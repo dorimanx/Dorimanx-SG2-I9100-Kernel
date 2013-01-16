@@ -305,6 +305,7 @@ int exynos_mem_mmap(struct file *filp, struct vm_area_struct *vma)
 			 */
 			
 			if(strcmp(b->name, "s3c-fimc") == 0 ||
+					strcmp(b->name, "fimc0") == 0 ||
 					strcmp(b->name, "fimc1") == 0 ||
 					strcmp(b->name, "fimc2") == 0 ||
 					strcmp(b->name, "fimc3") == 0) {
