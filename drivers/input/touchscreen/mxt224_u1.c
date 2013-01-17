@@ -1347,6 +1347,7 @@ static void report_input_data(struct mxt224_data *data)
 	u16 object_address = 0;
 	u16 size = 1;
 	u8 value;
+	unsigned long avnrun[3];
 #ifdef CONFIG_TOUCHSCREEN_GESTURES
 	int gesture_no, finger_no;
 	int finger_pos;
@@ -1354,6 +1355,7 @@ static void report_input_data(struct mxt224_data *data)
 	int step;
 	bool fingers_completed;
 	unsigned long flags;
+	unsigned int new_lock_freq;
 	bool track_gestures;
 
 	track_gestures = copy_data->mxt224_enabled;
@@ -1361,8 +1363,28 @@ static void report_input_data(struct mxt224_data *data)
 
 	touch_is_pressed = 0;
 
-	if (level == ~0)
-		exynos_cpufreq_get_level(lock_freq, &level);
+	if (level == ~0) {
+
+		// DEBUG
+		//printk("old lock_freq: %u\n", lock_freq);
+		new_lock_freq = lock_freq / 10 * nr_running();
+
+		for (i=100000; i <= 1000000; i=i+100000) {
+			if (i >= lock_freq) {
+				new_lock_freq = lock_freq;
+				break;
+			}
+			else if (new_lock_freq <= i ) {
+				new_lock_freq = i;
+				break;
+			}
+		}
+
+		// DEBUG
+		//printk("new lock_freq: %u\n", new_lock_freq);
+
+		exynos_cpufreq_get_level(new_lock_freq, &level);
+	}
 
 	for (i = 0; i < data->num_fingers; i++) {
 		if (TSP_STATE_INACTIVE == data->fingers[i].z)
