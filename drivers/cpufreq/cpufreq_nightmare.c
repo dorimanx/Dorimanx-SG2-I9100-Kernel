@@ -1364,28 +1364,32 @@ static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 				freq_up = policy->cur + (inc_load - inc_brake);
 			}
 
+			if (freq_up > policy->max) {
+					freq_up = policy->max;
+			}
+
 			if (freq_up != policy->cur && freq_up <= policy->max) {
 				__cpufreq_driver_target(policy, freq_up, CPUFREQ_RELATION_L);
 			}
 
-		} else if (load <	 dec_cpu_load && load > -1) {
+		} else if (load < dec_cpu_load) {
 			this_dbs_info->rate_mult = dbs_tuners_ins.sampling_down_factor;
 
 			// if we cannot reduce the frequency anymore, break out early
-			if (policy->cur == policy->min) {
+			if (policy->cur == policy->min || load < 0) {
 				continue;
 			}
 	
 			dec_load = (((100 - load) * policy->min) / 100) + ((freq_step_dec * policy->min) / 100);
 
-			if (policy->cur > dec_load + policy->min) {
+			if (policy->cur > policy->min + dec_load) {
 				freq_down = policy->cur - dec_load;
 			} else {
 				freq_down = policy->min;
 			}
 
-			if (freq_down != policy->cur) {
-				__cpufreq_driver_target(policy, freq_down, CPUFREQ_RELATION_L);
+			if (freq_down != policy->cur && freq_down >= policy->min) {
+				__cpufreq_driver_target(policy, freq_down, CPUFREQ_RELATION_H);
 			}
 		}
 		cpufreq_cpu_put(policy);
@@ -1520,7 +1524,7 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 	unsigned int cpu = policy->cpu;
 	struct cpufreq_nightmare_cpuinfo *this_dbs_info;
 	struct cpufreq_frequency_table *freq_table;
-	unsigned int j;
+	unsigned int j,t;
 	int rc;
 
 	this_dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
@@ -1612,14 +1616,20 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 	case CPUFREQ_GOV_LIMITS:
 		mutex_lock(&this_dbs_info->timer_mutex);
 
-		if (policy->max < this_dbs_info->cur_policy->cur)
-			__cpufreq_driver_target(this_dbs_info->cur_policy,
-						policy->max,
-						CPUFREQ_RELATION_H);
-		else if (policy->min > this_dbs_info->cur_policy->cur)
-			__cpufreq_driver_target(this_dbs_info->cur_policy,
-						policy->min,
-						CPUFREQ_RELATION_L);
+		for_each_online_cpu(t) {
+			struct cpufreq_policy *cpu_policy;
+			cpu_policy = cpufreq_cpu_get(t);
+
+			if (!cpu_policy)
+				continue;
+
+			if (policy->max < cpu_policy->cur)
+				__cpufreq_driver_target(cpu_policy,policy->max,CPUFREQ_RELATION_H);
+			else if (policy->min > cpu_policy->cur)
+				__cpufreq_driver_target(cpu_policy,policy->min,CPUFREQ_RELATION_L);
+
+			cpufreq_cpu_put(cpu_policy);		
+		}
 
 		mutex_unlock(&this_dbs_info->timer_mutex);
 		break;
