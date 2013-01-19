@@ -7723,12 +7723,14 @@ static void __init exynos4_reserve_mem(void)
 			.start = 0,
 		},
 #endif
+#ifndef CONFIG_ION_EXYNOS_CONTIGHEAP_SIZE
 #ifdef CONFIG_VIDEO_SAMSUNG_MEMSIZE_FIMC1
 		{
 			.name = "fimc1",
 			.size = CONFIG_VIDEO_SAMSUNG_MEMSIZE_FIMC1 * SZ_1K,
 			.start = 0,
 		},
+#endif
 #endif
 #ifdef CONFIG_VIDEO_SAMSUNG_MEMSIZE_FIMC2
 		{
