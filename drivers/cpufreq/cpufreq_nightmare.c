@@ -179,6 +179,9 @@ static unsigned int get_nr_run_avg(void)
 #define DEF_FREQ_UP_BRAKE				(5u)
 #define DEF_HOTPLUG_COMPARE_LEVEL		(0u)
 
+#define CPU_OFF 0
+#define CPU_ON  1
+
 #ifdef CONFIG_MACH_MIDAS
 static int hotplug_rq[4][2] = {
 	{0, 100}, {100, 200}, {200, 300}, {300, 0}
@@ -1130,10 +1133,10 @@ static int check_up(void)
 				debug_hotplug_check(1, min_rq_avg, min_freq, usage);
 	}
 	
-	if ((min_freq >= up_freq && min_rq_avg > up_rq) || (min_avg_load >= up_avg_load)) {
-		/*if (min_avg_load < up_avg_load) {
+	if (min_freq >= up_freq && min_rq_avg > up_rq) {
+		if (min_avg_load < up_avg_load) {
 				return 0;
-		}*/
+		}
 		printk(KERN_ERR "[HOTPLUG IN] %s %d>=%d && %d>%d\n",
 			__func__, min_freq, up_freq, min_rq_avg, up_rq);
 		hotplug_histories->num_hist = 0;
@@ -1223,6 +1226,7 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	/* add avg_load to get average load and avg_freq to get average freq */
 	unsigned int avg_freq = 0;
 	unsigned int avg_load = 0;
+	unsigned int online = 0;
 	int rq_avg = 0;
 
 	policy = this_dbs_info->cur_policy;
@@ -1288,24 +1292,27 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 
 		load = 100 * (wall_time - idle_time) / wall_time;
 		
-		if (cpu_online(j)) {
-			/* get cur cpu freq to allow the avg calc */
-			avg_freq += cpufreq_quick_get(j);
+		if (cpu_online(j) == CPU_ON) {
 			/* get cur cpu load to allow the avg calc */
 			avg_load += load;
 			/* set cpu load into History*/
 			hotplug_histories->usage[num_hist].load[j] = load;
+			/* get cur cpu freq to allow the avg calc */
+			avg_freq += j_dbs_info->cur_policy->cur;
 		} else {
-			hotplug_histories->usage[num_hist].load[j] = -1;
+			hotplug_histories->usage[num_hist].load[j] = -1;			
 		}
 
 	}
+
+	online = num_online_cpus();
+
 	/* calculate the average freq across all related CPUs */
-	avg_freq = avg_freq / num_online_cpus();
+	avg_freq = avg_freq / online;
 	hotplug_histories->usage[num_hist].freq = avg_freq;
 
 	/* calculate the average load across all related CPUs */
-	avg_load = avg_load / num_online_cpus();
+	avg_load = avg_load / online;
 	hotplug_histories->usage[num_hist].avg_load = avg_load;	
 
 	/* Check for CPU hotplug */
