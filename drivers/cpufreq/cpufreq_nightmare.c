@@ -1134,7 +1134,8 @@ static int check_up(void)
 	}
 	
 	if (min_freq >= up_freq && min_rq_avg > up_rq) {
-		if (min_avg_load < up_avg_load) {
+		if (online >= 1) {
+			if (min_avg_load < up_avg_load)
 				return 0;
 		}
 		printk(KERN_ERR "[HOTPLUG IN] %s %d>=%d && %d>%d\n",
@@ -1207,7 +1208,7 @@ static int check_down(void)
 				debug_hotplug_check(0, max_rq_avg, max_freq, usage);
 	}
 
-	if ((max_freq <= down_freq && max_rq_avg <= down_rq) || (max_avg_load < down_avg_load)) {
+	if ((max_freq <= down_freq && max_rq_avg <= down_rq) || (online >= 2 && max_avg_load < down_avg_load)) {
 		printk(KERN_ERR "[HOTPLUG OUT] %s %d<=%d && %d<%d\n",
 			__func__, max_freq, down_freq, max_rq_avg, down_rq);
 		hotplug_histories->num_hist = 0;
@@ -1223,16 +1224,17 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	unsigned int j;
 	int num_hist = hotplug_histories->num_hist;
 	int max_hotplug_rate = max(dbs_tuners_ins.cpu_up_rate,dbs_tuners_ins.cpu_down_rate);
-	/* add avg_load to get average load and avg_freq to get average freq */
-	unsigned int avg_freq = 0;
+	/* add total_load, avg_load to get average load */
+	unsigned int total_load = 0;
 	unsigned int avg_load = 0;
-	unsigned int online = 0;
 	int rq_avg = 0;
 
 	policy = this_dbs_info->cur_policy;
 
-	/* get rq avg */
+	hotplug_histories->usage[num_hist].freq = policy->cur;
 	hotplug_histories->usage[num_hist].rq_avg = get_nr_run_avg();
+
+	/* add total_load, avg_load to get average load */
 	rq_avg = hotplug_histories->usage[num_hist].rq_avg;
 
 	/* get last num_hist used */
@@ -1291,28 +1293,17 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 			continue;
 
 		load = 100 * (wall_time - idle_time) / wall_time;
-		
-		if (cpu_online(j) == CPU_ON) {
-			/* get cur cpu load to allow the avg calc */
-			avg_load += load;
-			/* set cpu load into History*/
+
+		if (cpu_online(j)) {
+			total_load += load;
 			hotplug_histories->usage[num_hist].load[j] = load;
-			/* get cur cpu freq to allow the avg calc */
-			avg_freq += j_dbs_info->cur_policy->cur;
 		} else {
-			hotplug_histories->usage[num_hist].load[j] = -1;			
+			hotplug_histories->usage[num_hist].load[j] = -1;
 		}
 
 	}
-
-	online = num_online_cpus();
-
-	/* calculate the average freq across all related CPUs */
-	avg_freq = avg_freq / online;
-	hotplug_histories->usage[num_hist].freq = avg_freq;
-
 	/* calculate the average load across all related CPUs */
-	avg_load = avg_load / online;
+	avg_load = total_load / num_online_cpus();
 	hotplug_histories->usage[num_hist].avg_load = avg_load;	
 
 	/* Check for CPU hotplug */
