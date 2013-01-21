@@ -175,13 +175,13 @@ static unsigned int exynos4_apll_pms_table[CPUFREQ_LEVEL_END] = {
 	((350 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L2: 1400MHz */
 	((325 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L3: 1300MHz */
 	((150 << 16)|(3 << 8)|(0x1)),	/* APLL FOUT L4: 1200MHz */
-	((144 << 16)|(3 << 8)|(0x1)),	/* APLL FOUT L4: 1152MHz */	 // 287.5 // 143.75
+	((144 << 16)|(3 << 8)|(0x1)),	/* APLL FOUT L5: 1152MHz */	// 287.5 // 143.75
 	((275 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L6: 1100MHz */
-	((263 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L6: 1052MHz */	 // 262.5
+	((263 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L7: 1052MHz */	// 262.5
 	((250 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L8: 1000MHz */
-	((238 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L9:  952MHz */	 // 237.5
+	((238 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L9:  952MHz */	// 237.5
 	((225 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L10: 900MHz */
-	((213 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L11: 852MHz */  // 212.5
+	((213 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L11: 852MHz */	// 212.5
 	((200 << 16)|(6 << 8)|(0x1)),	/* APLL FOUT L12: 800MHz */	 
 	((375 << 16)|(6 << 8)|(0x2)),	/* APLL FOUT L13: 750MHz */
 	((350 << 16)|(6 << 8)|(0x2)),	/* APLL FOUT L14: 700MHz */
@@ -197,6 +197,7 @@ static unsigned int exynos4_apll_pms_table[CPUFREQ_LEVEL_END] = {
 	((200 << 16)|(6 << 8)|(0x3)),	/* APLL FOUT L24: 200MHz */
 	((150 << 16)|(6 << 8)|(0x3)),	/* APLL FOUT L25: 150MHz */
 	((200 << 16)|(6 << 8)|(0x4)),	/* APLL FOUT L26: 100MHz */
+	/* calculation (0x4=16) (0x3=8) (0x2=4) (0x1=2)  (6<<8=2) (3<<8=1) */
 };
 
 /*
@@ -400,23 +401,23 @@ static void __init set_volt_table(void)
 	case SUPPORT_1400MHZ:
 #if defined(CONFIG_EXYNOS4210_1200MHZ_SUPPORT)
 		for_1200 = true;
-		max_support_idx = L1;
+		max_support_idx = L0; /* allow max freq any way */
 #else
 		for_1400 = true;
-		max_support_idx = L0;
+		max_support_idx = L0; /* allow max freq any way */
 #endif
 		break;
 	case SUPPORT_1200MHZ:
 		for_1200 = true;
-		max_support_idx = L0; //gm L1;
+		max_support_idx = L0; /* allow max freq any way */
 		break;
 	case SUPPORT_1000MHZ:
 		for_1000 = true;
-		max_support_idx = L8; // L6
+		max_support_idx = L8;
 		break;
 	default:
 		for_1000 = true;
-		max_support_idx = L8; // L6
+		max_support_idx = L8;
 		break;
 	}
 
@@ -428,7 +429,7 @@ static void __init set_volt_table(void)
 //		exynos4210_freq_table[L0].frequency = CPUFREQ_ENTRY_INVALID;
 
 	if (for_1000)
-		exynos4210_freq_table[L4].frequency = CPUFREQ_ENTRY_INVALID;
+		exynos4210_freq_table[L4].frequency = CPUFREQ_ENTRY_INVALID; /* 1200Mhz */
 		printk(KERN_INFO "DVFS : VDD_ARM Voltage table set with %d Group\n", asv_group);
 
 	if (for_1400) {
@@ -515,8 +516,8 @@ int exynos4210_cpufreq_init(struct exynos_dvfs_info *info)
 	}
 
 	info->mpll_freq_khz = rate;
-	info->pm_lock_idx = L12; // L8
-	info->pll_safe_idx = L8; // L6
+	info->pm_lock_idx = L12; /* PM safe freq should be 800Mhz on cpu wakeup */
+	info->pll_safe_idx = L8; /* Safe freq should be 1000Mhz */
 	info->max_support_idx = max_support_idx;
 	info->min_support_idx = min_support_idx;
 	info->cpu_clk = cpu_clk;
