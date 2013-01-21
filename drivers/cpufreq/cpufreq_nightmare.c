@@ -1130,10 +1130,11 @@ static int check_up(void)
 				debug_hotplug_check(1, min_rq_avg, min_freq, usage);
 	}
 	
-	if ((min_freq >= up_freq && min_rq_avg > up_rq) || (min_avg_load >= up_avg_load)) {
-		/*if (min_avg_load < up_avg_load) {
+	if (min_freq >= up_freq && min_rq_avg > up_rq) {
+		if (online >= 1) {
+			if (min_avg_load < up_avg_load)
 				return 0;
-		}*/
+		}
 		printk(KERN_ERR "[HOTPLUG IN] %s %d>=%d && %d>%d\n",
 			__func__, min_freq, up_freq, min_rq_avg, up_rq);
 		hotplug_histories->num_hist = 0;
@@ -1204,7 +1205,7 @@ static int check_down(void)
 				debug_hotplug_check(0, max_rq_avg, max_freq, usage);
 	}
 
-	if ((max_freq <= down_freq && max_rq_avg <= down_rq) || (max_avg_load < down_avg_load)) {
+	if ((max_freq <= down_freq && max_rq_avg <= down_rq) || (online >= 2 && max_avg_load < down_avg_load)) {
 		printk(KERN_ERR "[HOTPLUG OUT] %s %d<=%d && %d<%d\n",
 			__func__, max_freq, down_freq, max_rq_avg, down_rq);
 		hotplug_histories->num_hist = 0;
@@ -1220,15 +1221,17 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	unsigned int j;
 	int num_hist = hotplug_histories->num_hist;
 	int max_hotplug_rate = max(dbs_tuners_ins.cpu_up_rate,dbs_tuners_ins.cpu_down_rate);
-	/* add avg_load to get average load and avg_freq to get average freq */
-	unsigned int avg_freq = 0;
+	/* add total_load, avg_load to get average load */
+	unsigned int total_load = 0;
 	unsigned int avg_load = 0;
 	int rq_avg = 0;
 
 	policy = this_dbs_info->cur_policy;
 
-	/* get rq avg */
+	hotplug_histories->usage[num_hist].freq = policy->cur;
 	hotplug_histories->usage[num_hist].rq_avg = get_nr_run_avg();
+
+	/* add total_load, avg_load to get average load */
 	rq_avg = hotplug_histories->usage[num_hist].rq_avg;
 
 	/* get last num_hist used */
@@ -1287,25 +1290,17 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 			continue;
 
 		load = 100 * (wall_time - idle_time) / wall_time;
-		
+
 		if (cpu_online(j)) {
-			/* get cur cpu freq to allow the avg calc */
-			avg_freq += cpufreq_quick_get(j);
-			/* get cur cpu load to allow the avg calc */
-			avg_load += load;
-			/* set cpu load into History*/
+			total_load += load;
 			hotplug_histories->usage[num_hist].load[j] = load;
 		} else {
 			hotplug_histories->usage[num_hist].load[j] = -1;
 		}
 
 	}
-	/* calculate the average freq across all related CPUs */
-	avg_freq = avg_freq / num_online_cpus();
-	hotplug_histories->usage[num_hist].freq = avg_freq;
-
 	/* calculate the average load across all related CPUs */
-	avg_load = avg_load / num_online_cpus();
+	avg_load = total_load / num_online_cpus();
 	hotplug_histories->usage[num_hist].avg_load = avg_load;	
 
 	/* Check for CPU hotplug */
@@ -1369,32 +1364,28 @@ static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 				freq_up = policy->cur + (inc_load - inc_brake);
 			}
 
-			if (freq_up > policy->max) {
-					freq_up = policy->max;
-			}
-
 			if (freq_up != policy->cur && freq_up <= policy->max) {
 				__cpufreq_driver_target(policy, freq_up, CPUFREQ_RELATION_L);
 			}
 
-		} else if (load < dec_cpu_load) {
+		} else if (load <	 dec_cpu_load && load > -1) {
 			this_dbs_info->rate_mult = dbs_tuners_ins.sampling_down_factor;
 
 			// if we cannot reduce the frequency anymore, break out early
-			if (policy->cur == policy->min || load < 0) {
+			if (policy->cur == policy->min) {
 				continue;
 			}
 	
 			dec_load = (((100 - load) * policy->min) / 100) + ((freq_step_dec * policy->min) / 100);
 
-			if (policy->cur > policy->min + dec_load) {
+			if (policy->cur > dec_load + policy->min) {
 				freq_down = policy->cur - dec_load;
 			} else {
 				freq_down = policy->min;
 			}
 
-			if (freq_down != policy->cur && freq_down >= policy->min) {
-				__cpufreq_driver_target(policy, freq_down, CPUFREQ_RELATION_H);
+			if (freq_down != policy->cur) {
+				__cpufreq_driver_target(policy, freq_down, CPUFREQ_RELATION_L);
 			}
 		}
 		cpufreq_cpu_put(policy);
@@ -1529,7 +1520,7 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 	unsigned int cpu = policy->cpu;
 	struct cpufreq_nightmare_cpuinfo *this_dbs_info;
 	struct cpufreq_frequency_table *freq_table;
-	unsigned int j,t;
+	unsigned int j;
 	int rc;
 
 	this_dbs_info = &per_cpu(od_cpu_dbs_info, cpu);
@@ -1621,20 +1612,14 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 	case CPUFREQ_GOV_LIMITS:
 		mutex_lock(&this_dbs_info->timer_mutex);
 
-		for_each_online_cpu(t) {
-			struct cpufreq_policy *cpu_policy;
-			cpu_policy = cpufreq_cpu_get(t);
-
-			if (!cpu_policy)
-				continue;
-
-			if (policy->max < cpu_policy->cur)
-				__cpufreq_driver_target(cpu_policy,policy->max,CPUFREQ_RELATION_H);
-			else if (policy->min > cpu_policy->cur)
-				__cpufreq_driver_target(cpu_policy,policy->min,CPUFREQ_RELATION_L);
-
-			cpufreq_cpu_put(cpu_policy);		
-		}
+		if (policy->max < this_dbs_info->cur_policy->cur)
+			__cpufreq_driver_target(this_dbs_info->cur_policy,
+						policy->max,
+						CPUFREQ_RELATION_H);
+		else if (policy->min > this_dbs_info->cur_policy->cur)
+			__cpufreq_driver_target(this_dbs_info->cur_policy,
+						policy->min,
+						CPUFREQ_RELATION_L);
 
 		mutex_unlock(&this_dbs_info->timer_mutex);
 		break;
