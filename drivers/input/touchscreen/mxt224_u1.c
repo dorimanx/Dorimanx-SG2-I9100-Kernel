@@ -1375,7 +1375,7 @@ static void report_input_data(struct mxt224_data *data)
 				break;
 			}
 			else if (new_lock_freq <= i ) {
-				if (i == 850000 || i == 950000) {
+				if (i == 850000 || i == 950000 || i == 1050000 || i == 1150000) {
 					i = i + 2000;
 				}
 				new_lock_freq = i;

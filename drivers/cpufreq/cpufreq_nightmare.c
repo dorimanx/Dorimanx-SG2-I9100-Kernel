@@ -179,6 +179,9 @@ static unsigned int get_nr_run_avg(void)
 #define DEF_FREQ_UP_BRAKE				(5u)
 #define DEF_HOTPLUG_COMPARE_LEVEL		(0u)
 
+#define CPU_OFF 0
+#define CPU_ON  1
+
 #ifdef CONFIG_MACH_MIDAS
 static int hotplug_rq[4][2] = {
 	{0, 100}, {100, 200}, {200, 300}, {300, 0}
