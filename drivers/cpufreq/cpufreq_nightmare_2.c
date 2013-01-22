@@ -432,10 +432,38 @@ static void hotplug_timer(struct work_struct *work)
 no_hotplug:
 	//printk("hotplug_timer done.\n");
 
-	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, hotpluging_rate);
+	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, dbs_tuners_ins.hotpluging_rate);
 off_hotplug:
 
 	mutex_unlock(&hotplug_lock);
+}
+
+
+//static inline void hotplug_timer_init(struct cpufreq_nightmare_cpuinfo *dbs_info)
+static inline void hotplug_timer_init(void)
+{
+
+	//hotplug_wq = create_workqueue("dynamic hotplug");
+	hotplug_wq = alloc_workqueue("dynamic hotplug", 0, 0);
+	if (!hotplug_wq) {
+		printk(KERN_ERR "Creation of hotplug work failed\n");
+		return -EFAULT;
+	}
+	INIT_DELAYED_WORK(&hotplug_work, hotplug_timer);
+	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, BOOT_DELAY * HZ);
+
+	/* We want all CPUs to do sampling nearly on same jiffy */
+
+	/*INIT_DEFERRABLE_WORK(&dbs_info->work, do_dbs_timer);
+	INIT_WORK(&dbs_info->up_work, cpu_up_work);
+	INIT_WORK(&dbs_info->down_work, cpu_down_work);*/
+
+}
+
+//static inline void hotplug_timer_exit(struct cpufreq_nightmare_cpuinfo *dbs_info)
+static inline void hotplug_timer_exit(void)
+{
+	cancel_delayed_work_sync(&hotplug_work);
 }
 
 static int nightmare_pm_hotplug_notifier_event(struct notifier_block *this,
@@ -501,7 +529,7 @@ static int hotplug_reboot_notifier_call(struct notifier_block *this,
 {
 	mutex_lock(&hotplug_lock);
 	pr_err("%s: disabling pm hotplug\n", __func__);
-	user_lock = 1;
+	dbs_tuners_ins.user_lock = 1;
 	mutex_unlock(&hotplug_lock);
 
 	return NOTIFY_DONE;
@@ -1135,19 +1163,6 @@ static int cpufreq_gov_nightmare(struct cpufreq_policy *policy,
 		if ((!cpu_online(0)) || (!policy->cur))
 			return -EINVAL;
 
-			/// IN dbs_timer_init
-			//hotplug_wq = create_workqueue("dynamic hotplug");
-			hotplug_wq = alloc_workqueue("dynamic hotplug", 0, 0);
-			if (!hotplug_wq) {
-				printk(KERN_ERR "Creation of hotplug work failed\n");
-				return -EFAULT;
-			}
-
-			INIT_DELAYED_WORK(&hotplug_work, hotplug_timer);
-
-			queue_delayed_work_on(0, hotplug_wq, &hotplug_work, BOOT_DELAY * HZ);
-
-			///
 		#ifdef CONFIG_CPU_FREQ
 			table = cpufreq_frequency_get_table(0);
 
@@ -1198,7 +1213,7 @@ static int cpufreq_gov_nightmare(struct cpufreq_policy *policy,
 		unregister_pm_notifier(&nightmare_pm_hotplug_notifier);
 //#endif
 
-		//dbs_timer_exit(this_dbs_info);
+		hotplug_timer_exit(policy);
 
 		unregister_reboot_notifier(&hotplug_reboot_notifier);
 
