@@ -120,7 +120,7 @@ config STACKTRACE_SUPPORT
 
 config HAVE_LATENCYTOP_SUPPORT
 	bool
-	default y
+	default n
 
 config LOCKDEP_SUPPORT
 	bool
@@ -1568,7 +1568,7 @@ source kernel/Kconfig.preempt
 
 config HZ
 	int
-	default 300 if ARCH_EBSA110 || ARCH_S3C2410 || ARCH_S5P64X0 || \
+	default 200 if ARCH_EBSA110 || ARCH_S3C2410 || ARCH_S5P64X0 || \
 		ARCH_S5PV210 || (ARCH_EXYNOS && !MACH_FPGA5410)
 	default 20 if MACH_FPGA5410
 	default OMAP_32K_TIMER_HZ if ARCH_OMAP && OMAP_32K_TIMER

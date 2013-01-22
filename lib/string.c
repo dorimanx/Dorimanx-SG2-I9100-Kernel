@@ -22,8 +22,10 @@
 #include <linux/types.h>
 #include <linux/string.h>
 #include <linux/ctype.h>
-#include <linux/module.h>
-#include <linux/memcopy.h>
+#include <linux/kernel.h>
+#include <linux/export.h>
+#include <linux/bug.h>
+#include <linux/errno.h>
 
 #ifndef __HAVE_ARCH_STRNICMP
 /**
@@ -361,7 +363,6 @@ char *strim(char *s)
 	size_t size;
 	char *end;
 
-	s = skip_spaces(s);
 	size = strlen(s);
 	if (!size)
 		return s;
@@ -371,7 +372,7 @@ char *strim(char *s)
 		end--;
 	*(end + 1) = '\0';
 
-	return s;
+	return skip_spaces(s);
 }
 EXPORT_SYMBOL(strim);
 
@@ -597,11 +598,11 @@ EXPORT_SYMBOL(memset);
  */
 void *memcpy(void *dest, const void *src, size_t count)
 {
-	unsigned long dstp = (unsigned long)dest; 
-	unsigned long srcp = (unsigned long)src; 
+	char *tmp = dest;
+	const char *s = src;
 
-	/* Copy from the beginning to the end */ 
-	mem_copy_fwd(dstp, srcp, count); 
+	while (count--)
+		*tmp++ = *s++;
 	return dest;
 }
 EXPORT_SYMBOL(memcpy);
@@ -618,15 +619,21 @@ EXPORT_SYMBOL(memcpy);
  */
 void *memmove(void *dest, const void *src, size_t count)
 {
-	unsigned long dstp = (unsigned long)dest; 
-	unsigned long srcp = (unsigned long)src; 
+	char *tmp;
+	const char *s;
 
-	if (dest - src >= count) { 
-		/* Copy from the beginning to the end */ 
-		mem_copy_fwd(dstp, srcp, count); 
+	if (dest <= src) {
+		tmp = dest;
+		s = src;
+		while (count--)
+			*tmp++ = *s++;
 	} else {
-		/* Copy from the end to the beginning */ 
-		mem_copy_bwd(dstp, srcp, count); 
+		tmp = dest;
+		tmp += count;
+		s = src;
+		s += count;
+		while (count--)
+			*--tmp = *--s;
 	}
 	return dest;
 }
@@ -781,12 +788,24 @@ void *memchr_inv(const void *start, int c, size_t bytes)
 	if (bytes <= 16)
 		return check_bytes8(start, value, bytes);
 
-	value64 = value | value << 8 | value << 16 | value << 24;
-	value64 = (value64 & 0xffffffff) | value64 << 32;
-	prefix = 8 - ((unsigned long)start) % 8;
+	value64 = value;
+#if defined(ARCH_HAS_FAST_MULTIPLIER) && BITS_PER_LONG == 64
+	value64 *= 0x0101010101010101;
+#elif defined(ARCH_HAS_FAST_MULTIPLIER)
+	value64 *= 0x01010101;
+	value64 |= value64 << 32;
+#else
+	value64 |= value64 << 8;
+	value64 |= value64 << 16;
+	value64 |= value64 << 32;
+#endif
 
+	prefix = (unsigned long)start % 8;
 	if (prefix) {
-		u8 *r = check_bytes8(start, value, prefix);
+		u8 *r;
+
+		prefix = 8 - prefix;
+		r = check_bytes8(start, value, prefix);
 		if (r)
 			return r;
 		start += prefix;

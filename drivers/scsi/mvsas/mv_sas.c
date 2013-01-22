@@ -555,9 +555,9 @@ static int mvs_task_prep_smp(struct mvs_info *mvi,
 
 #if _MV_DUMP
 	/* copy cmd table */
-	from = kmap_atomic(sg_page(sg_req), KM_IRQ0);
+	from = kmap_atomic(sg_page(sg_req));
 	memcpy(buf_cmd, from + sg_req->offset, req_len);
-	kunmap_atomic(from, KM_IRQ0);
+	kunmap_atomic(from);
 #endif
 	return 0;
 

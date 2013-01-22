@@ -349,7 +349,7 @@ void *dma_buf_kmap_atomic(struct dma_buf *dmabuf, unsigned long page_num)
 {
 	WARN_ON(!dmabuf);
 
-	return dmabuf->ops->kmap_atomic(dmabuf, page_num);
+	return dmabuf->ops->kmap_atomic(dmabuf);
 }
 EXPORT_SYMBOL_GPL(dma_buf_kmap_atomic);
 
@@ -367,7 +367,7 @@ void dma_buf_kunmap_atomic(struct dma_buf *dmabuf, unsigned long page_num,
 	WARN_ON(!dmabuf);
 
 	if (dmabuf->ops->kunmap_atomic)
-		dmabuf->ops->kunmap_atomic(dmabuf, page_num, vaddr);
+		dmabuf->ops->kunmap_atomic(dmabuf, page_num);
 }
 EXPORT_SYMBOL_GPL(dma_buf_kunmap_atomic);
 
