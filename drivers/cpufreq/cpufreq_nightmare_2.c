@@ -259,11 +259,11 @@ bool hotplug_out_chk(unsigned int nr_online_cpu, unsigned int threshold_up,
 #if defined(CONFIG_MACH_P10)
 	return ((nr_online_cpu > 1) &&
 		(avg_load < threshold_up &&
-		cur_freq < freq_cpu1on));
+		cur_freq < dbs_tuners_ins.freq_cpu1on));
 #else
 	return ((nr_online_cpu > 1) &&
 		(avg_load < threshold_up ||
-		cur_freq < freq_cpu1on));
+		cur_freq < dbs_tuners_ins.freq_cpu1on));
 #endif
 }
 
@@ -275,21 +275,21 @@ standalone_hotplug(unsigned int load, unsigned long nr_rq_min, unsigned int cpu_
 	unsigned int avg_load;
 	/*load threshold*/
 	unsigned int threshold[CPULOAD_TABLE][2] = {
-		{0, trans_load_h0},
-		{trans_load_l1, trans_load_h1},
+		{0, dbs_tuners_ins.trans_load_h0},
+		{dbs_tuners_ins.trans_load_l1, dbs_tuners_ins.trans_load_h1},
 #if (NR_CPUS > 2)
-		{trans_load_l2, trans_load_h2},
-		{trans_load_l3, 100},
+		{dbs_tuners_ins.trans_load_l2, dbs_tuners_ins.trans_load_h2},
+		{dbs_tuners_ins.trans_load_l3, 100},
 #endif
 		{0, 0}
 	};
 
 	unsigned int threshold_scroff[CPULOAD_TABLE][2] = {
-		{0, trans_load_h0_scroff},
-		{trans_load_l1_scroff, trans_load_h1_scroff},
+		{0, dbs_tuners_ins.trans_load_h0_scroff},
+		{dbs_tuners_ins.trans_load_l1_scroff, dbs_tuners_ins.trans_load_h1_scroff},
 #if (NR_CPUS > 2)
-		{trans_load_l2_scroff, trans_load_h2_scroff},
-		{trans_load_l3_scroff, 100},
+		{dbs_tuners_ins.trans_load_l2_scroff, dbs_tuners_ins.trans_load_h2_scroff},
+		{dbs_tuners_ins.trans_load_l3_scroff, 100},
 #endif
 		{0, 0}
 	};
@@ -316,18 +316,18 @@ standalone_hotplug(unsigned int load, unsigned long nr_rq_min, unsigned int cpu_
 		/* If total nr_running is less than cpu(on-state) number, hotplug do not hotplug-in */
 	} else if (nr_running() > nr_online_cpu &&
 		   avg_load > (screen_off ? threshold_scroff[nr_online_cpu-1][1] : threshold[nr_online_cpu - 1][1] )
-		   && cur_freq >= freq_cpu1on) {
+		   && cur_freq >= dbs_tuners_ins.freq_cpu1on) {
 
 		return HOTPLUG_IN;
 #if defined(CONFIG_MACH_P10)
 #else
-	} else if (nr_online_cpu > 1 && nr_rq_min < trans_rq) {
+	} else if (nr_online_cpu > 1 && nr_rq_min < dbs_tuners_ins.trans_rq) {
 
 		struct cpu_time_info *tmp_info;
 
 		tmp_info = &per_cpu(hotplug_cpu_time, cpu_rq_min);
 		/*If CPU(cpu_rq_min) load is less than trans_load_rq, hotplug-out*/
-		if (tmp_info->load < trans_load_rq)
+		if (tmp_info->load < dbs_tuners_ins.trans_load_rq)
 			return HOTPLUG_OUT;
 #endif
 	}
@@ -420,13 +420,13 @@ static void hotplug_timer(struct work_struct *work)
 		DBG_PRINT("cpu%d turning on!\n", select_off_cpu);
 		cpu_up(select_off_cpu);
 		DBG_PRINT("cpu%d on\n", select_off_cpu);
-		hotpluging_rate = check_rate_cpuon;
+		dbs_tuners_ins.hotpluging_rate = check_rate_cpuon;
 	} else if (flag_hotplug == HOTPLUG_OUT && cpu_online(cpu_rq_min) == CPU_ON) {
 		DBG_PRINT("cpu%d turnning off!\n", cpu_rq_min);
 		cpu_down(cpu_rq_min);
 		DBG_PRINT("cpu%d off!\n", cpu_rq_min);
-		if(!screen_off) hotpluging_rate = check_rate;
-		else hotpluging_rate = check_rate_scroff;
+		if(!screen_off) dbs_tuners_ins.hotpluging_rate = dbs_tuners_ins.check_rate;
+		else dbs_tuners_ins.hotpluging_rate = dbs_tuners_ins.check_rate_scroff;
 	} 
 
 no_hotplug:
@@ -446,8 +446,8 @@ static int nightmare_pm_hotplug_notifier_event(struct notifier_block *this,
 	switch (event) {
 	case PM_SUSPEND_PREPARE:
 		mutex_lock(&hotplug_lock);
-		user_lock_saved = user_lock;
-		user_lock = 1;
+		user_lock_saved = dbs_tuners_ins.user_lock;
+		dbs_tuners_ins.user_lock = 1;
 		pr_info("%s: saving pm_hotplug lock %x\n",
 			__func__, user_lock_saved);
 		mutex_unlock(&hotplug_lock);
@@ -457,7 +457,7 @@ static int nightmare_pm_hotplug_notifier_event(struct notifier_block *this,
 		mutex_lock(&hotplug_lock);
 		pr_info("%s: restoring pm_hotplug lock %x\n",
 			__func__, user_lock_saved);
-		user_lock = user_lock_saved;
+		dbs_tuners_ins.user_lock = user_lock_saved;
 		mutex_unlock(&hotplug_lock);
 		return NOTIFY_OK;
 	}
@@ -475,7 +475,7 @@ static void hotplug_early_suspend(struct early_suspend *handler)
 	//Hotplug out all extra CPUs
 	while(num_online_cpus() > 1)
 	  cpu_down(num_online_cpus()-1);
-	hotpluging_rate = check_rate_scroff;
+	dbs_tuners_ins.hotpluging_rate = dbs_tuners_ins.check_rate_scroff;
 	mutex_unlock(&hotplug_lock);
 }
 
@@ -485,8 +485,8 @@ static void hotplug_late_resume(struct early_suspend *handler)
 
 	mutex_lock(&hotplug_lock);
 	screen_off = false;
-	hotpluging_rate = check_rate;
-	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, hotpluging_rate);
+	dbs_tuners_ins.hotpluging_rate = dbs_tuners_ins.check_rate;
+	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, dbs_tuners_ins.hotpluging_rate);
 	mutex_unlock(&hotplug_lock);
 }
 
@@ -1200,7 +1200,7 @@ static int cpufreq_gov_nightmare(struct cpufreq_policy *policy,
 
 		//dbs_timer_exit(this_dbs_info);
 
-		unregister_reboot_notifier(&reboot_notifier);
+		unregister_reboot_notifier(&hotplug_reboot_notifier);
 
 		sysfs_remove_group(cpufreq_global_kobject,
 					   &dbs_attr_group);
@@ -1222,6 +1222,7 @@ static int nghthotplug_cpufreq_policy_notifier_call(struct notifier_block *this,
 				unsigned long code, void *data)
 {
 	struct cpufreq_policy *policy = data;
+	unsigned int hotpluging_rate = dbs_tuners_ins.hotpluging_rate;
 
 	switch (code) {
 	case CPUFREQ_ADJUST:
