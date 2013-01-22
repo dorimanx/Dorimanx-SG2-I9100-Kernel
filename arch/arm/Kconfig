@@ -120,7 +120,7 @@ config STACKTRACE_SUPPORT
 
 config HAVE_LATENCYTOP_SUPPORT
 	bool
-	default y
+	default n
 
 config LOCKDEP_SUPPORT
 	bool
