@@ -360,7 +360,7 @@ static void hotplug_timer(struct work_struct *work)
 		goto off_hotplug;
 	}
 
-	if (user_lock == 1)
+	if (dbs_tuners_ins.user_lock == 1)
 		goto no_hotplug;
 
 	for_each_online_cpu(i) {
@@ -420,7 +420,7 @@ static void hotplug_timer(struct work_struct *work)
 		DBG_PRINT("cpu%d turning on!\n", select_off_cpu);
 		cpu_up(select_off_cpu);
 		DBG_PRINT("cpu%d on\n", select_off_cpu);
-		dbs_tuners_ins.hotpluging_rate = check_rate_cpuon;
+		dbs_tuners_ins.hotpluging_rate = dbs_tuners_ins.check_rate_cpuon;
 	} else if (flag_hotplug == HOTPLUG_OUT && cpu_online(cpu_rq_min) == CPU_ON) {
 		DBG_PRINT("cpu%d turnning off!\n", cpu_rq_min);
 		cpu_down(cpu_rq_min);
@@ -440,14 +440,15 @@ off_hotplug:
 
 
 //static inline void hotplug_timer_init(struct cpufreq_nightmare_cpuinfo *dbs_info)
-static inline void hotplug_timer_init(void)
+static inline void hotplug_timer_init(struct cpufreq_policy *policy)
 {
 
 	//hotplug_wq = create_workqueue("dynamic hotplug");
 	hotplug_wq = alloc_workqueue("dynamic hotplug", 0, 0);
 	if (!hotplug_wq) {
 		printk(KERN_ERR "Creation of hotplug work failed\n");
-		return -EFAULT;
+		//return -EFAULT;
+		return;
 	}
 	INIT_DELAYED_WORK(&hotplug_work, hotplug_timer);
 	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, BOOT_DELAY * HZ);
@@ -461,7 +462,7 @@ static inline void hotplug_timer_init(void)
 }
 
 //static inline void hotplug_timer_exit(struct cpufreq_nightmare_cpuinfo *dbs_info)
-static inline void hotplug_timer_exit(void)
+static inline void hotplug_timer_exit(struct cpufreq_policy *policy)
 {
 	cancel_delayed_work_sync(&hotplug_work);
 }
@@ -566,9 +567,10 @@ static ssize_t show_hotplug_on(struct kobject *kobj,
 static ssize_t store_hotplug_on(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
-	mutex_lock(&hotplug_lock);
 	unsigned int hotpluging_rate = dbs_tuners_ins.hotpluging_rate;
 	unsigned int user_lock = dbs_tuners_ins.user_lock;
+	
+	mutex_lock(&hotplug_lock);
 	if (user_lock) {
 		goto finish;
 	}
@@ -591,7 +593,7 @@ static ssize_t store_hotplug_on(struct kobject *a, struct attribute *b,
 	
 finish:
 	mutex_unlock(&hotplug_lock);
-	return size;
+	return count;
 }
 
 static ssize_t show_second_core_on(struct kobject *kobj,
@@ -599,9 +601,11 @@ static ssize_t show_second_core_on(struct kobject *kobj,
 	return sprintf(buf, "%s\n", (second_core_on) ? ("on") : ("off"));
 }
 
-static ssize_t second_core_on(struct kobject *a, struct attribute *b,
+static ssize_t store_second_core_on(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
+	unsigned int user_lock = dbs_tuners_ins.user_lock;
+
 	mutex_lock(&hotplug_lock);
 	
 	if (hotplug_on || user_lock) {
@@ -625,13 +629,13 @@ static ssize_t second_core_on(struct kobject *a, struct attribute *b,
 	
 finish:
 	mutex_unlock(&hotplug_lock);
-	return size;
+	return count;
 }
 
-declare_attr_ro(version);
-declare_attr_ro(author);
-declare_attr_rw(hotplug_on);
-declare_attr_rw(second_core_on);
+define_one_global_ro(version);
+define_one_global_ro(author);
+//define_one_global_rw(hotplug_on);
+//define_one_global_rw(second_core_on);
 
 /* cpufreq_nightmare Governor Tunables */
 #define show_one(file_name, object)					\
@@ -651,26 +655,28 @@ show_one(freq_for_responsiveness, freq_for_responsiveness);
 show_one(freq_up_brake, freq_up_brake);
 show_one(first_core_freq_limit, first_core_freq_limit);
 show_one(second_core_freq_limit, second_core_freq_limit);
-define_one_global_rw(freq_min, freq_min);
-define_one_global_rw(hotpluging_rate, hotpluging_rate);
-define_one_global_rw(check_rate, check_rate);
-define_one_global_rw(check_rate_cpuon, check_rate_cpuon);
-define_one_global_rw(check_rate_scroff, check_rate_scroff);
-define_one_global_rw(freq_cpu1on, freq_cpu1on);
-define_one_global_rw(user_lock, user_lock);
-define_one_global_rw(trans_rq, trans_rq);
-define_one_global_rw(trans_load_rq, trans_load_rq);
-define_one_global_rw(trans_load_h0, trans_load_h0);
-define_one_global_rw(trans_load_l1, trans_load_l1);
-define_one_global_rw(trans_load_h1, trans_load_h1);
-define_one_global_rw(trans_load_h0_scroff, trans_load_h0_scroff);
-define_one_global_rw(trans_load_l1_scroff, trans_load_l1_scroff);
-define_one_global_rw(trans_load_h1_scroff, trans_load_h1_scroff);
+show_one(freq_min, freq_min);
+show_one(hotpluging_rate, hotpluging_rate);
+show_one(check_rate, check_rate);
+show_one(check_rate_cpuon, check_rate_cpuon);
+show_one(check_rate_scroff, check_rate_scroff);
+show_one(freq_cpu1on, freq_cpu1on);
+show_one(user_lock, user_lock);
+show_one(trans_rq, trans_rq);
+show_one(trans_load_rq, trans_load_rq);
+show_one(trans_load_h0, trans_load_h0);
+show_one(trans_load_l1, trans_load_l1);
+show_one(trans_load_h1, trans_load_h1);
+show_one(trans_load_h0_scroff, trans_load_h0_scroff);
+show_one(trans_load_l1_scroff, trans_load_l1_scroff);
+show_one(trans_load_h1_scroff, trans_load_h1_scroff);
 #if (NR_CPUS > 2)
-define_one_global_rw(trans_load_l2, trans_load_l2);
-define_one_global_rw(trans_load_h2, trans_load_h2);
-define_one_global_rw(trans_load_l3, trans_load_l3);
+show_one(trans_load_l2, trans_load_l2);
+show_one(trans_load_h2, trans_load_h2);
+show_one(trans_load_l3, trans_load_l3);
 #endif
+
+
 
 /* sampling_up_factor */
 static ssize_t store_sampling_up_factor(struct kobject *a,
@@ -887,7 +893,7 @@ static ssize_t store_check_rate_cpuon(struct kobject *a, struct attribute *b,
 	return count;
 }
 /* check_rate_scroff */
-static ssize_t store_check_rate_cpuoff(struct kobject *a, struct attribute *b,
+static ssize_t store_check_rate_scroff(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
 	unsigned int input;
@@ -895,7 +901,7 @@ static ssize_t store_check_rate_cpuoff(struct kobject *a, struct attribute *b,
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
-	dbs_tuners_ins.check_rate_cpuoff = input;
+	dbs_tuners_ins.check_rate_scroff = input;
 	return count;
 }
 /* freq_cpu1on */
@@ -1089,8 +1095,6 @@ define_one_global_rw(trans_load_l2);
 define_one_global_rw(trans_load_h2);
 define_one_global_rw(trans_load_l3);
 #endif
-define_one_global_rw(hotplug_on);
-define_one_global_rw(second_core_on);
 
 static struct attribute *dbs_attributes[] = {
 	&sampling_up_factor.attr,
@@ -1124,13 +1128,12 @@ static struct attribute *dbs_attributes[] = {
 	&trans_load_h2.attr,
 	&trans_load_l3.attr,
 #endif
-	&hotplug_on.attr,
-	&second_core_on.attr,
+/*	&hotplug_on.attr,
+	&second_core_on.attr,*/
 	NULL
 };
 
 static struct attribute_group dbs_attr_group = {
-	.minor = MISC_DYNAMIC_MINOR,
 	.attrs = dbs_attributes,
 	.name = "nightmare",
 };
