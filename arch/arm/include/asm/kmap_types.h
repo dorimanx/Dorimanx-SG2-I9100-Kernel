@@ -21,7 +21,6 @@ enum km_type {
 	KM_L1_CACHE,
 	KM_L2_CACHE,
 	KM_KDB,
-	KM_CLEARPAGE,
 	KM_TYPE_NR
 };
 
