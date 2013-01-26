@@ -79,10 +79,6 @@ static int lowmem_minfree_screen_on[6] = {
 static int lowmem_minfree_size = 6;
 
 static unsigned long lowmem_deathpending_timeout;
-static unsigned int *uids;
-static unsigned int max_alloc = 10;
-static unsigned int counter = 0;
-static bool screen_off = false;
 
 #define lowmem_print(level, x...)			\
 	do {						\
@@ -95,21 +91,18 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	struct task_struct *tsk;
 	struct task_struct *selected = NULL;
 	const struct cred *cred = current_cred(), *pcred;
+	short min_score_adj = OOM_SCORE_ADJ_MAX + 1;
+	short selected_oom_score_adj;
 	int rem = 0;
 	int tasksize;
-	int i;
-	short min_score_adj = OOM_SCORE_ADJ_MAX + 1;
-	int target_free = 0;
 	int selected_tasksize = 0;
-	int selected_target_offset;
-	short selected_oom_score_adj;
+	int i;
 	int array_size = ARRAY_SIZE(lowmem_adj);
-	int other_free = global_page_state(NR_FREE_PAGES);
+	int other_free = global_page_state(NR_FREE_PAGES) -
+						totalreserve_pages;
 	int other_file = global_page_state(NR_FILE_PAGES) -
 						global_page_state(NR_SHMEM);
-	int target_offset;
-	unsigned int uid;
-
+	 
 	if (lowmem_adj_size < array_size)
 		array_size = lowmem_adj_size;
 	if (lowmem_minfree_size < array_size)
@@ -122,7 +115,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		    other_file < lowmem_minfree[i]) {
 #endif
 			min_score_adj = lowmem_adj[i];
-			target_free = lowmem_minfree[i] - (other_free + other_file);
 			break;
 		}
 	}
@@ -170,58 +162,24 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		task_unlock(p);
 		if (tasksize <= 0)
 			continue;
-		target_offset = abs(target_free - tasksize);
 		if (selected) {
 			if (oom_score_adj < selected_oom_score_adj)
 				continue;
 			if (oom_score_adj == selected_oom_score_adj &&
-				target_offset >= selected_target_offset)
+				  tasksize <= selected_tasksize)
 				continue;
 		}
 
 		selected = p;
-
-		if (screen_off == true) {
-			pcred = __task_cred(selected);
-			uid = pcred->uid;
-
-			for (i = 0; i < counter; i++) {
-				if (uids[i] == uid)
-					test = true;
-			}
-
-			if (test == true)
-				continue;
-		}
-
 		selected_tasksize = tasksize;
-		selected_target_offset = target_offset;
 		selected_oom_score_adj = oom_score_adj;
-		lowmem_print(2, "select %d (%s), adj %hd, size %d, uid %d, to kill\n",
-			     p->pid, p->comm, oom_score_adj, tasksize, uid);
+		lowmem_print(2, "select %d (%s), adj %hd, size %d to kill\n",
+			     p->pid, p->comm, oom_score_adj, tasksize);
 	}
 	if (selected) {
-
-		if (screen_off == true) {
-			pcred = __task_cred(selected);
-			uid = pcred->uid;
-
-			if (counter >= max_alloc)
-				max_alloc += max_alloc;
-
-			if (counter > max_alloc)
-				uids = krealloc(uids, counter * sizeof(unsigned int), GFP_KERNEL);
-			else if (counter == 0)
-				uids = kmalloc(max_alloc * sizeof(unsigned int), GFP_KERNEL);
-
-			if (uids)
-				memset(uids, uid, counter * sizeof(unsigned int));
-		}
-
-		lowmem_print(1, "send sigkill to %d (%s), adj %hd, size %d, uid %d\n",
+		lowmem_print(1, "send sigkill to %d (%s), adj %hd, size %d\n",
 			     selected->pid, selected->comm,
-			     selected_oom_score_adj, selected_tasksize,
-			     uid);
+			     selected_oom_score_adj, selected_tasksize);
 		lowmem_deathpending_timeout = jiffies + HZ;
 		send_sig(SIGKILL, selected, 0);
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
@@ -240,25 +198,13 @@ static struct shrinker lowmem_shrinker = {
 
 static void low_mem_early_suspend(struct early_suspend *handler)
 {
-	int i;
-
 	memcpy(lowmem_minfree_screen_on, lowmem_minfree, sizeof(lowmem_minfree));
 	memcpy(lowmem_minfree, lowmem_minfree_screen_off, sizeof(lowmem_minfree_screen_off));
-
-	for (i = 0; i < counter; i++)
-		uids[i] = 0;
-
-	kfree(uids);
-	counter = 0;
-	max_alloc = 10;
-	screen_off = true;
 }
 
 static void low_mem_late_resume(struct early_suspend *handler)
 {
 	memcpy(lowmem_minfree, lowmem_minfree_screen_on, sizeof(lowmem_minfree_screen_on));
-
-	screen_off = false;
 }
 
 static struct early_suspend low_mem_suspend = {
