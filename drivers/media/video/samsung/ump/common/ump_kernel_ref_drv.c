@@ -198,7 +198,6 @@ _mali_osk_errcode_t _ump_ukk_allocate( _ump_uk_allocate_s *user_interaction )
 	return _MALI_OSK_ERR_OK;
 }
 
-
 UMP_KERNEL_API_EXPORT ump_dd_status_code ump_dd_meminfo_set(ump_dd_handle memh, void* args)
 {
 	ump_dd_mem * mem;

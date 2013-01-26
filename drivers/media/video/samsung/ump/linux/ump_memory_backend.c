@@ -17,6 +17,7 @@
 #include "ump_kernel_common.h"
 #include "ump_kernel_memory_backend_os.h"
 #include "ump_kernel_memory_backend_dedicated.h"
+#include "ump_kernel_memory_backend_vcm.h"
 
 /* Configure which dynamic memory allocator to use */
 int ump_backend = ARCH_UMP_BACKEND_DEFAULT;

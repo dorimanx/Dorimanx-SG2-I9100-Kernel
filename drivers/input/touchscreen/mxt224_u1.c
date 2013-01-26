@@ -1361,7 +1361,7 @@ static void report_input_data(struct mxt224_data *data)
 
 	touch_is_pressed = 0;
 
-	if (level == ~0 && nr_running() > 1)
+	if (level == ~0)
 		exynos_cpufreq_get_level(lock_freq, &level);
 
 	for (i = 0; i < data->num_fingers; i++) {
