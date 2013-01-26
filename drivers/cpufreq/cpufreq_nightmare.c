@@ -1249,6 +1249,8 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		if ((!cpu_online(0)) || (!policy->cur))
 			return -EINVAL;
 
+		this_dbs_info->cur_policy = policy;
+
 		start_rq_work();
 
 		mutex_lock(&dbs_mutex);
