@@ -66,8 +66,10 @@
 #define BOOT_DELAY	60
 #define CHECK_DELAY_ON	HZ << 1
 #define CHECK_DELAY_OFF	HZ >> 1
+#define CHECK_RATE 100
+#define CHECK_RATE_CPUON 300
 
-#define CPU1_ON_FREQ 800000
+#define CPU1_ON_FREQ 300000
 #endif
 
 #if defined(CONFIG_MACH_MIDAS) || defined(CONFIG_MACH_SMDK4X12) \
@@ -315,8 +317,8 @@ static struct dbs_tuners {
 	.inc_cpu_load = DEF_INC_CPU_LOAD,
 	.dec_cpu_load = DEF_DEC_CPU_LOAD,
 	.freq_for_responsiveness = FREQ_FOR_RESPONSIVENESS,
-	.check_rate = CHECK_DELAY_OFF,
-	.check_rate_cpuon = CHECK_DELAY_ON,
+	.check_rate = CHECK_RATE,
+	.check_rate_cpuon = CHECK_RATE_CPUON,
 	.check_rate_scroff = CHECK_DELAY_ON << 2,
 	.freq_cpu1on = CPU1_ON_FREQ,
 	.trans_rq = TRANS_RQ,
@@ -480,7 +482,7 @@ static ssize_t store_inc_cpu_load_at_min_freq(struct kobject *a, struct attribut
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
-	if (ret != 1 || input > 100) {
+	if (ret != 1 || input > 100u) {
 		return -EINVAL;
 	}
 	dbs_tuners_ins.inc_cpu_load_at_min_freq = min(input,dbs_tuners_ins.inc_cpu_load);
@@ -1127,6 +1129,7 @@ static void do_dbs_timer(struct work_struct *work)
 	struct cpufreq_nightmare_cpuinfo *dbs_info =
 		container_of(work, struct cpufreq_nightmare_cpuinfo, work.work);
 
+	mutex_lock(&dbs_mutex);
 	mutex_lock(&dbs_info->timer_mutex);
 
 	// CHECK FOR HOTPLUGING
@@ -1135,7 +1138,9 @@ static void do_dbs_timer(struct work_struct *work)
 	dbs_check_frequency(dbs_info);
 
 	queue_delayed_work_on(0, dvfs_workqueues, &dbs_info->work, hotplug_sampling_rate);
+
 	mutex_unlock(&dbs_info->timer_mutex);
+	mutex_unlock(&dbs_mutex);
 
 }
 
@@ -1259,6 +1264,24 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		mutex_lock(&dbs_mutex);
 
 		dbs_enable++;
+
+		for_each_online_cpu(i) {
+				struct cpu_time_info *tmp_info;
+				cputime64_t cur_wall_time, cur_idle_time;
+				unsigned int idle_time, wall_time;
+				tmp_info = &per_cpu(hotplug_cpu_time, i);
+
+				cur_idle_time = get_cpu_idle_time_us(i, &cur_wall_time);
+
+				idle_time = (unsigned int)cputime64_sub(cur_idle_time,
+									tmp_info->prev_cpu_idle);
+
+				tmp_info->prev_cpu_idle = cur_idle_time;
+
+				wall_time = (unsigned int)cputime64_sub(cur_wall_time,
+									tmp_info->prev_cpu_wall);
+				tmp_info->prev_cpu_wall = cur_wall_time;
+		}
 
 		this_dbs_info->cpu = cpu;
 		this_dbs_info->rate_mult = 1;
