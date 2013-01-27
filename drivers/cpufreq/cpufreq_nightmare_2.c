@@ -143,6 +143,7 @@ static unsigned int hotplug_sampling_rate = CHECK_DELAY_OFF;
 
 static unsigned int locking_frequency;
 static bool frequency_locked;
+static bool exynos_cpufreq_init_done;
 static struct exynos_dvfs_info *exynos_infos;
 static struct regulator *arm_regulator;
 static struct cpufreq_freqs freqs;
@@ -282,10 +283,11 @@ static DEFINE_MUTEX(dbs_mutex);
 /* Second core values by tegrak */
 
 #if (NR_CPUS > 2)
-unsigned int load_each[4];
+static unsigned int load_each[4];
 #else
-unsigned int load_each[2];
+static unsigned int load_each[2];
 #endif
+static unsigned int maxload;
 
 static struct dbs_tuners {
 	unsigned int sampling_up_factor;
@@ -945,13 +947,40 @@ static struct attribute_group dbs_attr_group = {
 
 /************************** sysfs end ************************/
 
-static int exynos_verify_speed(struct cpufreq_policy *policy)
+static int nightmare_cpufreq_get_level(unsigned int freq, unsigned int *level)
+{
+	struct cpufreq_frequency_table *table;
+	unsigned int i;
+
+	if (!exynos_cpufreq_init_done)
+		return -EINVAL;
+
+	table = cpufreq_frequency_get_table(0);
+	if (!table) {
+		pr_err("%s: Failed to get the cpufreq table\n", __func__);
+		return -EINVAL;
+	}
+
+	for (i = exynos_infos->max_support_idx;
+		(table[i].frequency != CPUFREQ_TABLE_END); i++) {
+		if (table[i].frequency == freq) {
+			*level = i;
+			return 0;
+		}
+	}
+
+	pr_err("%s: %u KHz is an unsupported cpufreq\n", __func__, freq);
+
+	return -EINVAL;
+}
+
+static int nightmare_verify_speed(struct cpufreq_policy *policy)
 {
 	return cpufreq_frequency_table_verify(policy,
 					      exynos_info->freq_table);
 }
 
-static unsigned int exynos_getspeed(unsigned int cpu)
+static unsigned int nightmare_getspeed(unsigned int cpu)
 {
 	return clk_get_rate(exynos_info->cpu_clk) / 1000;
 }
@@ -967,7 +996,11 @@ static int exynos_target(struct cpufreq_policy *policy,
 	unsigned int *volt_table = exynos_infos->volt_table;
 	unsigned int mpll_freq_khz = exynos_infos->mpll_freq_khz;
 
+	unsigned int policy_cpu;
+
 	mutex_lock(&dbs_mutex);
+
+	//policy_cpu = cpumask_any_and(policy->cpus, cpu_online_mask);
 
 	freqs.old = policy->cur;
 
@@ -979,7 +1012,7 @@ static int exynos_target(struct cpufreq_policy *policy,
 	/*
 	 * The policy max have been changed so that we cannot get proper
 	 * old_index with cpufreq_frequency_table_target(). Thus, ignore
-	 * policy and get the index from the raw freqeuncy table.
+	 * policy and get the index from the raw frequency table.
 	 */
 	for (old_index = 0;
 		freq_table[old_index].frequency != CPUFREQ_TABLE_END;
@@ -1000,7 +1033,7 @@ static int exynos_target(struct cpufreq_policy *policy,
 
 	freqs.new = freq_table[index].frequency;
 	freqs.cpu = policy->cpu;
-
+	
 	/*
 	 * ARM clock source will be changed APLL to MPLL temporary
 	 * To support this level, need to control regulator for
@@ -1048,7 +1081,7 @@ out:
 }
 
 
-bool nightmare_hotplug_out_check(unsigned int nr_online_cpu, unsigned int threshold_up,
+static bool nightmare_hotplug_out_check(unsigned int nr_online_cpu, unsigned int threshold_up,
 		unsigned int avg_load, unsigned int cur_freq)
 {
 #if defined(CONFIG_MACH_P10)
@@ -1148,6 +1181,8 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 			cpu_down(1);
 	}
 
+	maxload = 0;
+
 	for_each_online_cpu(i) {
 		struct cpu_time_info *tmp_info;
 		cputime64_t cur_wall_time, cur_idle_time;
@@ -1182,6 +1217,9 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 
 		// GET CORE LOAD used in dbs_check_frequency
 		load_each[i] = tmp_info->load;
+
+		if (maxload < tmp_info->load);
+			maxload = tmp_info->load;
 
 		/*find minimum runqueue length*/
 		tmp_hotplug_info[i].nr_running = get_cpu_nr_running(i);
@@ -1344,112 +1382,63 @@ static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	unsigned int freq_up = 0;
 	unsigned int dec_load = 0;
 	unsigned int freq_down = 0;
-	unsigned int first_core_freq_limit = dbs_tuners_ins.first_core_freq_limit;
-	unsigned int second_core_freq_limit = dbs_tuners_ins.second_core_freq_limit;
-	unsigned int ccore = 0;
+	int load = maxload;
 	struct cpufreq_policy *policy;
 
-	//policy = this_dbs_info->cur_policy;
-	policy->shared_type = CPUFREQ_SHARED_TYPE_ALL;
-	cpumask_copy(policy->related_cpus, cpu_possible_mask);
-	cpumask_copy(policy->cpus, cpu_online_mask);
+	policy = this_dbs_info->cur_policy;
 
+	if (maxload == 0)
+		return;
 
-	for_each_cpu(j, policy->cpus) {
-		int load = 0;
-		// GET LOAD_EACH
-		load = load_each[j];
-
-		// CPUs Online Scale Frequency
-		if (policy->cur < dbs_tuners_ins.freq_for_responsiveness)
-			inc_cpu_load = dbs_tuners_ins.inc_cpu_load_at_min_freq;
-		else
-			inc_cpu_load = dbs_tuners_ins.inc_cpu_load;
-
-		ccore++;
-
-		freqs.cpu = j;			
-		freqs.old = policy->cur;
+	// CPUs Online Scale Frequency
+	if (policy->cur < dbs_tuners_ins.freq_for_responsiveness)
+		inc_cpu_load = dbs_tuners_ins.inc_cpu_load_at_min_freq;
+	else
+		inc_cpu_load = dbs_tuners_ins.inc_cpu_load;
 
 		// Check for frequency increase or for frequency decrease
-		if (load >= inc_cpu_load) {
-			this_dbs_info->rate_mult = dbs_tuners_ins.sampling_up_factor;
+	if (load >= inc_cpu_load) {
+		this_dbs_info->rate_mult = dbs_tuners_ins.sampling_up_factor;
 
-			// if we cannot increment the frequency anymore, break out early
-			if (policy->cur == policy->max) {
-				continue;
-			}
+		// if we cannot increment the frequency anymore, break out early
+		if (policy->cur == policy->max) {
+			return;
+		}
 
-			inc_load = ((load * policy->min) / 100) + ((freq_step * policy->min) / 100);
-			inc_brake = (freq_up_brake * policy->min) / 100;
+		inc_load = ((load * policy->min) / 100) + ((freq_step * policy->min) / 100);
+		inc_brake = (freq_up_brake * policy->min) / 100;
 
-			if (inc_brake > inc_load) {
-				continue;
-			} else {
-				freq_up = policy->cur + (inc_load - inc_brake);
-			}
-		
-			if (ccore == 1 && first_core_freq_limit > 0) {
-				if (freq_up > first_core_freq_limit) {
-					freq_up = first_core_freq_limit;
-					//freq_up = min(first_core_freq_limit,policy->max);
-				}
-			} else if (ccore == 2 && second_core_freq_limit > 0) {
-				if (freq_up > second_core_freq_limit) {
-					freq_up = second_core_freq_limit;
-					//freq_up = min(second_core_freq_limit,policy->max);
-				}
-			}
-
-			freqs.new = freq_up;
-
-			//cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
-			//cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
-
-			if (freq_up != policy->cur && freq_up <= policy->max) {
-				//__cpufreq_driver_target(policy, freq_up, CPUFREQ_RELATION_L);
-				exynos_target(policy,freqs.new,CPUFREQ_RELATION_L);
-			}
-
-		} else if (load <	 dec_cpu_load && load > -1) {
-			this_dbs_info->rate_mult = dbs_tuners_ins.sampling_down_factor;
-
-			// if we cannot reduce the frequency anymore, break out early
-			if (policy->cur == policy->min) {
-				continue;
-			}
+		if (inc_brake > inc_load) {
+			return;
+		} else {
+			freq_up = policy->cur + (inc_load - inc_brake);
+		}
 	
-			dec_load = (((100 - load) * policy->min) / 100) + ((freq_step_dec * policy->min) / 100);
+		if (freq_up != policy->cur && freq_up <= policy->max) {
+			exynos_target(policy,freq_up,CPUFREQ_RELATION_L);
+		}
 
-			if (policy->cur > dec_load + policy->min) {
-				freq_down = policy->cur - dec_load;
-			} else {
-				freq_down = policy->min;
-			}
+	} else if (load < dec_cpu_load && load > -1) {
+		this_dbs_info->rate_mult = dbs_tuners_ins.sampling_down_factor;
 
-			if (ccore == 1 && first_core_freq_limit > 0) {
-				if (freq_down > first_core_freq_limit) {
-					freq_down = first_core_freq_limit;
-					//freq_down = max(first_core_freq_limit,policy->min);
-				}
-			} else if (ccore == 2 && second_core_freq_limit > 0) {
-				if (freq_down > second_core_freq_limit) {
-					freq_down = second_core_freq_limit;
-					//freq_down = max(second_core_freq_limit,policy->min);
-				}
-			}
-			freqs.new = freq_down;
+		// if we cannot reduce the frequency anymore, break out early
+		if (policy->cur == policy->min) {
+			return;
+		}
 
-			//cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
-			//cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
+		dec_load = (((100 - load) * policy->min) / 100) + ((freq_step_dec * policy->min) / 100);
 
-			if (freq_down != policy->cur) {
-				exynos_target(policy,freqs.new,CPUFREQ_RELATION_L);
-				//__cpufreq_driver_target(policy, freq_down, CPUFREQ_RELATION_L);
-			}
+		if (policy->cur > dec_load + policy->min) {
+			freq_down = policy->cur - dec_load;
+		} else {
+			freq_down = policy->min;
+		}
+
+		if (freq_down != policy->cur) {
+			exynos_target(policy,freq_down,CPUFREQ_RELATION_L);
 		}
 	}
-	return;
+return;
 }*/
 
 static void do_dbs_timer(struct work_struct *work)
@@ -1566,11 +1555,11 @@ static struct notifier_block reboot_notifier = {
 
 static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 {
-	policy->cur = policy->min = policy->max = exynos_getspeed(policy->cpu);
+	policy->cur = policy->min = policy->max = nightmare_getspeed(policy->cpu);
 
 	cpufreq_frequency_table_get_attr(exynos_infos->freq_table, policy->cpu);
 
-	locking_frequency = exynos_getspeed(0);
+	locking_frequency = nightmare_getspeed(0);
 
 	/* set the transition latency value */
 	//policy->cpuinfo.transition_latency = 100000;
@@ -1590,7 +1579,24 @@ static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 		cpumask_setall(policy->cpus);
 	}
 
-	return cpufreq_frequency_table_cpuinfo(policy, exynos_infos->freq_table);
+	exynos_cpufreq_init_done = true;
+
+	/* Safe default startup limits */
+	policy->max_suspend = CPU_MAX_SUSPEND_FREQ;
+	policy->min_suspend = CPU_MIN_SUSPEND_FREQ;
+	cpufreq_frequency_table_cpuinfo(policy, exynos_infos->freq_table);
+
+	/* Safe default startup limits */
+#ifdef CONFIG_CPU_EXYNOS4210
+	policy->max = 1200000;
+#else
+	policy->max = 1400000;
+#endif
+	policy->min = 200000;
+
+
+	//return cpufreq_frequency_table_cpuinfo(policy, exynos_infos->freq_table);
+	return 0;
 }
 
 static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
@@ -1700,7 +1706,7 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 						policy->max,CPUFREQ_RELATION_H);*/
 		else if (policy->min > this_dbs_info->cur_policy->cur)
 			__cpufreq_driver_target(this_dbs_info->cur_policy,
-						policy->min,CPUFREQ_RELATION_L);			
+						policy->min,CPUFREQ_RELATION_L);
 			/*exynos_target(this_dbs_info->cur_policy,
 						policy->min,CPUFREQ_RELATION_L);*/
 		
