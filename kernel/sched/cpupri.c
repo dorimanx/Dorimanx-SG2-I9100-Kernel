@@ -65,8 +65,8 @@ static int convert_prio(int prio)
 int cpupri_find(struct cpupri *cp, struct task_struct *p,
 		struct cpumask *lowest_mask)
 {
-	int                  idx      = 0;
-	int                  task_pri = convert_prio(p->prio);
+	int idx = 0;
+	int task_pri = convert_prio(p->prio);
 
 	if (task_pri >= MAX_RT_PRIO)
 		return 0;
@@ -129,7 +129,7 @@ int cpupri_find(struct cpupri *cp, struct task_struct *p,
  * cpupri_set - update the cpu priority setting
  * @cp: The cpupri context
  * @cpu: The target cpu
- * @pri: The priority (INVALID-RT99) to assign to this CPU
+ * @newpri: The priority (INVALID-RT99) to assign to this CPU
  *
  * Note: Assumes cpu_rq(cpu)->lock is locked
  *
@@ -137,9 +137,9 @@ int cpupri_find(struct cpupri *cp, struct task_struct *p,
  */
 void cpupri_set(struct cpupri *cp, int cpu, int newpri)
 {
-	int                 *currpri = &cp->cpu_to_pri[cpu];
-	int                  oldpri  = *currpri;
-	int                  do_mb = 0;
+	int *currpri = &cp->cpu_to_pri[cpu];
+	int oldpri = *currpri;
+	int do_mb = 0;
 
 	newpri = convert_prio(newpri);
 
@@ -200,7 +200,6 @@ void cpupri_set(struct cpupri *cp, int cpu, int newpri)
 /**
  * cpupri_init - initialize the cpupri structure
  * @cp: The cpupri context
- * @bootmem: true if allocations need to use bootmem
  *
  * Returns: -ENOMEM if memory fails.
  */

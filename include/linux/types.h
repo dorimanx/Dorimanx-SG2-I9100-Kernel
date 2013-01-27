@@ -250,10 +250,11 @@ struct ustat {
 * @next: next update requests in a list
 * @func: actual update function to call after the grace period.
 */
-struct rcu_head {
-	struct rcu_head *next;
-	void (*func)(struct rcu_head *head);
+struct callback_head {
+	struct callback_head *next;
+	void (*func)(struct callback_head *head);
 };
+#define rcu_head callback_head
 
 #endif	/* __KERNEL__ */
 #endif /*  __ASSEMBLY__ */
