@@ -40,7 +40,6 @@
 #include <linux/notifier.h>
 #include <linux/swap.h>
 #include <linux/earlysuspend.h>
-#include <linux/slab.h>
 
 static uint32_t lowmem_debug_level = 1;
 static short lowmem_adj[6] = {
@@ -90,19 +89,20 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
 	struct task_struct *tsk;
 	struct task_struct *selected = NULL;
-	const struct cred *cred = current_cred(), *pcred;
-	short min_score_adj = OOM_SCORE_ADJ_MAX + 1;
-	short selected_oom_score_adj;
 	int rem = 0;
 	int tasksize;
-	int selected_tasksize = 0;
 	int i;
+	short min_score_adj = OOM_SCORE_ADJ_MAX + 1;
+	int target_free = 0;
+	int selected_tasksize = 0;
+	int selected_target_offset;
+	short selected_oom_score_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
-	int other_free = global_page_state(NR_FREE_PAGES) -
-						totalreserve_pages;
+	int other_free = global_page_state(NR_FREE_PAGES);
 	int other_file = global_page_state(NR_FILE_PAGES) -
 						global_page_state(NR_SHMEM);
-	 
+	int target_offset;
+
 	if (lowmem_adj_size < array_size)
 		array_size = lowmem_adj_size;
 	if (lowmem_minfree_size < array_size)
@@ -115,6 +115,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		    other_file < lowmem_minfree[i]) {
 #endif
 			min_score_adj = lowmem_adj[i];
+			target_free = lowmem_minfree[i] - (other_free + other_file);
 			break;
 		}
 	}
@@ -137,13 +138,11 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	for_each_process(tsk) {
 		struct task_struct *p;
 		short oom_score_adj;
-		bool test = false;
 
 		if (tsk->flags & PF_KTHREAD)
 			continue;
 
 		p = find_lock_task_mm(tsk);
-
 		if (!p)
 			continue;
 
@@ -162,18 +161,19 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		task_unlock(p);
 		if (tasksize <= 0)
 			continue;
+		target_offset = abs(target_free - tasksize);
 		if (selected) {
 			if (oom_score_adj < selected_oom_score_adj)
 				continue;
 			if (oom_score_adj == selected_oom_score_adj &&
-				  tasksize <= selected_tasksize)
+				target_offset >= selected_target_offset)
 				continue;
 		}
-
 		selected = p;
 		selected_tasksize = tasksize;
+		selected_target_offset = target_offset;
 		selected_oom_score_adj = oom_score_adj;
-		lowmem_print(2, "select %d (%s), adj %hd, size %d to kill\n",
+		lowmem_print(2, "select %d (%s), adj %hd, size %d, to kill\n",
 			     p->pid, p->comm, oom_score_adj, tasksize);
 	}
 	if (selected) {

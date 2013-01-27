@@ -67,7 +67,7 @@
 #define CHECK_DELAY_ON	HZ << 1
 #define CHECK_DELAY_OFF	HZ >> 1
 #define CHECK_RATE 100
-#define CHECK_RATE_CPUON 300
+#define CHECK_RATE_CPUON 200
 
 #define CPU1_ON_FREQ 300000
 #endif
@@ -105,17 +105,17 @@
 #define CPULOAD_TABLE (NR_CPUS + 1)
 
 #define DEF_SAMPLING_UP_FACTOR			(1)
-#define MAX_SAMPLING_UP_FACTOR		(100000)
-#define DEF_SAMPLING_DOWN_FACTOR		(1)
+#define MAX_SAMPLING_UP_FACTOR			(100000)
+#define DEF_SAMPLING_DOWN_FACTOR		(5)
 #define MAX_SAMPLING_DOWN_FACTOR		(100000)
-#define DEF_FREQ_STEP				(30)
-#define DEF_FREQ_UP_BRAKE				(5u)
-#define DEF_FREQ_STEP_DEC		(5)
+#define DEF_FREQ_STEP				(35)
+#define DEF_FREQ_UP_BRAKE			(5u)
+#define DEF_FREQ_STEP_DEC			(20)
 /* CPU freq will be increased if measured load > inc_cpu_load;*/
 #define INC_CPU_LOAD_AT_MIN_FREQ		(40)
-#define DEF_INC_CPU_LOAD (80)
+#define DEF_INC_CPU_LOAD			(60)
 /* CPU freq will be decreased if measured load < dec_cpu_load;*/
-#define DEF_DEC_CPU_LOAD (60)
+#define DEF_DEC_CPU_LOAD			(60)
 #define FREQ_FOR_RESPONSIVENESS			(400000)
 
 #define DBG_PRINT(fmt, ...)\
