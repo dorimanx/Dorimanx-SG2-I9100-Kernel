@@ -205,7 +205,6 @@ static void rq_work_fn(struct work_struct *work)
 }
 
 static unsigned int max_performance;
-static unsigned int max_load;
 
 enum flag{
 	HOTPLUG_NOP,
@@ -913,8 +912,6 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 
 	policy = this_dbs_info->cur_policy;
 
-	max_load = 0;
-
 	// exit if we turned off dynamic hotplug by tegrak
 	// cancel the timer
 	if (!n_hotplug_on) {
@@ -931,7 +928,6 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 
 		// RESET LOAD_EACH
 		load_each[i] = -1;
-		max_load = 0;
 
 		cur_idle_time = get_cpu_idle_time_us(i, &cur_wall_time);
 
@@ -953,13 +949,9 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 #endif
 		tmp_info->load = 100 * (wall_time - idle_time) / wall_time;
 
-		if (max_load < tmp_info->load)
-			max_load = tmp_info->load;
-
 		load += tmp_info->load;
 
 		// GET CORE LOAD used in dbs_check_frequency
-		max_load = load;
 		load_each[i] = tmp_info->load;
 
 		/*find minimum runqueue length*/
@@ -1004,75 +996,6 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 
 	return;
 }
-
-/*static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
-{
-	struct cpufreq_policy *policy;
-	unsigned int inc_cpu_load = dbs_tuners_ins.inc_cpu_load;
-	unsigned int dec_cpu_load = dbs_tuners_ins.dec_cpu_load;
-	unsigned int freq_step = dbs_tuners_ins.freq_step;
-	unsigned int freq_up_brake = dbs_tuners_ins.freq_up_brake;
-	unsigned int freq_step_dec = dbs_tuners_ins.freq_step_dec;
-	unsigned int inc_load=0;
-	unsigned int inc_brake=0;
-	unsigned int freq_up = 0;
-	unsigned int dec_load = 0;
-	unsigned int freq_down = 0;
-	unsigned int i;
-	unsigned int load = max_load;
-
-	policy = this_dbs_info->cur_policy;	
-
-	// CPUs Online Scale Frequency
-	if (policy->cur < dbs_tuners_ins.freq_for_responsiveness)
-		inc_cpu_load = dbs_tuners_ins.inc_cpu_load_at_min_freq;
-	else
-		inc_cpu_load = dbs_tuners_ins.inc_cpu_load;
-
-	// Check for frequency increase or for frequency decrease
-	if (load >= inc_cpu_load) {
-
-		// if we cannot increment the frequency anymore, break out early
-		if (policy->cur == policy->max) {
-			return;
-		}
-
-		inc_load = ((load * policy->min) / 100) + ((freq_step * policy->min) / 100);
-		inc_brake = (freq_up_brake * policy->min) / 100;
-
-		if (inc_brake > inc_load) {
-			return;
-		} else {
-			freq_up = policy->cur + (inc_load - inc_brake);
-		}
-	
-		if (freq_up != policy->cur && freq_up <= policy->max) {				
-			__cpufreq_driver_target(policy, freq_up, CPUFREQ_RELATION_L);
-		}
-
-	} else if (load < dec_cpu_load && load > -1) {
-
-		// if we cannot reduce the frequency anymore, break out early
-		if (policy->cur == policy->min) {
-			return;
-		}
-
-		dec_load = (((100 - load) * policy->min) / 100) + ((freq_step_dec * policy->min) / 100);
-
-		if (policy->cur > dec_load + policy->min) {
-			freq_down = policy->cur - dec_load;
-		} else {
-			freq_down = policy->min;
-		}
-
-		if (freq_down != policy->cur) {
-			__cpufreq_driver_target(policy, freq_down, CPUFREQ_RELATION_L);
-		}
-	}
-
-	return;
-}*/
-
 
 static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 {
