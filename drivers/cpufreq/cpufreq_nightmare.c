@@ -66,10 +66,10 @@
 #define BOOT_DELAY	60
 #define CHECK_DELAY_ON	HZ << 1
 #define CHECK_DELAY_OFF	HZ >> 1
-#define CHECK_RATE 100
-#define CHECK_RATE_CPUON 200
+#define CHECK_RATE 150
+#define CHECK_RATE_CPUON 600
 
-#define CPU1_ON_FREQ 300000
+#define CPU1_ON_FREQ 800000
 #endif
 
 #if defined(CONFIG_MACH_MIDAS) || defined(CONFIG_MACH_SMDK4X12) \
@@ -104,12 +104,12 @@
 #define NUM_CPUS num_possible_cpus()
 #define CPULOAD_TABLE (NR_CPUS + 1)
 
-#define DEF_FREQ_STEP				(35)
-#define DEF_FREQ_UP_BRAKE			(5u)
-#define DEF_FREQ_STEP_DEC			(20)
+#define DEF_FREQ_STEP				(20)
+#define DEF_FREQ_UP_BRAKE			(5)
+#define DEF_FREQ_STEP_DEC			(10)
 /* CPU freq will be increased if measured load > inc_cpu_load;*/
-#define INC_CPU_LOAD_AT_MIN_FREQ		(40)
-#define DEF_INC_CPU_LOAD			(60)
+#define INC_CPU_LOAD_AT_MIN_FREQ		(60)
+#define DEF_INC_CPU_LOAD			(80)
 /* CPU freq will be decreased if measured load < dec_cpu_load;*/
 #define DEF_DEC_CPU_LOAD			(60)
 #define FREQ_FOR_RESPONSIVENESS			(400000)
@@ -120,9 +120,7 @@
 
 #define NIGHTMARE_SECOND_VERSION (1)
 
-static unsigned int n_second_core_on = 1;
-static unsigned int n_hotplug_on = 1;
-static unsigned int hotplug_sampling_rate = CHECK_DELAY_OFF;
+atomic_t hotplug_sampling_rate = ATOMIC_INIT(CHECK_DELAY_OFF);
 
 static struct workqueue_struct *dvfs_workqueues;
 
@@ -147,7 +145,7 @@ static void start_rq_work(void)
 		rq_data->nr_run_wq =
 			create_singlethread_workqueue("nr_run_avg");
 
-	queue_delayed_work(rq_data->nr_run_wq, &rq_data->work,hotplug_sampling_rate);
+	queue_delayed_work(rq_data->nr_run_wq, &rq_data->work,atomic_read(&hotplug_sampling_rate));
 	return;
 }
 
@@ -198,8 +196,8 @@ static void rq_work_fn(struct work_struct *work)
 	rq_data->total_time += time_diff;
 	rq_data->last_time = cur_time;
 
-	if (hotplug_sampling_rate != 0)
-		queue_delayed_work(rq_data->nr_run_wq, &rq_data->work,hotplug_sampling_rate);
+	if (atomic_read(&hotplug_sampling_rate) != 0)
+		queue_delayed_work(rq_data->nr_run_wq, &rq_data->work,atomic_read(&hotplug_sampling_rate));
 
 	spin_unlock_irqrestore(&rq_data->lock, flags);
 }
@@ -258,7 +256,7 @@ static unsigned int load_each[4];
 #else
 static unsigned int load_each[2];
 #endif
-static unsigned int freq_min = -1UL;
+static unsigned int freq_min = 100000u;
 
 static struct dbs_tuners {
 	/* nightmare tuners */
@@ -276,7 +274,7 @@ static struct dbs_tuners {
 	unsigned int check_rate_cpuon;
 	unsigned int check_rate_scroff;
 	unsigned int freq_cpu1on;
-	unsigned int user_lock;
+	atomic_t user_lock;
 	unsigned int trans_rq;
 	unsigned int trans_load_rq;
 	unsigned int trans_load_h0;
@@ -290,8 +288,8 @@ static struct dbs_tuners {
 	unsigned int trans_load_h2;
 	unsigned int trans_load_l3;
 #endif
-	char *hotplug_on_s;
-	char *second_core_on_s;
+	atomic_t hotplug_on;
+	atomic_t second_core_on;
 
 } dbs_tuners_ins = {
 	.freq_step = DEF_FREQ_STEP,
@@ -308,6 +306,7 @@ static struct dbs_tuners {
 	.check_rate_cpuon = CHECK_RATE_CPUON,
 	.check_rate_scroff = CHECK_DELAY_ON << 2,
 	.freq_cpu1on = CPU1_ON_FREQ,
+	.user_lock = ATOMIC_INIT(0),
 	.trans_rq = TRANS_RQ,
 	.trans_load_rq = TRANS_LOAD_RQ,
 	.trans_load_h0 = TRANS_LOAD_H0,
@@ -321,11 +320,29 @@ static struct dbs_tuners {
 	.trans_load_h2 = TRANS_LOAD_H2,
 	.trans_load_l3 = TRANS_LOAD_L3,
 #endif
-	.hotplug_on_s = "on",
-	.second_core_on_s = "off",
+	.hotplug_on = ATOMIC_INIT(1),
+	.second_core_on = ATOMIC_INIT(1),
 };
 
 /************************** sysfs interface ************************/
+
+static ssize_t show_user_lock(struct kobject *kobj,
+				struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", atomic_read(&dbs_tuners_ins.user_lock));
+}
+
+static ssize_t show_hotplug_on(struct kobject *kobj,
+				struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", atomic_read(&dbs_tuners_ins.hotplug_on));
+}
+static ssize_t show_second_core_on(struct kobject *kobj,
+				struct attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", atomic_read(&dbs_tuners_ins.second_core_on));
+}
+
 
 #define show_one(file_name, object)					\
 static ssize_t show_##file_name						\
@@ -344,7 +361,6 @@ show_one(check_rate, check_rate);
 show_one(check_rate_cpuon, check_rate_cpuon);
 show_one(check_rate_scroff, check_rate_scroff);
 show_one(freq_cpu1on, freq_cpu1on);
-show_one(user_lock, user_lock);
 show_one(trans_rq, trans_rq);
 show_one(trans_load_rq, trans_load_rq);
 show_one(trans_load_h0, trans_load_h0);
@@ -371,16 +387,6 @@ static ssize_t show_author(struct kobject *kobj,
 	return sprintf(buf, "Alucard24@XDA\n");
 }
 
-static ssize_t show_hotplug_on_s(struct kobject *kobj,
-				     struct attribute *attr, char *buf) {
-	return sprintf(buf, "%s\n", (n_hotplug_on) ? ("on") : ("off"));
-}
-
-static ssize_t show_second_core_on_s(struct kobject *kobj,
-				     struct attribute *attr, char *buf) {
-	return sprintf(buf, "%s\n", (n_second_core_on) ? ("on") : ("off"));
-}
-
 /* freq_step */
 static ssize_t store_freq_step(struct kobject *a, struct attribute *b,
 			       const char *buf, size_t count)
@@ -390,7 +396,7 @@ static ssize_t store_freq_step(struct kobject *a, struct attribute *b,
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
-	dbs_tuners_ins.freq_step = min(input, 100u);
+	dbs_tuners_ins.freq_step = min(input, (unsigned int)100);
 	return count;
 }
 
@@ -402,7 +408,7 @@ static ssize_t store_freq_up_brake(struct kobject *a, struct attribute *b,
 	int ret;
 
 	ret = sscanf(buf, "%u", &input);
-	if (ret != 1 || input < 0 || input > 100)
+	if (ret != 1 || input < (unsigned int)0 || input > (unsigned int)100)
 		return -EINVAL;
 
 	if (input == dbs_tuners_ins.freq_up_brake) { /* nothing to do */
@@ -423,7 +429,7 @@ static ssize_t store_freq_step_dec(struct kobject *a, struct attribute *b,
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
-	dbs_tuners_ins.freq_step_dec = min(input, 100u);
+	dbs_tuners_ins.freq_step_dec = min(input, (unsigned int)100);
 	return count;
 }
 
@@ -435,7 +441,7 @@ static ssize_t store_inc_cpu_load_at_min_freq(struct kobject *a, struct attribut
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 
-	if (ret != 1 || input > 100u) {
+	if (ret != 1 || input > (unsigned int)100) {
 		return -EINVAL;
 	}
 	dbs_tuners_ins.inc_cpu_load_at_min_freq = min(input,dbs_tuners_ins.inc_cpu_load);
@@ -451,7 +457,7 @@ static ssize_t store_inc_cpu_load(struct kobject *a, struct attribute *b,
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
-	dbs_tuners_ins.inc_cpu_load = max(min(input,100u),10u);
+	dbs_tuners_ins.inc_cpu_load = max(min(input,(unsigned int)100),(unsigned int)10);
 	return count;
 }
 
@@ -464,7 +470,7 @@ static ssize_t store_dec_cpu_load(struct kobject *a, struct attribute *b,
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
-	dbs_tuners_ins.dec_cpu_load = max(min(input,95u),5u);
+	dbs_tuners_ins.dec_cpu_load = max(min(input,(unsigned int)95),(unsigned int)5);
 	return count;
 }
 
@@ -527,19 +533,6 @@ static ssize_t store_freq_cpu1on(struct kobject *a, struct attribute *b,
 	if (ret != 1)
 		return -EINVAL;
 	dbs_tuners_ins.freq_cpu1on = input;
-	return count;
-}
-/* user_lock */
-static ssize_t store_user_lock(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-
-	dbs_tuners_ins.user_lock = input;
 	return count;
 }
 /* trans_rq */
@@ -678,70 +671,58 @@ static ssize_t store_trans_load_h1_scroff(struct kobject *a, struct attribute *b
 	}
 #endif
 
-static ssize_t store_hotplug_on_s(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
+/* user_lock */
+static ssize_t store_user_lock(struct kobject *a, struct attribute *b,
+				  const char *buf, size_t count)
 {
-	struct cpufreq_nightmare_cpuinfo *dbs_info;
-	unsigned int user_lock = 0;
-	mutex_lock(&dbs_mutex);
-	user_lock = dbs_tuners_ins.user_lock;
+	unsigned int input;
+	int ret;
 
-	if (user_lock) {
-		goto finish;
-	}
-	/* do turn_on/off cpus */
-	dbs_info = &per_cpu(od_cpu_dbs_info, 0); /* from CPU0 */
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
 
-	if (!n_hotplug_on && strcmp(buf, "on\n") == 0) {
-		n_hotplug_on = 1;
-		// restart worker thread.
-		hotplug_sampling_rate = CHECK_DELAY_ON;
-		queue_delayed_work_on(0, dvfs_workqueues, &dbs_info->work, hotplug_sampling_rate);
-		printk("second_core: hotplug is on!\n");
-	}
-	else if (n_hotplug_on && strcmp(buf, "off\n") == 0) {
-		n_hotplug_on = 0;
-		n_second_core_on = 1;
-		if (cpu_online(1) == 0) {
-			cpu_up(1);
-		}
-		printk("second_core: hotplug is off!\n");
-	}
+	input = min(input,(unsigned int)1);
 	
-finish:
-	mutex_unlock(&dbs_mutex);
+	atomic_set(&dbs_tuners_ins.user_lock, input);
 	return count;
 }
-
-static ssize_t store_second_core_on_s(struct kobject *a, struct attribute *b,
+/* hotplug_on */
+static ssize_t store_hotplug_on(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
-	unsigned int user_lock = 0;	
+	unsigned int input;
+	unsigned int user_lock = atomic_read(&dbs_tuners_ins.user_lock);
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	if (user_lock) {
+		return count;
+	}
+	input = min(input,(unsigned int)1);
+	atomic_set(&dbs_tuners_ins.hotplug_on, input);	
+	return count;
+}
+/* second_core_on */
+static ssize_t store_second_core_on(struct kobject *a, struct attribute *b,
+				   const char *buf, size_t count)
+{
+	unsigned int input;
+	unsigned int user_lock = atomic_read(&dbs_tuners_ins.user_lock);
+	unsigned int hotplug_on = atomic_read(&dbs_tuners_ins.hotplug_on);
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
 
-	mutex_lock(&dbs_mutex);
-	user_lock = dbs_tuners_ins.user_lock;
-	
-	if (n_hotplug_on || user_lock) {
-		goto finish;
+	if (hotplug_on || user_lock) {
+		return count;
 	}
-	
-	if (!n_second_core_on && strcmp(buf, "on\n") == 0) {
-		n_second_core_on = 1;
-		if (cpu_online(1) == 0) {
-			cpu_up(1);
-		}
-		printk("second_core: 2nd core is always on!\n");
-	}
-	else if (n_second_core_on && strcmp(buf, "off\n") == 0) {
-		n_second_core_on = 0;
-		if (cpu_online(1) == 1) {
-			cpu_down(1);
-		}
-		printk("second_core: 2nd core is always off!\n");
-	}
-	
-finish:
-	mutex_unlock(&dbs_mutex);
+
+	input = min(input,(unsigned int)1);
+	atomic_set(&dbs_tuners_ins.second_core_on, input);
+
 	return count;
 }
 
@@ -756,7 +737,6 @@ define_one_global_rw(check_rate);
 define_one_global_rw(check_rate_cpuon);
 define_one_global_rw(check_rate_scroff);
 define_one_global_rw(freq_cpu1on);
-define_one_global_rw(user_lock);
 define_one_global_rw(trans_rq);
 define_one_global_rw(trans_load_rq);
 define_one_global_rw(trans_load_h0);
@@ -772,8 +752,9 @@ define_one_global_rw(trans_load_l3);
 #endif
 define_one_global_ro(version);
 define_one_global_ro(author);
-define_one_global_rw(hotplug_on_s);
-define_one_global_rw(second_core_on_s);
+define_one_global_rw(user_lock);
+define_one_global_rw(hotplug_on);
+define_one_global_rw(second_core_on);
 
 
 static struct attribute *dbs_attributes[] = {
@@ -788,7 +769,6 @@ static struct attribute *dbs_attributes[] = {
 	&check_rate_cpuon.attr,
 	&check_rate_scroff.attr,
 	&freq_cpu1on.attr,
-	&user_lock.attr,
 	&trans_rq.attr,
 	&trans_load_rq.attr,
 	&trans_load_h0.attr,
@@ -802,8 +782,9 @@ static struct attribute *dbs_attributes[] = {
 	&trans_load_h2.attr,
 	&trans_load_l3.attr,
 #endif
-	&hotplug_on_s.attr,
-	&second_core_on_s.attr,
+	&user_lock.attr,
+	&hotplug_on.attr,
+	&second_core_on.attr,
 	NULL
 };
 
@@ -907,6 +888,9 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	unsigned int cpu_rq_min=0;
 	unsigned long nr_rq_min = -1UL;
 	unsigned int select_off_cpu = 0;
+	unsigned int user_lock = atomic_read(&dbs_tuners_ins.user_lock);
+	unsigned int hotplug_on = atomic_read(&dbs_tuners_ins.hotplug_on);
+	unsigned int second_core_on = atomic_read(&dbs_tuners_ins.second_core_on);
 
 	enum flag flag_hotplug;
 
@@ -914,8 +898,8 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 
 	// exit if we turned off dynamic hotplug by tegrak
 	// cancel the timer
-	if (!n_hotplug_on) {
-		if (!n_second_core_on && cpu_online(1) == 1)
+	if (!hotplug_on) {
+		if (!second_core_on && cpu_online(1) == 1)
 			cpu_down(1);
 	}
 
@@ -963,7 +947,7 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		}
 	}
 
-	if (dbs_tuners_ins.user_lock == 1 || !n_hotplug_on)
+	if (user_lock == 1 || hotplug_on)
 		return;
 
 	for (i = NUM_CPUS - 1; i > 0; --i) {
@@ -985,13 +969,13 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		DBG_PRINT("cpu%d turning on!\n", select_off_cpu);
 		cpu_up(select_off_cpu);
 		DBG_PRINT("cpu%d on\n", select_off_cpu);
-		hotplug_sampling_rate = dbs_tuners_ins.check_rate_cpuon;
+		atomic_set(&hotplug_sampling_rate,dbs_tuners_ins.check_rate_cpuon);
 	} else if (flag_hotplug == HOTPLUG_OUT && cpu_online(cpu_rq_min) == CPU_ON) {
 		DBG_PRINT("cpu%d turnning off!\n", cpu_rq_min);
 		cpu_down(cpu_rq_min);
 		DBG_PRINT("cpu%d off!\n", cpu_rq_min);
-		if(!screen_off) hotplug_sampling_rate = dbs_tuners_ins.check_rate;
-		else hotplug_sampling_rate = dbs_tuners_ins.check_rate_scroff;
+		if(!screen_off) atomic_set(&hotplug_sampling_rate,dbs_tuners_ins.check_rate);
+		else atomic_set(&hotplug_sampling_rate,dbs_tuners_ins.check_rate_scroff);
 	} 
 
 	return;
@@ -1082,7 +1066,6 @@ static void do_dbs_timer(struct work_struct *work)
 	struct cpufreq_nightmare_cpuinfo *dbs_info =
 		container_of(work, struct cpufreq_nightmare_cpuinfo, work.work);
 
-	mutex_lock(&dbs_mutex);
 	mutex_lock(&dbs_info->timer_mutex);
 
 	// CHECK FOR HOTPLUGING
@@ -1090,10 +1073,9 @@ static void do_dbs_timer(struct work_struct *work)
 	// CHECK TO INCREASE/DECREASE FREQUENCY.....
 	dbs_check_frequency(dbs_info);
 
-	queue_delayed_work_on(0, dvfs_workqueues, &dbs_info->work, hotplug_sampling_rate);
+	queue_delayed_work_on(0, dvfs_workqueues, &dbs_info->work, atomic_read(&hotplug_sampling_rate));
 
 	mutex_unlock(&dbs_info->timer_mutex);
-	mutex_unlock(&dbs_mutex);
 }
 
 static inline void dbs_timer_init(struct cpufreq_nightmare_cpuinfo *dbs_info)
@@ -1114,20 +1096,16 @@ static int pm_notifier_call(struct notifier_block *this,
 
 	switch (event) {
 	case PM_SUSPEND_PREPARE:
-		mutex_lock(&dbs_mutex);
-		user_lock_saved = dbs_tuners_ins.user_lock;
-		dbs_tuners_ins.user_lock = 1;
+		user_lock_saved = atomic_read(&dbs_tuners_ins.user_lock);
+		atomic_set(&dbs_tuners_ins.user_lock,1);
 		pr_info("%s: saving pm_hotplug lock %x\n",
 			__func__, user_lock_saved);
-		mutex_unlock(&dbs_mutex);
 		return NOTIFY_OK;
 	case PM_POST_RESTORE:
 	case PM_POST_SUSPEND:
-		mutex_lock(&dbs_mutex);
 		pr_info("%s: restoring pm_hotplug lock %x\n",
 			__func__, user_lock_saved);
-		dbs_tuners_ins.user_lock = user_lock_saved;
-		mutex_unlock(&dbs_mutex);
+		atomic_set(&dbs_tuners_ins.user_lock,user_lock_saved);
 		return NOTIFY_OK;
 	}
 	return NOTIFY_DONE;
@@ -1140,10 +1118,7 @@ static struct notifier_block pm_notifier = {
 static int reboot_notifier_call(struct notifier_block *this,
 					unsigned long code, void *_cmd)
 {
-	mutex_lock(&dbs_mutex);
-	dbs_tuners_ins.user_lock = 1;
-	mutex_unlock(&dbs_mutex);
-
+	atomic_set(&dbs_tuners_ins.user_lock,1);
 	return NOTIFY_DONE;
 }
 
@@ -1153,19 +1128,17 @@ static void cpufreq_nightmare_early_suspend(struct early_suspend *handler)
 {
 	unsigned int check_rate_scroff = dbs_tuners_ins.check_rate_scroff;
 #if EARLYSUSPEND_HOTPLUGLOCK
-	mutex_lock(&dbs_mutex);
-	dbs_tuners_ins.early_suspend = dbs_tuners_ins.user_lock;
+	dbs_tuners_ins.early_suspend = atomic_read(&dbs_tuners_ins.user_lock);
 #endif
 	screen_off = true;
 	//Hotplug out all extra CPUs
 	while(num_online_cpus() > 1)
 	  cpu_down(num_online_cpus()-1);
 
-	hotplug_sampling_rate = check_rate_scroff;
+	atomic_set(&hotplug_sampling_rate,check_rate_scroff);
 
 #if EARLYSUSPEND_HOTPLUGLOCK
 	stop_rq_work();
-	mutex_unlock(&dbs_mutex);
 #endif
 }
 
@@ -1173,17 +1146,10 @@ static void cpufreq_nightmare_late_resume(struct early_suspend *handler)
 {
 	unsigned int check_rate = dbs_tuners_ins.check_rate;
 	//printk(KERN_INFO "pm-hotplug: enable cpu auto-hotplug\n");
-#if EARLYSUSPEND_HOTPLUGLOCK
-	mutex_lock(&dbs_mutex);
-#endif
 	screen_off = false;
 	dbs_tuners_ins.early_suspend = -1;
-	hotplug_sampling_rate = check_rate;
-
-#if EARLYSUSPEND_HOTPLUGLOCK
+	atomic_set(&hotplug_sampling_rate,check_rate);
 	start_rq_work();
-	mutex_unlock(&dbs_mutex);
-#endif
 }
 #endif
 
@@ -1209,20 +1175,6 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		if ((!cpu_online(0)) || (!policy->cur))
 			return -EINVAL;
 
-		start_rq_work();
-
-		mutex_lock(&dbs_mutex);
-
-		dbs_enable++;
-
-		for_each_cpu(i,policy->cpus) {
-			struct cpufreq_nightmare_cpuinfo *tmp_info;
-			tmp_info = &per_cpu(od_cpu_dbs_info, i);
-			tmp_info->cur_policy = policy;
-		}
-		
-		this_dbs_info->cpu = cpu;
-
 #ifdef CONFIG_CPU_FREQ
 		table = cpufreq_frequency_get_table(0);
 
@@ -1240,6 +1192,19 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		max_performance = clk_get_rate(clk_get(NULL, "armclk")) / 1000 * NUM_CPUS;
 		freq_min = clk_get_rate(clk_get(NULL, "armclk")) / 1000;
 #endif
+		start_rq_work();
+
+		mutex_lock(&dbs_mutex);
+
+		dbs_enable++;
+
+		for_each_cpu(i,policy->cpus) {
+			struct cpufreq_nightmare_cpuinfo *tmp_info;
+			tmp_info = &per_cpu(od_cpu_dbs_info, i);
+			tmp_info->cur_policy = policy;
+		}
+		
+		this_dbs_info->cpu = cpu;
 
 		if (dbs_enable == 1) {
 			ret = sysfs_create_group(cpufreq_global_kobject,&dbs_attr_group);
