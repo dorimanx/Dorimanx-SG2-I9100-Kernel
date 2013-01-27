@@ -1443,14 +1443,3 @@ unsigned long long notrace sched_clock_clksrc(void)
 	return nsecs + clocksource_cyc2ns(delta, sched_clksrc.mult,
 					  sched_clksrc.shift);
 }
-
-/*
- * Scheduler clock - returns current time in nanosec units.
- * This is default implementation.
- * Architectures and sub-architectures can override this.
- */
-unsigned long long __attribute__((weak)) sched_clock(void)
-{
-	return sched_clock_clksrc();
-}
-EXPORT_SYMBOL_GPL(sched_clock);

@@ -181,7 +181,7 @@ int ump_kernel_device_initialize(void)
 	}
 	else
 	{
-		debugfs_create_file("memory_usage", 0400, ump_debugfs_dir, NULL, &ump_memory_usage_fops);
+		debugfs_create_file("memory_usage", 0444, ump_debugfs_dir, NULL, &ump_memory_usage_fops);
 	}
 #endif
 

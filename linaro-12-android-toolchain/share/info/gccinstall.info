@@ -1,5 +1,5 @@
 This is doc/gccinstall.info, produced by makeinfo version 4.13 from
-/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/doc/install.texi.
+/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/doc/install.texi.
 
 Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
@@ -3680,9 +3680,10 @@ mishandled unaligned relocations on `sparc-*-*' targets.
 sparc64-*-solaris2*
 ===================
 
-When configuring the GNU Multiple Precision Library (GMP) or the MPFR
-library, the canonical target triplet must be specified as the `build'
-parameter on the configure line.  For example on a Solaris 9 system:
+When configuring the GNU Multiple Precision Library (GMP), the MPFR
+library or the MPC library, the canonical target triplet must be
+specified as the `build' parameter on the configure line.  For example
+on a Solaris 9 system:
 
      % ./configure --build=sparc64-sun-solaris2.9 --prefix=xxx
 
@@ -4675,24 +4676,24 @@ Ref: sparc-sun-solaris2153812
 Ref: sparc-sun-solaris210156566
 Ref: sparc-x-linux156942
 Ref: sparc64-x-solaris2157167
-Ref: sparcv9-x-solaris2157803
-Ref: c6x-x-x157890
-Ref: tilegx-*-linux157981
-Ref: tilepro-*-linux158100
-Ref: x-x-vxworks158221
-Ref: x86-64-x-x159743
-Ref: x86-64-x-solaris210160071
-Ref: xtensa-x-elf160733
-Ref: xtensa-x-linux161404
-Ref: windows161745
-Ref: x-x-cygwin163682
-Ref: x-x-interix164235
-Ref: x-x-mingw32164544
-Ref: older164770
-Ref: elf166887
-Node: Old167145
-Node: Configurations170282
-Node: GNU Free Documentation License173823
-Node: Concept Index198970
+Ref: sparcv9-x-solaris2157820
+Ref: c6x-x-x157907
+Ref: tilegx-*-linux157998
+Ref: tilepro-*-linux158117
+Ref: x-x-vxworks158238
+Ref: x86-64-x-x159760
+Ref: x86-64-x-solaris210160088
+Ref: xtensa-x-elf160750
+Ref: xtensa-x-linux161421
+Ref: windows161762
+Ref: x-x-cygwin163699
+Ref: x-x-interix164252
+Ref: x-x-mingw32164561
+Ref: older164787
+Ref: elf166904
+Node: Old167162
+Node: Configurations170299
+Node: GNU Free Documentation License173840
+Node: Concept Index198987
 
 End Tag Table

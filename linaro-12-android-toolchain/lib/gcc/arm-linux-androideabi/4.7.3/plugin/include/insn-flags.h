@@ -364,6 +364,19 @@
 #define HAVE_ashlv2si3_unsigned (TARGET_NEON)
 #define HAVE_ashlv4si3_unsigned (TARGET_NEON)
 #define HAVE_ashlv2di3_unsigned (TARGET_NEON)
+#define HAVE_neon_load_count (TARGET_NEON)
+#define HAVE_ashldi3_neon_noclobber (TARGET_NEON && reload_completed \
+   && (!CONST_INT_P (operands[2]) \
+       || (INTVAL (operands[2]) >= 0 && INTVAL (operands[2]) < 64)))
+#define HAVE_ashldi3_neon (TARGET_NEON)
+#define HAVE_signed_shift_di3_neon (TARGET_NEON && reload_completed)
+#define HAVE_unsigned_shift_di3_neon (TARGET_NEON && reload_completed)
+#define HAVE_ashrdi3_neon_imm_noclobber (TARGET_NEON && reload_completed \
+   && INTVAL (operands[2]) > 0 && INTVAL (operands[2]) <= 64)
+#define HAVE_lshrdi3_neon_imm_noclobber (TARGET_NEON && reload_completed \
+   && INTVAL (operands[2]) > 0 && INTVAL (operands[2]) <= 64)
+#define HAVE_ashrdi3_neon (TARGET_NEON)
+#define HAVE_lshrdi3_neon (TARGET_NEON)
 #define HAVE_widen_ssumv8qi3 (TARGET_NEON)
 #define HAVE_widen_ssumv4hi3 (TARGET_NEON)
 #define HAVE_widen_ssumv2si3 (TARGET_NEON)
@@ -2655,6 +2668,15 @@ extern rtx        gen_ashlv8hi3_unsigned                (rtx, rtx, rtx);
 extern rtx        gen_ashlv2si3_unsigned                (rtx, rtx, rtx);
 extern rtx        gen_ashlv4si3_unsigned                (rtx, rtx, rtx);
 extern rtx        gen_ashlv2di3_unsigned                (rtx, rtx, rtx);
+extern rtx        gen_neon_load_count                   (rtx, rtx);
+extern rtx        gen_ashldi3_neon_noclobber            (rtx, rtx, rtx);
+extern rtx        gen_ashldi3_neon                      (rtx, rtx, rtx);
+extern rtx        gen_signed_shift_di3_neon             (rtx, rtx, rtx);
+extern rtx        gen_unsigned_shift_di3_neon           (rtx, rtx, rtx);
+extern rtx        gen_ashrdi3_neon_imm_noclobber        (rtx, rtx, rtx);
+extern rtx        gen_lshrdi3_neon_imm_noclobber        (rtx, rtx, rtx);
+extern rtx        gen_ashrdi3_neon                      (rtx, rtx, rtx);
+extern rtx        gen_lshrdi3_neon                      (rtx, rtx, rtx);
 extern rtx        gen_widen_ssumv8qi3                   (rtx, rtx, rtx);
 extern rtx        gen_widen_ssumv4hi3                   (rtx, rtx, rtx);
 extern rtx        gen_widen_ssumv2si3                   (rtx, rtx, rtx);

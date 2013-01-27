@@ -4,9 +4,9 @@
 ;;; Don't parse this file wihout knowing GCC gengtype internals.
 ;;; This file should be parsed by the same gengtype which wrote it.
 
-(!version  "4.7.3 20121106 (prerelease)")
+(!version  "4.7.3 20121205 (prerelease)")
 
-(!srcdir  "/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc")
+(!srcdir  "/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc")
 
 (!languages 9 ada cp fortran go java lto objc objcp c)
 
@@ -1830,44 +1830,44 @@ nil )
 (!type struct 83 
 (!type already_seen 82)
  gc_pointed_to "VEC_deferred_access_check_gc"
-(!srcfileloc  "cp/cp-tree.h" 5459)
+(!srcfileloc  "cp/cp-tree.h" 5455)
 
 (!fields 1 
 (!pair  "base"
 (!type struct 84 nil  gc_used "VEC_deferred_access_check_base"
-(!srcfileloc  "cp/cp-tree.h" 5458)
+(!srcfileloc  "cp/cp-tree.h" 5454)
 
 (!fields 2 
 (!pair  "prefix"
 (!type already_seen 56)
 
-(!srcfileloc  "cp/cp-tree.h" 5458)
+(!srcfileloc  "cp/cp-tree.h" 5454)
 nil )
 (!pair  "vec"
 (!type array 85 nil  gc_used "1" 
 (!type struct 86 nil  gc_used "deferred_access_check"
-(!srcfileloc  "cp/cp-tree.h" 5457)
+(!srcfileloc  "cp/cp-tree.h" 5453)
 
 (!fields 3 
 (!pair  "binfo"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 5452)
+(!srcfileloc  "cp/cp-tree.h" 5448)
 nil )
 (!pair  "decl"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 5454)
+(!srcfileloc  "cp/cp-tree.h" 5450)
 nil )
 (!pair  "diag_decl"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 5456)
+(!srcfileloc  "cp/cp-tree.h" 5452)
 nil ))
 nil 130 nil )
 )
 
-(!srcfileloc  "cp/cp-tree.h" 5458)
+(!srcfileloc  "cp/cp-tree.h" 5454)
 
 (!options 
 (!option length string  "%h.prefix.num")
@@ -1875,7 +1875,7 @@ nil 130 nil )
 ))
 nil 130 nil )
 
-(!srcfileloc  "cp/cp-tree.h" 5459)
+(!srcfileloc  "cp/cp-tree.h" 5455)
 nil ))
 nil 130 nil )
 )
@@ -8094,7 +8094,7 @@ nil )
 (!srcfileloc  "gimple.h" 407)
 nil )
 (!pair  "u"
-(!type union 348 nil  gc_used "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/gimple.h:410"
+(!type union 348 nil  gc_used "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/gimple.h:410"
 (!srcfileloc  "gimple.h" 413)
 
 (!fields 2 
@@ -8365,7 +8365,7 @@ nil )
 )
 )
 (!pair  "loc"
-(!type union 361 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/tree.h:2015"
+(!type union 361 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree.h:2015"
 (!srcfileloc  "tree.h" 2015)
 
 (!fields 2 
@@ -15674,7 +15674,7 @@ nil )
 
 (!fields 11 
 (!pair  "u"
-(!type union 613 nil  gc_used "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/c-decl.c:187"
+(!type union 613 nil  gc_used "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/c-decl.c:187"
 (!srcfileloc  "c-decl.c" 190)
 
 (!fields 2 
@@ -16224,9 +16224,9 @@ nil 130
 )
 (!pair  "tpi"
 (!type struct 635 nil  gc_used "template_parm_index_s"
-(!srcfileloc  "cp/cp-tree.h" 253)
+(!srcfileloc  "cp/cp-tree.h" 252)
 
-(!fields 6 
+(!fields 5 
 (!pair  "common"
 (!type already_seen 30)
 
@@ -16247,15 +16247,10 @@ nil )
 
 (!srcfileloc  "cp/cp-tree.h" 250)
 nil )
-(!pair  "num_siblings"
-(!type already_seen 11)
-
-(!srcfileloc  "cp/cp-tree.h" 251)
-nil )
 (!pair  "decl"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 252)
+(!srcfileloc  "cp/cp-tree.h" 251)
 nil ))
 nil 130 nil )
 
@@ -16271,18 +16266,18 @@ nil 130 nil )
 (!type already_seen 636)
 )
  gc_used "ptrmem_cst"
-(!srcfileloc  "cp/cp-tree.h" 259)
+(!srcfileloc  "cp/cp-tree.h" 258)
 
 (!fields 2 
 (!pair  "common"
 (!type already_seen 30)
 
-(!srcfileloc  "cp/cp-tree.h" 257)
+(!srcfileloc  "cp/cp-tree.h" 256)
 nil )
 (!pair  "member"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 258)
+(!srcfileloc  "cp/cp-tree.h" 257)
 nil ))
 nil 130 nil )
 
@@ -16294,18 +16289,18 @@ nil 130 nil )
 )
 (!pair  "overload"
 (!type struct 638 nil  gc_used "tree_overload"
-(!srcfileloc  "cp/cp-tree.h" 334)
+(!srcfileloc  "cp/cp-tree.h" 333)
 
 (!fields 2 
 (!pair  "common"
 (!type already_seen 30)
 
-(!srcfileloc  "cp/cp-tree.h" 332)
+(!srcfileloc  "cp/cp-tree.h" 331)
 nil )
 (!pair  "function"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 333)
+(!srcfileloc  "cp/cp-tree.h" 332)
 nil ))
 nil 130 nil )
 
@@ -16317,28 +16312,28 @@ nil 130 nil )
 )
 (!pair  "baselink"
 (!type struct 639 nil  gc_used "tree_baselink"
-(!srcfileloc  "cp/cp-tree.h" 367)
+(!srcfileloc  "cp/cp-tree.h" 366)
 
 (!fields 4 
 (!pair  "common"
 (!type already_seen 30)
 
-(!srcfileloc  "cp/cp-tree.h" 363)
+(!srcfileloc  "cp/cp-tree.h" 362)
 nil )
 (!pair  "binfo"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 364)
+(!srcfileloc  "cp/cp-tree.h" 363)
 nil )
 (!pair  "functions"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 365)
+(!srcfileloc  "cp/cp-tree.h" 364)
 nil )
 (!pair  "access_binfo"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 366)
+(!srcfileloc  "cp/cp-tree.h" 365)
 nil ))
 nil 130 nil )
 
@@ -16350,23 +16345,23 @@ nil 130 nil )
 )
 (!pair  "default_arg"
 (!type struct 640 nil  gc_used "tree_default_arg"
-(!srcfileloc  "cp/cp-tree.h" 526)
+(!srcfileloc  "cp/cp-tree.h" 525)
 
 (!fields 3 
 (!pair  "common"
 (!type already_seen 30)
 
-(!srcfileloc  "cp/cp-tree.h" 523)
+(!srcfileloc  "cp/cp-tree.h" 522)
 nil )
 (!pair  "tokens"
 (!type already_seen 75)
 
-(!srcfileloc  "cp/cp-tree.h" 524)
+(!srcfileloc  "cp/cp-tree.h" 523)
 nil )
 (!pair  "instantiations"
 (!type already_seen 53)
 
-(!srcfileloc  "cp/cp-tree.h" 525)
+(!srcfileloc  "cp/cp-tree.h" 524)
 nil ))
 nil 130 nil )
 
@@ -16378,23 +16373,23 @@ nil 130 nil )
 )
 (!pair  "deferred_noexcept"
 (!type struct 641 nil  gc_used "tree_deferred_noexcept"
-(!srcfileloc  "cp/cp-tree.h" 542)
+(!srcfileloc  "cp/cp-tree.h" 541)
 
 (!fields 3 
 (!pair  "base"
 (!type already_seen 28)
 
-(!srcfileloc  "cp/cp-tree.h" 539)
+(!srcfileloc  "cp/cp-tree.h" 538)
 nil )
 (!pair  "pattern"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 540)
+(!srcfileloc  "cp/cp-tree.h" 539)
 nil )
 (!pair  "args"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 541)
+(!srcfileloc  "cp/cp-tree.h" 540)
 nil ))
 nil 130 nil )
 
@@ -16415,28 +16410,28 @@ nil 130 nil )
 )
 (!pair  "static_assertion"
 (!type struct 642 nil  gc_used "tree_static_assert"
-(!srcfileloc  "cp/cp-tree.h" 565)
+(!srcfileloc  "cp/cp-tree.h" 564)
 
 (!fields 4 
 (!pair  "common"
 (!type already_seen 30)
 
-(!srcfileloc  "cp/cp-tree.h" 561)
+(!srcfileloc  "cp/cp-tree.h" 560)
 nil )
 (!pair  "condition"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 562)
+(!srcfileloc  "cp/cp-tree.h" 561)
 nil )
 (!pair  "message"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 563)
+(!srcfileloc  "cp/cp-tree.h" 562)
 nil )
 (!pair  "location"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 564)
+(!srcfileloc  "cp/cp-tree.h" 563)
 nil ))
 nil 130 nil )
 
@@ -16448,23 +16443,23 @@ nil 130 nil )
 )
 (!pair  "argument_pack_select"
 (!type struct 643 nil  gc_used "tree_argument_pack_select"
-(!srcfileloc  "cp/cp-tree.h" 571)
+(!srcfileloc  "cp/cp-tree.h" 570)
 
 (!fields 3 
 (!pair  "common"
 (!type already_seen 30)
 
-(!srcfileloc  "cp/cp-tree.h" 568)
+(!srcfileloc  "cp/cp-tree.h" 567)
 nil )
 (!pair  "argument_pack"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 569)
+(!srcfileloc  "cp/cp-tree.h" 568)
 nil )
 (!pair  "index"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 570)
+(!srcfileloc  "cp/cp-tree.h" 569)
 nil ))
 nil 130 nil )
 
@@ -16476,28 +16471,28 @@ nil 130 nil )
 )
 (!pair  "trait_expression"
 (!type struct 644 nil  gc_used "tree_trait_expr"
-(!srcfileloc  "cp/cp-tree.h" 619)
+(!srcfileloc  "cp/cp-tree.h" 618)
 
 (!fields 4 
 (!pair  "common"
 (!type already_seen 30)
 
-(!srcfileloc  "cp/cp-tree.h" 615)
+(!srcfileloc  "cp/cp-tree.h" 614)
 nil )
 (!pair  "type1"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 616)
+(!srcfileloc  "cp/cp-tree.h" 615)
 nil )
 (!pair  "type2"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 617)
+(!srcfileloc  "cp/cp-tree.h" 616)
 nil )
 (!pair  "kind"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 618)
+(!srcfileloc  "cp/cp-tree.h" 617)
 nil ))
 nil 130 nil )
 
@@ -17179,7 +17174,7 @@ nil 320 nil )
 
 (!type already_seen 670)
 
-(!type struct 675 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/c-parser.c:5589"nil 
+(!type struct 675 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/c-parser.c:5589"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -17813,7 +17808,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 733 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/java/expr.c:2059"nil 
+(!type struct 733 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/java/expr.c:2059"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -17995,11 +17990,11 @@ nil )
 nil ))
 nil 4 nil )
 
-(!type struct 746 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/fortran/trans.h:334"nil 
+(!type struct 746 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/fortran/trans.h:334"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 747 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/fortran/trans.h:322"nil 
+(!type struct 747 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/fortran/trans.h:322"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -18023,7 +18018,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 753 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/fortran/trans.h:33"nil 
+(!type struct 753 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/fortran/trans.h:33"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -18325,7 +18320,7 @@ nil 0 nil )
 nil )
 (!pair  "vec"
 (!type array 775 nil  gc_unused "1" 
-(!type struct 776 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/c-family/c-pragma.c:1175"nil 
+(!type struct 776 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/c-family/c-pragma.c:1175"nil 
 (!fields 0 )
 nil 0 nil )
 )
@@ -19569,33 +19564,33 @@ nil )
 (!type struct 885 
 (!type already_seen 884)
  gc_pointed_to "tinst_level"
-(!srcfileloc  "cp/cp-tree.h" 4821)
+(!srcfileloc  "cp/cp-tree.h" 4818)
 
 (!fields 5 
 (!pair  "next"
 (!type already_seen 884)
 
-(!srcfileloc  "cp/cp-tree.h" 4806)
+(!srcfileloc  "cp/cp-tree.h" 4803)
 nil )
 (!pair  "decl"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 4811)
+(!srcfileloc  "cp/cp-tree.h" 4808)
 nil )
 (!pair  "locus"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4814)
+(!srcfileloc  "cp/cp-tree.h" 4811)
 nil )
 (!pair  "errors"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4817)
+(!srcfileloc  "cp/cp-tree.h" 4814)
 nil )
 (!pair  "in_system_header_p"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4820)
+(!srcfileloc  "cp/cp-tree.h" 4817)
 nil ))
 
 (!options 
@@ -19733,13 +19728,13 @@ nil 0 nil )
 (!type already_seen 83)
 
 (!type struct 905 nil  gc_unused "VEC_deferred_access_check_none"
-(!srcfileloc  "cp/cp-tree.h" 5458)
+(!srcfileloc  "cp/cp-tree.h" 5454)
 
 (!fields 1 
 (!pair  "base"
 (!type already_seen 84)
 
-(!srcfileloc  "cp/cp-tree.h" 5458)
+(!srcfileloc  "cp/cp-tree.h" 5454)
 nil ))
 nil 130 nil )
 
@@ -19760,28 +19755,28 @@ nil 0 nil )
 nil 0 nil )
 
 (!type struct 909 nil  gc_used "operator_name_info_t"
-(!srcfileloc  "cp/cp-tree.h" 4600)
+(!srcfileloc  "cp/cp-tree.h" 4597)
 
 (!fields 4 
 (!pair  "identifier"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/cp-tree.h" 4593)
+(!srcfileloc  "cp/cp-tree.h" 4590)
 nil )
 (!pair  "name"
 (!type already_seen 2)
 
-(!srcfileloc  "cp/cp-tree.h" 4595)
+(!srcfileloc  "cp/cp-tree.h" 4592)
 nil )
 (!pair  "mangled_name"
 (!type already_seen 2)
 
-(!srcfileloc  "cp/cp-tree.h" 4597)
+(!srcfileloc  "cp/cp-tree.h" 4594)
 nil )
 (!pair  "arity"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4599)
+(!srcfileloc  "cp/cp-tree.h" 4596)
 nil ))
 nil 130 nil )
 
@@ -20511,7 +20506,7 @@ nil 1 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 956 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/ada/gcc-interface/decl.c:193"nil 
+(!type struct 956 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/ada/gcc-interface/decl.c:193"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23367,7 +23362,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1203 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/config/arm/arm.c:24692"nil 
+(!type struct 1203 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.c:24692"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23375,15 +23370,15 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1205 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/config/arm/arm.c:19328"nil 
+(!type struct 1205 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.c:19328"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1206 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/config/arm/arm.c:2052"nil 
+(!type struct 1206 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.c:2052"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1207 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/config/arm/arm.c:1079"nil 
+(!type struct 1207 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.c:1079"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23667,7 +23662,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type union 1253 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/tree-eh.c:44"nil 
+(!type union 1253 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree-eh.c:44"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23683,7 +23678,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1257 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/tree-flow.h:627"nil 
+(!type struct 1257 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree-flow.h:627"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23743,7 +23738,7 @@ nil 511 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1265 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/tree-flow.h:315"nil 
+(!type struct 1265 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree-flow.h:315"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23755,7 +23750,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1268 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/tree-flow.h:106"nil 
+(!type struct 1268 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree-flow.h:106"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23927,7 +23922,7 @@ nil 0 nil )
 
 (!type already_seen 335)
 
-(!type struct 1284 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/gimple.h:263"nil 
+(!type struct 1284 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/gimple.h:263"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -24038,11 +24033,11 @@ nil 511 nil )
 
 (!type already_seen 1294)
 
-(!type struct 1296 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/varasm.c:4724"nil 
+(!type struct 1296 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/varasm.c:4724"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1297 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/varasm.c:4473"nil 
+(!type struct 1297 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/varasm.c:4473"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -24175,7 +24170,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type union 1314 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/mcf.c:351"nil 
+(!type union 1314 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/mcf.c:351"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -25506,7 +25501,7 @@ nil 0 nil )
 nil )
 (!pair  "vec"
 (!type array 1454 nil  gc_unused "1" 
-(!type struct 1455 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/dwarf2cfi.c:200"nil 
+(!type struct 1455 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/dwarf2cfi.c:200"nil 
 (!fields 0 )
 nil 0 nil )
 )
@@ -25557,7 +25552,7 @@ nil )
 (!type pointer 1460 nil  gc_unused
 (!type struct 1461 
 (!type already_seen 1460)
- gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/dwarf2cfi.c:102"nil 
+ gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/dwarf2cfi.c:102"nil 
 (!fields 0 )
 nil 0 nil )
 )
@@ -25839,7 +25834,7 @@ nil 511 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1483 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/matrix-reorg.c:1382"nil 
+(!type struct 1483 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/matrix-reorg.c:1382"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -26359,11 +26354,11 @@ nil 511 nil )
 
 (!type already_seen 1096)
 
-(!type struct 1546 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/cgraph.h:307"nil 
+(!type struct 1546 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/cgraph.h:307"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1547 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/cgraph.h:300"nil 
+(!type struct 1547 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/cgraph.h:300"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -26674,7 +26669,7 @@ nil 511 nil )
 
 (!type already_seen 1092)
 
-(!type struct 1575 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/basic-block.h:607"nil 
+(!type struct 1575 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/basic-block.h:607"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -26762,7 +26757,7 @@ nil 0 nil )
 
 (!type already_seen 1037)
 
-(!type struct 1585 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/cfgloop.h:523"nil 
+(!type struct 1585 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/cfgloop.h:523"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -27769,7 +27764,7 @@ nil 511 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1644 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/tree.h:5109"nil 
+(!type struct 1644 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree.h:5109"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28380,7 +28375,7 @@ nil 511 nil )
 
 (!type already_seen 281)
 
-(!type struct 1671 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/rtl.h:118"nil 
+(!type struct 1671 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/rtl.h:118"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28438,7 +28433,7 @@ nil ))
 )
 511 nil )
 
-(!type struct 1677 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/bitmap.h:204"nil 
+(!type struct 1677 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/bitmap.h:204"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28456,7 +28451,7 @@ nil 0 nil )
 
 (!type already_seen 60)
 
-(!type struct 1678 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/config/arm/arm.h:1448"nil 
+(!type struct 1678 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.h:1448"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28837,11 +28832,11 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1717 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/../libcpp/include/cpplib.h:972"nil 
+(!type struct 1717 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/../libcpp/include/cpplib.h:972"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1718 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/../libcpp/include/cpplib.h:961"nil 
+(!type struct 1718 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/../libcpp/include/cpplib.h:961"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28895,7 +28890,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1727 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.11/build/objdir/temp-src/gcc-linaro-4.7-2012.11/gcc/../libcpp/include/line-map.h:588"nil 
+(!type struct 1727 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/../libcpp/include/line-map.h:588"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -29559,7 +29554,7 @@ nil )
 (!pair  "secondary_vptr_vtt_init_data"
 (!type already_seen 767)
 
-(!srcfileloc  "cp/class.c" 7899)
+(!srcfileloc  "cp/class.c" 7900)
 nil )
 (!pair  "find_final_overrider_data"
 (!type already_seen 768)
@@ -30086,72 +30081,72 @@ nil )
 (!pair  "VEC_deferred_access_check_gc"
 (!type already_seen 83)
 
-(!srcfileloc  "cp/cp-tree.h" 5459)
+(!srcfileloc  "cp/cp-tree.h" 5455)
 nil )
 (!pair  "VEC_deferred_access_check_none"
 (!type already_seen 905)
 
-(!srcfileloc  "cp/cp-tree.h" 5458)
+(!srcfileloc  "cp/cp-tree.h" 5454)
 nil )
 (!pair  "VEC_deferred_access_check_base"
 (!type already_seen 84)
 
-(!srcfileloc  "cp/cp-tree.h" 5458)
+(!srcfileloc  "cp/cp-tree.h" 5454)
 nil )
 (!pair  "deferred_access_check"
 (!type already_seen 86)
 
-(!srcfileloc  "cp/cp-tree.h" 5457)
+(!srcfileloc  "cp/cp-tree.h" 5453)
 nil )
 (!pair  "walk_namespaces_fn"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 5074)
+(!srcfileloc  "cp/cp-tree.h" 5071)
 nil )
 (!pair  "cp_parameter_declarator"
 (!type already_seen 906)
 
-(!srcfileloc  "cp/cp-tree.h" 4724)
+(!srcfileloc  "cp/cp-tree.h" 4721)
 nil )
 (!pair  "cp_declarator"
 (!type already_seen 907)
 
-(!srcfileloc  "cp/cp-tree.h" 4722)
+(!srcfileloc  "cp/cp-tree.h" 4719)
 nil )
 (!pair  "cp_declarator_kind"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4718)
+(!srcfileloc  "cp/cp-tree.h" 4715)
 nil )
 (!pair  "cp_decl_specifier_seq"
 (!type already_seen 908)
 
-(!srcfileloc  "cp/cp-tree.h" 4706)
+(!srcfileloc  "cp/cp-tree.h" 4703)
 nil )
 (!pair  "cp_decl_spec"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4664)
+(!srcfileloc  "cp/cp-tree.h" 4661)
 nil )
 (!pair  "cp_storage_class"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4641)
+(!srcfileloc  "cp/cp-tree.h" 4638)
 nil )
 (!pair  "cp_virt_specifiers"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4628)
+(!srcfileloc  "cp/cp-tree.h" 4625)
 nil )
 (!pair  "cp_cv_quals"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 4612)
+(!srcfileloc  "cp/cp-tree.h" 4609)
 nil )
 (!pair  "operator_name_info_t"
 (!type already_seen 909)
 
-(!srcfileloc  "cp/cp-tree.h" 4600)
+(!srcfileloc  "cp/cp-tree.h" 4597)
 nil )
 (!pair  "unification_kind_t"
 (!type already_seen 11)
@@ -30261,47 +30256,47 @@ nil )
 (!pair  "cp_trait_kind"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 601)
+(!srcfileloc  "cp/cp-tree.h" 600)
 nil )
 (!pair  "impl_conv_void"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 454)
+(!srcfileloc  "cp/cp-tree.h" 453)
 nil )
 (!pair  "impl_conv_rhs"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 443)
+(!srcfileloc  "cp/cp-tree.h" 442)
 nil )
 (!pair  "expr_list_kind"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 433)
+(!srcfileloc  "cp/cp-tree.h" 432)
 nil )
 (!pair  "composite_pointer_operation"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 426)
+(!srcfileloc  "cp/cp-tree.h" 425)
 nil )
 (!pair  "cpp0x_warn_str"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 414)
+(!srcfileloc  "cp/cp-tree.h" 413)
 nil )
 (!pair  "cp_id_kind"
 (!type already_seen 11)
 
-(!srcfileloc  "cp/cp-tree.h" 383)
+(!srcfileloc  "cp/cp-tree.h" 382)
 nil )
 (!pair  "ptrmem_cst_t"
 (!type already_seen 637)
 
-(!srcfileloc  "cp/cp-tree.h" 260)
+(!srcfileloc  "cp/cp-tree.h" 259)
 nil )
 (!pair  "template_parm_index"
 (!type already_seen 635)
 
-(!srcfileloc  "cp/cp-tree.h" 254)
+(!srcfileloc  "cp/cp-tree.h" 253)
 nil )
 (!pair  "VEC_cp_label_binding_gc"
 (!type already_seen 122)
@@ -34829,7 +34824,7 @@ nil )
 (!pair  "abort_fndecl_addr"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/class.c" 8273)
+(!srcfileloc  "cp/class.c" 8274)
 nil )
 (!pair  "sizeof_biggest_empty_class"
 (!type already_seen 26)
@@ -34943,7 +34938,7 @@ nil )
 (!pair  "the_parser"
 (!type already_seen 828)
 
-(!srcfileloc  "cp/parser.c" 27214)
+(!srcfileloc  "cp/parser.c" 27212)
 nil )
 (!pair  "lambda_scope_stack"
 (!type already_seen 820)
@@ -34972,7 +34967,7 @@ nil )
 (!pair  "list_hash_table"
 (!type already_seen 64)
 
-(!srcfileloc  "cp/tree.c" 1299)
+(!srcfileloc  "cp/tree.c" 1489)
 
 (!options 
 (!option param_is type 
@@ -35031,7 +35026,7 @@ nil )
 (!pair  "last_error_tinst_level"
 (!type already_seen 884)
 
-(!srcfileloc  "cp/pt.c" 8078)
+(!srcfileloc  "cp/pt.c" 7749)
 nil )
 (!pair  "canonical_template_parms"
 (!type already_seen 53)
@@ -35154,26 +35149,26 @@ nil )
 (!pair  "unemitted_tinfo_decls"
 (!type already_seen 53)
 
-(!srcfileloc  "cp/cp-tree.h" 5393)
+(!srcfileloc  "cp/cp-tree.h" 5389)
 nil )
 (!pair  "deferred_mark_used_calls"
 (!type already_seen 53)
 
-(!srcfileloc  "cp/cp-tree.h" 5095)
+(!srcfileloc  "cp/cp-tree.h" 5092)
 nil )
 (!pair  "assignment_operator_name_info"
 (!type array 1834 nil  gc_used "(int) MAX_TREE_CODES" 
 (!type already_seen 909)
 )
 
-(!srcfileloc  "cp/cp-tree.h" 4607)
+(!srcfileloc  "cp/cp-tree.h" 4604)
 nil )
 (!pair  "operator_name_info"
 (!type array 1835 nil  gc_used "(int) MAX_TREE_CODES" 
 (!type already_seen 909)
 )
 
-(!srcfileloc  "cp/cp-tree.h" 4604)
+(!srcfileloc  "cp/cp-tree.h" 4601)
 nil )
 (!pair  "static_aggregates"
 (!type already_seen 26)
