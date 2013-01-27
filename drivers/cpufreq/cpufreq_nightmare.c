@@ -691,8 +691,10 @@ static ssize_t store_user_lock(struct kobject *a, struct attribute *b,
 static ssize_t store_hotplug_on(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
+	struct cpufreq_nightmare_cpuinfo *dbs_info;
 	unsigned int input;
 	unsigned int user_lock = atomic_read(&dbs_tuners_ins.user_lock);
+	unsigned int prev_hotplug_on = atomic_read(&dbs_tuners_ins.hotplug_on);
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
@@ -701,7 +703,28 @@ static ssize_t store_hotplug_on(struct kobject *a, struct attribute *b,
 		return count;
 	}
 	input = min(input,(unsigned int)1);
-	atomic_set(&dbs_tuners_ins.hotplug_on, input);	
+
+	/* do turn_on/off cpus */
+	dbs_info = &per_cpu(od_cpu_dbs_info, 0); /* from CPU0 */
+
+	if (!prev_hotplug_on && input == (unsigned int)1) {
+		atomic_set(&dbs_tuners_ins.hotplug_on, input);
+		// restart worker thread.
+		atomic_set(&hotplug_sampling_rate, CHECK_DELAY_ON);
+		queue_delayed_work_on(0, dvfs_workqueues, &dbs_info->work, atomic_read(&hotplug_sampling_rate));
+		printk("second_core: hotplug is on!\n");
+		return count;
+	}
+	else if (prev_hotplug_on && input == (unsigned int)0) {
+		atomic_set(&dbs_tuners_ins.hotplug_on, input);
+		atomic_set(&dbs_tuners_ins.second_core_on,1);
+		if (cpu_online(1) == 0) {
+			cpu_up(1);
+		}
+		printk("second_core: hotplug is off!\n");
+		return count;
+	}
+		
 	return count;
 }
 /* second_core_on */
@@ -711,6 +734,7 @@ static ssize_t store_second_core_on(struct kobject *a, struct attribute *b,
 	unsigned int input;
 	unsigned int user_lock = atomic_read(&dbs_tuners_ins.user_lock);
 	unsigned int hotplug_on = atomic_read(&dbs_tuners_ins.hotplug_on);
+	unsigned int prev_second_core_on = atomic_read(&dbs_tuners_ins.second_core_on);
 	int ret;
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
@@ -719,10 +743,24 @@ static ssize_t store_second_core_on(struct kobject *a, struct attribute *b,
 	if (hotplug_on || user_lock) {
 		return count;
 	}
-
 	input = min(input,(unsigned int)1);
-	atomic_set(&dbs_tuners_ins.second_core_on, input);
 
+	if (!prev_second_core_on && input == (unsigned int)1) {
+		atomic_set(&dbs_tuners_ins.second_core_on, input);
+		if (cpu_online(1) == 0) {
+			cpu_up(1);
+		}
+		printk("second_core: 2nd core is always on!\n");
+		return count;
+	}
+	else if (prev_second_core_on && input == (unsigned int)0) {
+		atomic_set(&dbs_tuners_ins.second_core_on, input);
+		if (cpu_online(1) == 1) {
+			cpu_down(1);
+		}
+		printk("second_core: 2nd core is always off!\n");
+		return count;
+	}
 	return count;
 }
 
@@ -947,7 +985,7 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		}
 	}
 
-	if (user_lock == 1 || hotplug_on)
+	if (user_lock == 1 || !hotplug_on)
 		return;
 
 	for (i = NUM_CPUS - 1; i > 0; --i) {
