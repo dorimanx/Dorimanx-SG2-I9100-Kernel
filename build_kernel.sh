@@ -1,5 +1,21 @@
 #!/bin/bash
 
+###############################################################################
+# To all DEV around the world :)                                              #
+# to build this kernel you need to be ROOT and to have bash as script loader  #
+# do this:                                                                    #
+# cd /bin                                                                     #
+# rm -f sh                                                                    #
+# ln -s bash sh                                                               #
+# now go back to kernel folder and run:                                       #
+# sh load_config.sh                                                           #
+# sh clean_kernel.sh                                                          #
+#                                                                             #
+# Now you can build my kernel.                                                #
+# using bash will make your life easy. so it's best that way.                 #
+# Have fun and update me if something nice can be added to my source.         #
+###############################################################################
+
 # location
 export KERNELDIR=`readlink -f .`
 export PARENT_DIR=`readlink -f ..`
