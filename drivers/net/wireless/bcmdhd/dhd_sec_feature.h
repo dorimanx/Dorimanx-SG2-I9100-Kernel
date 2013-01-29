@@ -42,6 +42,7 @@
 #endif
 #define USE_CID_CHECK
 #define WRITE_MACADDR
+#define READ_MACADDR
 #endif
 
 #ifdef CONFIG_ARCH_MSM7X30
