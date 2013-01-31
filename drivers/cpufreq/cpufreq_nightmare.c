@@ -1260,7 +1260,7 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	struct cpufreq_policy *policy;
 	unsigned int j;
 	int num_hist = hotplug_histories->num_hist;
-	int max_hotplug_rate = MAX_HOTPLUG_RATE;
+	int max_hotplug_rate = 20;
 	/* add total_load, avg_load to get average load */
 	unsigned int total_load = 0;
 	unsigned int total_freq = 0;
@@ -1269,6 +1269,7 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	unsigned int cpu_rq_min=0;
 	unsigned long nr_rq_min = -1UL;
 	unsigned int select_off_cpu = 0;
+	unsigned int ncores = 0;
 	int hotplug_lock = atomic_read(&g_hotplug_lock);
 
 	enum flag flag_hotplug;
@@ -1331,18 +1332,17 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		if (unlikely(!wall_time || wall_time < idle_time))
 			continue;
 
-		load = 100 * (wall_time - idle_time) / wall_time;
-		freq = j_dbs_info->cur_policy->cur;	
+		ncores++;
 
-		if (cpu_online(j)) {
-			total_load += load;
-			hotplug_histories->usage[num_hist].load[j] = load;
-			total_freq += freq;
-			hotplug_histories->usage[num_hist].freq[j] = j_dbs_info->cur_policy->cur;
-		} else {
-			hotplug_histories->usage[num_hist].load[j] = 0;
-			hotplug_histories->usage[num_hist].freq[j] = 0;
-		}
+		// LOAD
+		load = 100 * (wall_time - idle_time) / wall_time;
+		hotplug_histories->usage[num_hist].load[j] = load;
+		total_load += load;
+
+		// FREQUENCY
+		freq = j_dbs_info->cur_policy->cur;	
+		total_freq += freq;
+		hotplug_histories->usage[num_hist].freq[j] = freq;
 
 		/*find minimum runqueue length*/
 		tmp_hotplug_info[j].nr_running = get_cpu_nr_running(j);
@@ -1353,8 +1353,8 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		}
 	}
 	/* calculate the average load across all related CPUs */
-	avg_load = total_load / num_online_cpus();
-	avg_freq = total_freq / num_online_cpus();
+	avg_load = total_load / ncores;
+	avg_freq = total_freq / ncores;
 
 	hotplug_histories->usage[num_hist].avg_load = avg_load;	
 	hotplug_histories->usage[num_hist].avg_freq = avg_freq;
