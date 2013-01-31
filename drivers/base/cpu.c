@@ -282,8 +282,5 @@ int __init cpu_dev_init(void)
 	if (err)
 		return err;
 
-#if defined(CONFIG_SCHED_MC) || defined(CONFIG_SCHED_SMT)
-	err = sched_create_sysfs_power_savings_entries(cpu_subsys.dev_root);
-#endif
 	return err;
 }

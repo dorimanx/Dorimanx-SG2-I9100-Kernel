@@ -133,6 +133,7 @@
 #include <linux/pci.h>
 #include <linux/inetdevice.h>
 #include <linux/cpu_rmap.h>
+#include <linux/static_key.h>
 
 #include "net-sysfs.h"
 

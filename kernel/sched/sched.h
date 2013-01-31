@@ -526,6 +526,8 @@ static inline struct sched_domain *highest_flag_domain(int cpu, int flag)
 DECLARE_PER_CPU(struct sched_domain *, sd_llc);
 DECLARE_PER_CPU(int, sd_llc_id);
 
+extern int group_balance_cpu(struct sched_group *sg);
+
 #endif /* CONFIG_SMP */
 
 #include "stats.h"
@@ -597,7 +599,7 @@ static inline void __set_task_cpu(struct task_struct *p, unsigned int cpu)
  * Tunables that become constants when CONFIG_SCHED_DEBUG is off:
  */
 #ifdef CONFIG_SCHED_DEBUG
-# include <linux/jump_label.h>
+# include <linux/static_key.h>
 # define const_debug __read_mostly
 #else
 # define const_debug const
@@ -616,18 +618,18 @@ enum {
 #undef SCHED_FEAT
 
 #if defined(CONFIG_SCHED_DEBUG) && defined(HAVE_JUMP_LABEL)
-static __always_inline bool static_branch__true(struct jump_label_key *key)
+static __always_inline bool static_branch__true(struct static_key *key)
 {
-	return likely(static_branch(key)); /* Not out of line branch. */
+	return static_key_true(key); /* Not out of line branch. */
 }
 
-static __always_inline bool static_branch__false(struct jump_label_key *key)
+static __always_inline bool static_branch__false(struct static_key *key)
 {
-	return unlikely(static_branch(key)); /* Out of line branch. */
+	return static_key_false(key); /* Out of line branch. */
 }
 
 #define SCHED_FEAT(name, enabled)					\
-static __always_inline bool static_branch_##name(struct jump_label_key *key) \
+static __always_inline bool static_branch_##name(struct static_key *key) \
 {									\
 	return static_branch__##enabled(key);				\
 }
@@ -636,7 +638,7 @@ static __always_inline bool static_branch_##name(struct jump_label_key *key) \
 
 #undef SCHED_FEAT
 
-extern struct jump_label_key sched_feat_keys[__SCHED_FEAT_NR];
+extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 #define sched_feat(x) (static_branch_##x(&sched_feat_keys[__SCHED_FEAT_##x]))
 #else /* !(SCHED_DEBUG && HAVE_JUMP_LABEL) */
 #define sched_feat(x) (sysctl_sched_features & (1UL << __SCHED_FEAT_##x))
@@ -885,6 +887,9 @@ struct cpuacct {
 	struct kernel_cpustat __percpu *cpustat;
 };
 
+extern struct cgroup_subsys cpuacct_subsys;
+extern struct cpuacct root_cpuacct;
+
 /* return cpu accounting group corresponding to this container */
 static inline struct cpuacct *cgroup_ca(struct cgroup *cgrp)
 {
@@ -909,6 +914,16 @@ static inline struct cpuacct *parent_ca(struct cpuacct *ca)
 extern void cpuacct_charge(struct task_struct *tsk, u64 cputime);
 #else
 static inline void cpuacct_charge(struct task_struct *tsk, u64 cputime) {}
+#endif
+
+#ifdef CONFIG_PARAVIRT
+static inline u64 steal_ticks(u64 steal)
+{
+	if (unlikely(steal > NSEC_PER_SEC))
+		return div_u64(steal, TICK_NSEC);
+
+	return __iter_div_u64_rem(steal, TICK_NSEC, &steal);
+}
 #endif
 
 static inline void inc_nr_running(struct rq *rq)
@@ -1151,3 +1166,53 @@ enum rq_nohz_flag_bits {
 
 #define nohz_flags(cpu)	(&cpu_rq(cpu)->nohz_flags)
 #endif
+
+#ifdef CONFIG_IRQ_TIME_ACCOUNTING
+
+DECLARE_PER_CPU(u64, cpu_hardirq_time);
+DECLARE_PER_CPU(u64, cpu_softirq_time);
+
+#ifndef CONFIG_64BIT
+DECLARE_PER_CPU(seqcount_t, irq_time_seq);
+
+static inline void irq_time_write_begin(void)
+{
+	__this_cpu_inc(irq_time_seq.sequence);
+	smp_wmb();
+}
+
+static inline void irq_time_write_end(void)
+{
+	smp_wmb();
+	__this_cpu_inc(irq_time_seq.sequence);
+}
+
+static inline u64 irq_time_read(int cpu)
+{
+	u64 irq_time;
+	unsigned seq;
+
+	do {
+		seq = read_seqcount_begin(&per_cpu(irq_time_seq, cpu));
+		irq_time = per_cpu(cpu_softirq_time, cpu) +
+			   per_cpu(cpu_hardirq_time, cpu);
+	} while (read_seqcount_retry(&per_cpu(irq_time_seq, cpu), seq));
+
+	return irq_time;
+}
+#else /* CONFIG_64BIT */
+static inline void irq_time_write_begin(void)
+{
+}
+
+static inline void irq_time_write_end(void)
+{
+}
+
+static inline u64 irq_time_read(int cpu)
+{
+	return per_cpu(cpu_softirq_time, cpu) + per_cpu(cpu_hardirq_time, cpu);
+}
+#endif /* CONFIG_64BIT */
+#endif /* CONFIG_IRQ_TIME_ACCOUNTING */
+
