@@ -1159,8 +1159,8 @@ standalone_hotplug(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	nr_rq_min = hotplug_histories->usage[num_hist].nr_rq_min;
 	cpu_rq_min = hotplug_histories->usage[num_hist].cpu_rq_min;
 
-	//cur_freq = clk_get_rate(clk_get(NULL, "armclk")) / 1000;
-	cur_freq = hotplug_histories->usage[num_hist].avg_freq;
+	cur_freq = policy->cur;
+	//cur_freq = hotplug_histories->usage[num_hist].avg_freq;
 
 	nr_online_cpu = num_online_cpus();
 
