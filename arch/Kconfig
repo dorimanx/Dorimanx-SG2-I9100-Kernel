@@ -147,6 +147,9 @@ config USE_GENERIC_SMP_HELPERS
 config HAVE_DMA_CONTIGUOUS
 	bool
 
+config GENERIC_SMP_IDLE_THREAD
+       bool
+
 config HAVE_REGS_AND_STACK_ACCESS_API
 	bool
 	help

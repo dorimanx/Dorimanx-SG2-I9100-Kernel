@@ -87,10 +87,6 @@ static inline void kfree_call_rcu(struct rcu_head *head,
 
 #ifdef CONFIG_TINY_RCU
 
-static inline void rcu_preempt_note_context_switch(void)
-{
-}
-
 static inline int rcu_needs_cpu(int cpu, unsigned long *delta_jiffies)
 {
 	*delta_jiffies = ULONG_MAX;
@@ -99,7 +95,7 @@ static inline int rcu_needs_cpu(int cpu, unsigned long *delta_jiffies)
 
 #else /* #ifdef CONFIG_TINY_RCU */
 
-void rcu_preempt_note_context_switch(void);
+extern void exit_rcu(void);
 int rcu_preempt_needs_cpu(void);
 
 static inline int rcu_needs_cpu(int cpu, unsigned long *delta_jiffies)
@@ -113,7 +109,6 @@ static inline int rcu_needs_cpu(int cpu, unsigned long *delta_jiffies)
 static inline void rcu_note_context_switch(int cpu)
 {
 	rcu_sched_qs(cpu);
-	rcu_preempt_note_context_switch();
 }
 
 /*

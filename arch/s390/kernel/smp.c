@@ -554,7 +554,7 @@ static void smp_free_lowcore(int cpu)
 }
 
 /* Upping and downing of CPUs */
-int __cpuinit __cpu_up(unsigned int cpu)
+int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
 {
 	struct _lowcore *cpu_lowcore;
 	struct create_idle c_idle;
