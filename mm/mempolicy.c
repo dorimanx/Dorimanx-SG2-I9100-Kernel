@@ -2558,6 +2558,50 @@ static inline void __init check_numabalancing_enable(void)
 }
 #endif /* CONFIG_NUMA_BALANCING */
 
+#ifdef CONFIG_NUMA_BALANCING
+static bool __initdata numabalancing_override;
+
+static void __init check_numabalancing_enable(void)
+{
+	bool numabalancing_default = false;
+
+	if (IS_ENABLED(CONFIG_NUMA_BALANCING_DEFAULT_ENABLED))
+		numabalancing_default = true;
+
+	if (nr_node_ids > 1 && !numabalancing_override) {
+		printk(KERN_INFO "Enabling automatic NUMA balancing. "
+			"Configure with numa_balancing= or sysctl");
+		set_numabalancing_state(numabalancing_default);
+	}
+}
+
+static int __init setup_numabalancing(char *str)
+{
+	int ret = 0;
+	if (!str)
+		goto out;
+	numabalancing_override = true;
+
+	if (!strcmp(str, "enable")) {
+		set_numabalancing_state(true);
+		ret = 1;
+	} else if (!strcmp(str, "disable")) {
+		set_numabalancing_state(false);
+		ret = 1;
+	}
+out:
+	if (!ret)
+		printk(KERN_WARNING "Unable to parse numa_balancing=\n");
+
+	return ret;
+}
+__setup("numa_balancing=", setup_numabalancing);
+#else
+static inline void __init check_numabalancing_enable(void)
+{
+}
+#endif /* CONFIG_NUMA_BALANCING */
+
 /* assumes fs == KERNEL_DS */
 void __init numa_policy_init(void)
 {

@@ -85,7 +85,7 @@ static void do_account_vtime(struct task_struct *tsk, int hardirq_offset)
 	}
 }
 
-void account_vtime(struct task_struct *prev, struct task_struct *next)
+void vtime_task_switch(struct task_struct *prev)
 {
 	struct thread_info *ti;
 
@@ -93,7 +93,7 @@ void account_vtime(struct task_struct *prev, struct task_struct *next)
 	ti = task_thread_info(prev);
 	ti->user_timer = S390_lowcore.user_timer;
 	ti->system_timer = S390_lowcore.system_timer;
-	ti = task_thread_info(next);
+	ti = task_thread_info(current);
 	S390_lowcore.user_timer = ti->user_timer;
 	S390_lowcore.system_timer = ti->system_timer;
 }
@@ -107,7 +107,7 @@ void account_process_tick(struct task_struct *tsk, int user_tick)
  * Update process times based on virtual cpu times stored by entry.S
  * to the lowcore fields user_timer, system_timer & steal_clock.
  */
-void account_system_vtime(struct task_struct *tsk)
+void vtime_account(struct task_struct *tsk)
 {
 	struct thread_info *ti = task_thread_info(tsk);
 	__u64 timer, system;
@@ -121,9 +121,13 @@ void account_system_vtime(struct task_struct *tsk)
 	ti->system_timer = S390_lowcore.system_timer;
 	account_system_time(tsk, 0, system, system);
 }
-EXPORT_SYMBOL_GPL(account_system_vtime);
+EXPORT_SYMBOL_GPL(vtime_account);
 
-void __kprobes vtime_start_cpu(__u64 int_clock, __u64 enter_timer)
+void vtime_account_system(struct task_struct *tsk)
+__attribute__((alias("vtime_account")));
+EXPORT_SYMBOL_GPL(vtime_account_system);
+
+void __kprobes vtime_stop_cpu(void)
 {
 	struct s390_idle_data *idle = &__get_cpu_var(s390_idle);
 	struct vtimer_queue *vq = &__get_cpu_var(virt_cpu_timer);

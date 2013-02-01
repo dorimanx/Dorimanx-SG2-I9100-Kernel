@@ -164,6 +164,8 @@ static inline void set_restore_sigmask(void)
 #define is_32bit_task()	(1)
 #endif
 
+#define tsk_is_polling(t) test_tsk_thread_flag(t, TIF_POLLING_NRFLAG)
+
 #endif	/* !__ASSEMBLY__ */
 
 #endif /* __KERNEL__ */

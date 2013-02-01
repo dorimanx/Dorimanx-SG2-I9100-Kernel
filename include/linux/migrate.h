@@ -57,6 +57,7 @@ extern int migrate_vmas(struct mm_struct *mm,
 extern void migrate_page_copy(struct page *newpage, struct page *page);
 extern int migrate_huge_page_move_mapping(struct address_space *mapping,
 				  struct page *newpage, struct page *page);
+extern int migrate_misplaced_page(struct page *page, int node);
 #else
 
 static inline void putback_lru_pages(struct list_head *l) {}
@@ -92,4 +93,20 @@ static inline int migrate_huge_page_move_mapping(struct address_space *mapping,
 #define fail_migrate_page NULL
 
 #endif /* CONFIG_MIGRATION */
+
+#ifdef CONFIG_NUMA_BALANCING
+extern int migrate_misplaced_page(struct page *page, int node);
+extern int migrate_misplaced_page(struct page *page, int node);
+extern bool migrate_ratelimited(int node);
+#else
+static inline int migrate_misplaced_page(struct page *page, int node)
+{
+	return -EAGAIN; /* can't migrate now */
+}
+static inline bool migrate_ratelimited(int node)
+{
+	return false;
+}
+#endif /* CONFIG_NUMA_BALANCING */
+
 #endif /* _LINUX_MIGRATE_H */
