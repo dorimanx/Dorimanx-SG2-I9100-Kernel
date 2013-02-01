@@ -35,8 +35,7 @@ static int process_sdio_pending_irqs(struct mmc_card *card)
 
 	/*
 	 * Optimization, if there is only 1 function interrupt registered
-	 * and we know an IRQ was signaled then call irq handler directly.
-	 * Otherwise do the full probe.
+	 * call irq handler directly
 	 */
 	func = card->sdio_single_irq;
 	if (func) {
