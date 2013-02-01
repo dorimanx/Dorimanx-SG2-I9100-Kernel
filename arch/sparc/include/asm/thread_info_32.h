@@ -149,6 +149,8 @@ BTFIXUPDEF_CALL(void, free_thread_info, struct thread_info *)
 					 _TIF_RESTORE_SIGMASK)
 #define _TIF_FREEZE		(1<<TIF_FREEZE)
 
+#define tsk_is_polling(t) test_tsk_thread_flag(t, TIF_POLLING_NRFLAG)
+
 #endif /* __KERNEL__ */
 
 #endif /* _ASM_THREAD_INFO_H */

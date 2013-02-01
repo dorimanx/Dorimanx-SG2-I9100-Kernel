@@ -111,6 +111,8 @@
 #include <linux/init.h>
 #include <linux/highmem.h>
 #include <linux/user_namespace.h>
+#include <linux/static_key.h>
+#include <linux/memcontrol.h>
 
 #include <asm/uaccess.h>
 #include <asm/system.h>
@@ -178,6 +180,9 @@ void mem_cgroup_sockets_destroy(struct cgroup *cgrp)
  */
 static struct lock_class_key af_family_keys[AF_MAX];
 static struct lock_class_key af_family_slock_keys[AF_MAX];
+
+struct static_key memcg_socket_limit_enabled;
+EXPORT_SYMBOL(memcg_socket_limit_enabled);
 
 /*
  * Make lock validator output more readable. (we pre-construct these

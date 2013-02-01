@@ -1359,8 +1359,10 @@ clear_pmdnuma:
 
 out_unlock:
 	spin_unlock(&mm->page_table_lock);
-	if (current_nid != -1)
-		task_numa_fault(current_nid, HPAGE_PMD_NR, migrated);
+	if (page) {
+		put_page(page);
+		task_numa_fault(numa_node_id(), HPAGE_PMD_NR, false);
+	}
 	return 0;
 }
 

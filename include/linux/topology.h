@@ -78,71 +78,6 @@ int arch_update_cpu_topology(void);
  * (Only non-zero and non-null fields need be specified.)
  */
 
-#ifdef CONFIG_SCHED_SMT
-/* MCD - Do we really need this?  It is always on if CONFIG_SCHED_SMT is,
- * so can't we drop this in favor of CONFIG_SCHED_SMT?
- */
-#define ARCH_HAS_SCHED_WAKE_IDLE
-/* Common values for SMT siblings */
-#ifndef SD_SIBLING_INIT
-#define SD_SIBLING_INIT (struct sched_domain) {				\
-	.min_interval		= 1,					\
-	.max_interval		= 2,					\
-	.busy_factor		= 64,					\
-	.imbalance_pct		= 110,					\
-									\
-	.flags			= 1*SD_LOAD_BALANCE			\
-				| 1*SD_BALANCE_NEWIDLE			\
-				| 1*SD_BALANCE_EXEC			\
-				| 1*SD_BALANCE_FORK			\
-				| 0*SD_BALANCE_WAKE			\
-				| 1*SD_WAKE_AFFINE			\
-				| 1*SD_SHARE_CPUPOWER			\
-				| 0*SD_POWERSAVINGS_BALANCE		\
-				| 1*SD_SHARE_PKG_RESOURCES		\
-				| 0*SD_SERIALIZE			\
-				| 0*SD_PREFER_SIBLING			\
-				| arch_sd_sibling_asym_packing()	\
-				,					\
-	.last_balance		= jiffies,				\
-	.balance_interval	= 1,					\
-	.smt_gain		= 1178,	/* 15% */			\
-}
-#endif
-#endif /* CONFIG_SCHED_SMT */
-
-#ifdef CONFIG_SCHED_MC
-/* Common values for MC siblings. for now mostly derived from SD_CPU_INIT */
-#ifndef SD_MC_INIT
-#define SD_MC_INIT (struct sched_domain) {				\
-	.min_interval		= 1,					\
-	.max_interval		= 4,					\
-	.busy_factor		= 64,					\
-	.imbalance_pct		= 125,					\
-	.cache_nice_tries	= 1,					\
-	.busy_idx		= 2,					\
-	.wake_idx		= 0,					\
-	.forkexec_idx		= 0,					\
-									\
-	.flags			= 1*SD_LOAD_BALANCE			\
-				| 1*SD_BALANCE_NEWIDLE			\
-				| 1*SD_BALANCE_EXEC			\
-				| 1*SD_BALANCE_FORK			\
-				| 0*SD_BALANCE_WAKE			\
-				| 1*SD_WAKE_AFFINE			\
-				| 0*SD_PREFER_LOCAL			\
-				| 0*SD_SHARE_CPUPOWER			\
-				| 1*SD_SHARE_PKG_RESOURCES		\
-				| 0*SD_SERIALIZE			\
-				| sd_balance_for_mc_power()		\
-				| sd_power_saving_flags()		\
-				,					\
-	.last_balance		= jiffies,				\
-	.balance_interval	= 1,					\
-}
-#endif
-#endif /* CONFIG_SCHED_MC */
-
 /* Common values for CPUs */
 #ifndef SD_CPU_INIT
 #define SD_CPU_INIT (struct sched_domain) {				\
@@ -163,12 +98,9 @@ int arch_update_cpu_topology(void);
 				| 1*SD_BALANCE_FORK			\
 				| 0*SD_BALANCE_WAKE			\
 				| 1*SD_WAKE_AFFINE			\
-				| 0*SD_PREFER_LOCAL			\
 				| 0*SD_SHARE_CPUPOWER			\
 				| 0*SD_SHARE_PKG_RESOURCES		\
 				| 0*SD_SERIALIZE			\
-				| sd_balance_for_package_power()	\
-				| sd_power_saving_flags()		\
 				,					\
 	.last_balance		= jiffies,				\
 	.balance_interval	= 1,					\
