@@ -433,8 +433,8 @@ static int do_task_stat(struct seq_file *m, struct pid_namespace *ns,
 
 			min_flt += sig->min_flt;
 			maj_flt += sig->maj_flt;
-			thread_group_times(task, &utime, &stime);
-			gtime = cputime_add(gtime, sig->gtime);
+			thread_group_cputime_adjusted(task, &utime, &stime);
+			gtime += sig->gtime;
 		}
 
 		sid = task_session_nr_ns(task, ns);
@@ -449,7 +449,7 @@ static int do_task_stat(struct seq_file *m, struct pid_namespace *ns,
 	if (!whole) {
 		min_flt = task->min_flt;
 		maj_flt = task->maj_flt;
-		task_times(task, &utime, &stime);
+		task_cputime_adjusted(task, &utime, &stime);
 		gtime = task->gtime;
 	}
 

@@ -219,18 +219,18 @@ void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 	SEQ_printf(m, "  .%-30s: %ld\n", "load", cfs_rq->load.weight);
 #ifdef CONFIG_FAIR_GROUP_SCHED
 #ifdef CONFIG_SMP
-	SEQ_printf(m, "  .%-30s: %Ld.%06ld\n", "load_avg",
-			SPLIT_NS(cfs_rq->load_avg));
-	SEQ_printf(m, "  .%-30s: %Ld.%06ld\n", "load_period",
-			SPLIT_NS(cfs_rq->load_period));
-	SEQ_printf(m, "  .%-30s: %ld\n", "load_contrib",
-			cfs_rq->load_contribution);
-	SEQ_printf(m, "  .%-30s: %d\n", "load_tg",
-			atomic_read(&cfs_rq->tg->load_weight));
 	SEQ_printf(m, "  .%-30s: %lld\n", "runnable_load_avg",
 			cfs_rq->runnable_load_avg);
 	SEQ_printf(m, "  .%-30s: %lld\n", "blocked_load_avg",
 			cfs_rq->blocked_load_avg);
+	SEQ_printf(m, "  .%-30s: %lld\n", "tg_load_avg",
+			atomic64_read(&cfs_rq->tg->load_avg));
+	SEQ_printf(m, "  .%-30s: %lld\n", "tg_load_contrib",
+			cfs_rq->tg_load_contrib);
+	SEQ_printf(m, "  .%-30s: %d\n", "tg_runnable_contrib",
+			cfs_rq->tg_runnable_contrib);
+	SEQ_printf(m, "  .%-30s: %d\n", "tg->runnable_avg",
+			atomic_read(&cfs_rq->tg->runnable_avg));
 #endif
 
 	print_cfs_group_stats(m, cpu, cfs_rq->tg);
@@ -277,8 +277,14 @@ static void print_cpu(struct seq_file *m, int cpu)
 	SEQ_printf(m, "\ncpu#%d\n", cpu);
 #endif
 
-#define P(x) \
-	SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(rq->x))
+#define P(x)								\
+do {									\
+	if (sizeof(rq->x) == 4)						\
+		SEQ_printf(m, "  .%-30s: %ld\n", #x, (long)(rq->x));	\
+	else								\
+		SEQ_printf(m, "  .%-30s: %Ld\n", #x, (long long)(rq->x));\
+} while (0)
+
 #define PN(x) \
 	SEQ_printf(m, "  .%-30s: %Ld.%06ld\n", #x, SPLIT_NS(rq->x))
 

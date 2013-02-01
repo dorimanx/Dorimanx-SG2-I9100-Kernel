@@ -3515,6 +3515,7 @@ static int do_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	unsigned long offset;
 	spinlock_t *ptl;
 	bool numa = false;
+	int local_nid = numa_node_id();
 
 	spin_lock(&mm->page_table_lock);
 	pmd = *pmdp;
@@ -3560,8 +3561,22 @@ static int do_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		/* only check non-shared pages */
 		if (unlikely(page_mapcount(page) != 1))
 			continue;
-		pte_unmap_unlock(pte, ptl);
 
+		/*
+		 * Note that the NUMA fault is later accounted to either
+		 * the node that is currently running or where the page is
+		 * migrated to.
+		 */
+		curr_nid = local_nid;
+		target_nid = numa_migrate_prep(page, vma, addr,
+					       page_to_nid(page));
+		if (target_nid == -1) {
+			put_page(page);
+			continue;
+		}
+
+		/* Migrate to the requested node */
+		pte_unmap_unlock(pte, ptl);
 		migrated = migrate_misplaced_page(page, target_nid);
 		if (migrated)
 			curr_nid = target_nid;
@@ -3574,11 +3589,10 @@ static int do_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	return 0;
 }
 #else
-static int do_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
+static void do_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		     unsigned long addr, pmd_t *pmdp)
 {
 	BUG();
-	return 0;
 }
 #endif /* CONFIG_NUMA_BALANCING */
 
