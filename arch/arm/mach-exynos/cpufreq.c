@@ -45,6 +45,7 @@ static struct cpufreq_freqs freqs;
 static bool exynos_cpufreq_disable;
 static bool exynos_cpufreq_lock_disable;
 static bool exynos_cpufreq_init_done;
+
 static DEFINE_MUTEX(set_freq_lock);
 static DEFINE_MUTEX(set_cpu_freq_lock);
 
@@ -748,6 +749,7 @@ static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 	/* Safe default startup limits */
 	policy->max_suspend = CPU_MAX_SUSPEND_FREQ;
 	policy->min_suspend = CPU_MIN_SUSPEND_FREQ;
+	cpufreq_frequency_table_cpuinfo(policy, exynos_info->freq_table);
 
 	/* Safe default startup limits */
 #ifdef CONFIG_CPU_EXYNOS4210
@@ -757,7 +759,7 @@ static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 #endif
 	policy->min = 200000;
 
-	return cpufreq_frequency_table_cpuinfo(policy, exynos_info->freq_table);
+	return 0;
 }
 
 static int exynos_cpufreq_reboot_notifier_call(struct notifier_block *this,
