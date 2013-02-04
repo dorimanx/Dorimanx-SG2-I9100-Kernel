@@ -121,8 +121,7 @@ struct exynos_dvfs_info {
 
 extern struct exynos_dvfs_info *exynos_info;
 
-#define SUPPORT_1400MHZ	(1<<31)
-#define SUPPORT_1200MHZ	(1<<30)
+#define SUPPORT_1600MHZ	(1<<30)
 #define SUPPORT_1000MHZ	(1<<29)
 #define SUPPORT_FREQ_SHIFT	29
 #define SUPPORT_FREQ_MASK	7

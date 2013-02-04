@@ -331,7 +331,7 @@ static mali_bool mali_dvfs_table_update(void)
 			mali_dvfs[i].vol = asv_3d_volt_5_table[exynos_result_of_asv_group][i];
 			MALI_PRINT(("mali_dvfs[%d].vol = %d\n", i, mali_dvfs[i].vol));
 		}
-	} else if (target_asv == 0x4){ //SUPPORT_1200MHZ
+	} else if (target_asv == 0x4){ //SUPPORT_1600MHZ
 		for (i = 0; i < MALI_DVFS_STEPS; i++) {
 			mali_dvfs[i].vol = asv_3d_volt_8_table[exynos_result_of_asv_group][i];
 			MALI_PRINT(("mali_dvfs[%d].vol = %d\n", i, mali_dvfs[i].vol));
