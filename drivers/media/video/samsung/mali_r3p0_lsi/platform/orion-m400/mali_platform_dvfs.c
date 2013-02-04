@@ -365,23 +365,18 @@ static unsigned int decideNextStatus(unsigned int utilization)
 		if (utilization > (int)(255 * mali_dvfs_threshold[maliDvfsStatus.currentStep].upthreshold / 100) &&
 				level < MALI_DVFS_STEPS - 1) {
 			level++;
-// this prevents the usage of 5th step -gm
-//			if ((samsung_rev() < EXYNOS4412_REV_2_0) && (maliDvfsStatus.currentStep == 3)) {
-//				level=get_mali_dvfs_status();
-//			}
 		}
-		if (utilization < (int)(255 * mali_dvfs_threshold[maliDvfsStatus.currentStep].downthreshold / 100) &&
-				level > 0) {
-			level--;
-		}
+	}
+
+	if (utilization < (int)(255 * mali_dvfs_threshold[maliDvfsStatus.currentStep].downthreshold / 100) &&
+			level > 0) {
+		level--;
 	} else if (mali_dvfs_control == 999) {
 		int i = 0;
 		for (i = 0; i < MALI_DVFS_STEPS; i++) {
 			step[i].clk = mali_dvfs_all[i].clock;
 		}
-#ifdef EXYNOS4_ASV_ENABLED
-//		mali_dvfs_table_update();
-#endif
+
 		i = 0;
 		for (i = 0; i < MALI_DVFS_STEPS; i++) {
 			mali_dvfs[i].clock = step[i].clk;
@@ -488,7 +483,8 @@ static mali_bool mali_dvfs_status(u32 utilization)
 	/*if next status is same with current status, don't change anything*/
 	if ((curStatus != nextStatus && stay_count == 0)) {
 		/*check if boost up or not*/
-		if (nextStatus > maliDvfsStatus.currentStep) boostup = 1;
+		if (nextStatus > maliDvfsStatus.currentStep)
+			boostup = 1;
 
 		/*change mali dvfs status*/
 		if (!change_mali_dvfs_status(nextStatus,boostup)) {
@@ -507,7 +503,6 @@ static mali_bool mali_dvfs_status(u32 utilization)
 int mali_dvfs_is_running(void)
 {
 	return bMaliDvfsRun;
-
 }
 
 void mali_dvfs_late_resume(void)

@@ -1,11 +1,14 @@
 /*
- * Copyright (C) 2010-2012 ARM Limited. All rights reserved.
- * 
- * This program is free software and is provided to you under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation, and any use by you of this program is subject to the terms of such GNU licence.
- * 
- * A copy of the licence is included with the program, and can also be obtained from Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ * Copyright (C) 2010, 2012 ARM Limited. All rights reserved.
+ *
+ * This program is free software and is provided to you under the terms of
+ * the GNU General Public License version 2 as published by the Free Software
+ * Foundation, and any use by you of this program is subject to the terms of
+ * such GNU licence.
+ *
+ * A copy of the licence is included with the program, and can also be obtained
+ * from Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA  02110-1301, USA.
  */
 
 /**
@@ -117,7 +120,7 @@ _mali_osk_errcode_t mali_pmu_powerup_all(struct mali_pmu_core *pmu)
 {
 	u32 stat;
 	u32 timeout;
-       
+
 	MALI_DEBUG_ASSERT_POINTER(pmu);
 	MALI_DEBUG_ASSERT( pmu->mali_registered_cores_power_mask != 0 ); /* Shouldn't be zero */
 	MALI_DEBUG_PRINT( 4, ("Mali PMU: power up (0x%08X)\n", pmu->mali_registered_cores_power_mask) );

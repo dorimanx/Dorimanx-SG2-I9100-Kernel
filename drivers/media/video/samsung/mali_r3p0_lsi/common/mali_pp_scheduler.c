@@ -155,7 +155,6 @@ static void mali_pp_scheduler_schedule(void)
 		return; /* Nothing to do, so early out */
 	}
 
-
 #if MALI_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP
 	if ( num_slots_idle < num_slots )
 	{
@@ -185,7 +184,7 @@ static void mali_pp_scheduler_schedule(void)
 	for (i = 0; (i < num_slots) && (0 < num_slots_idle); i++)
 	{
 		u32 sub_job;
-		
+
 		if (_mali_osk_list_empty(&job_queue)) /* move this check down to where we know we have started all sub jobs for this job??? */
 		{
 			break; /* No more jobs to schedule, so early out */
@@ -198,7 +197,7 @@ static void mali_pp_scheduler_schedule(void)
 
 		job = _MALI_OSK_LIST_ENTRY(job_queue.next, struct mali_pp_job, list);
 		MALI_DEBUG_ASSERT(mali_pp_job_has_unstarted_sub_jobs(job)); /* All jobs on the job_queue should have unstarted sub jobs */
-		
+
 		#if MALI_PP_SCHEDULER_KEEP_SUB_JOB_STARTS_ALIGNED
 		if ( (0==job->sub_jobs_started) && (num_slots_idle < num_slots) && (job->sub_job_count > num_slots_idle))
 		{
@@ -206,7 +205,7 @@ static void mali_pp_scheduler_schedule(void)
 			return;
 		}
 		#endif
-		
+
 		#if MALI_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP_BETWEEN_APPS
 		if ( job->session != session )
 		{

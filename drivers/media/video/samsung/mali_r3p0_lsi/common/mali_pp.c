@@ -206,7 +206,7 @@ _mali_osk_errcode_t mali_pp_hard_reset(struct mali_pp_core *core)
 	MALI_DEBUG_PRINT(2, ("Mali PP: Hard reset of core %s\n", core->hw_core.description));
 	MALI_ASSERT_GROUP_LOCKED(core->group);
 
-	mali_pp_post_process_job(core); /* @@@@Â is there some cases where it is unsafe to post process the job here? */
+	mali_pp_post_process_job(core); /* @@@@ is there some cases where it is unsafe to post process the job here? */
 
 	/* Set register to a bogus value. The register will be used to detect when reset is complete */
 	mali_hw_core_register_write(&core->hw_core, MALI200_REG_ADDR_MGMT_WRITE_BOUNDARY_LOW, reset_invalid_value);
@@ -247,7 +247,7 @@ _mali_osk_errcode_t mali_pp_reset(struct mali_pp_core *core)
 	MALI_DEBUG_PRINT(4, ("Mali PP: Reset of core %s\n", core->hw_core.description));
 	MALI_ASSERT_GROUP_LOCKED(core->group);
 
-	mali_pp_post_process_job(core); /* @@@@Â is there some cases where it is unsafe to post process the job here? */
+	mali_pp_post_process_job(core); /* @@@@ is there some cases where it is unsafe to post process the job here? */
 
 	mali_hw_core_register_write(&core->hw_core, MALI200_REG_ADDR_MGMT_INT_MASK, 0); /* disable the IRQs */
 
