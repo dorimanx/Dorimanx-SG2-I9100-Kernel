@@ -29,8 +29,8 @@
 #endif
 
 #define CUSTOMVOLTAGE_VERSION 1
-#define CPU_UV_MV_MAX 1600000
-#define CPU_UV_MV_MIN 600000
+#define CPU_UV_MV_MAX 1500000
+#define CPU_UV_MV_MIN 800000
 
 #ifdef MODULE
 static int (*gm_misc_register)(struct miscdevice * misc);
@@ -110,17 +110,26 @@ void acpuclk_set_vdd(unsigned int khz, unsigned int vdd)
 {
 	int i;
 	unsigned int new_vdd;
+	const unsigned int min_voltage_limits[28]= {1400000,1375000,1300000,1275000,1250000,1225000,1200000,1175000,1150000,1125000,1100000,1075000,1050000,
+															1050000,1025000,1000000,1000000,975000,975000,975000,975000,975000,975000,950000,950000,950000,925000,CPU_UV_MV_MIN};
 	for (i = exynos_info->max_support_idx; i<=exynos_info->min_support_idx; i++) {
 		if(exynos_info->freq_table[i].frequency==CPUFREQ_ENTRY_INVALID) continue;
 		if (khz == 0)
-			new_vdd = min(
+			/*new_vdd = min(
 						max((unsigned int)(exynos_info->volt_table[i] + vdd * 1000),
 							(unsigned int)CPU_UV_MV_MIN),
+						(unsigned int)CPU_UV_MV_MAX);*/
+			 new_vdd = min(
+						max((unsigned int)(exynos_info->volt_table[i] + vdd * 1000),min_voltage_limits[i]),
 						(unsigned int)CPU_UV_MV_MAX);
 		else if (exynos_info->freq_table[i].frequency == khz)
-			new_vdd = min(max(
+			/*new_vdd = min(max(
 							(unsigned int)vdd * 1000, 
 							(unsigned int)CPU_UV_MV_MIN),
+						(unsigned int)CPU_UV_MV_MAX);*/
+			new_vdd = min(max(
+							(unsigned int)vdd * 1000, 
+							min_voltage_limits[i]),
 						(unsigned int)CPU_UV_MV_MAX);
 		else continue;
 
