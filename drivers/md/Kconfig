@@ -316,21 +316,27 @@ config DM_DELAY
 	tristate "I/O delaying target (EXPERIMENTAL)"
 	depends on BLK_DEV_DM && EXPERIMENTAL
 	---help---
-	A target that delays reads and/or writes and can send
-	them to different devices.  Useful for testing.
+  	  A target that delays reads and/or writes and can send
+	  them to different devices.  Useful for testing.
 
-	If unsure, say N.
+	  If unsure, say N.
 
 config DM_UEVENT
 	bool "DM uevents (EXPERIMENTAL)"
 	depends on BLK_DEV_DM && EXPERIMENTAL
 	---help---
-	Generate udev events for DM events.
+	  Generate udev events for DM events.
+
+config DM_CACHE
+	tristate "Cache target support (EXPERIMENTAL)"
+	depends on BLK_DEV_DM && EXPERIMENTAL
+	---help---
+	  Support for generic cache target for device-mapper.
 
 config DM_FLAKEY
-       tristate "Flakey target (EXPERIMENTAL)"
-       depends on BLK_DEV_DM && EXPERIMENTAL
-       ---help---
-         A target that intermittently fails I/O for debugging purposes.
+	tristate "Flakey target (EXPERIMENTAL)"
+	depends on BLK_DEV_DM && EXPERIMENTAL
+	---help---
+	  A target that intermittently fails I/O for debugging purposes.
 
 endif # MD
