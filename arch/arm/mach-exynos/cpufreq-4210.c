@@ -243,24 +243,6 @@ static const unsigned int asv_voltage_A[CPUFREQ_LEVEL_END][8] = {
 	{ 1025000,  975000,  950000,  925000,  925000,  900000,  900000,  900000 }, // 100MHz
 };
 
-static const unsigned int asv_voltage_B[CPUFREQ_LEVEL_END][5] = {
-	/*
-	 *	   S, A, B, C, D
-	 * @1400 :
-	 * @1200 :
-	 * @1000 :
-	 * @800	 :	ASV_VOLTAGE_TABLE
-	 * @500	 :
-	 * @200	 :
-	 */
-	{ 1350000, 1350000, 1300000, 1250000, 1225000 },
-	{ 1325000, 1275000, 1225000, 1175000, 1150000 },
-	{ 1225000, 1175000, 1125000, 1075000, 1050000 },
-	{ 1150000, 1100000, 1050000, 1000000,  975000 },
-	{ 1050000, 1000000,  950000,  950000,  950000 },
-	{ 1025000,  975000,  950000,  950000,  950000 },
-};
-
 static void set_clkdiv(unsigned int div_index)
 {
 	unsigned int tmp;
@@ -389,7 +371,7 @@ static void exynos4210_set_frequency(unsigned int old_index,
 static void __init set_volt_table(void)
 {
 	unsigned int asv_group = 0;
-	bool for_1400 = false, for_1200 = false, for_1000 = false;
+	bool for_1600 = false, for_1000 = false;
 	unsigned int tmp;
 	unsigned int i;
 
@@ -398,18 +380,14 @@ static void __init set_volt_table(void)
 	asv_group = (tmp & 0xF);
 
 	switch (tmp  & (SUPPORT_FREQ_MASK << SUPPORT_FREQ_SHIFT)) {
-	case SUPPORT_1400MHZ:
-#if defined(CONFIG_EXYNOS4210_1200MHZ_SUPPORT)
-		for_1200 = true;
+	case SUPPORT_1600MHZ:
+#if defined(CONFIG_EXYNOS4210_1600MHZ_SUPPORT)
+		for_1600 = true;
 		max_support_idx = L0; /* allow max freq any way */
 #else
-		for_1400 = true;
+		for_1000 = true;
 		max_support_idx = L0; /* allow max freq any way */
 #endif
-		break;
-	case SUPPORT_1200MHZ:
-		for_1200 = true;
-		max_support_idx = L0; /* allow max freq any way */
 		break;
 	case SUPPORT_1000MHZ:
 		for_1000 = true;
@@ -421,27 +399,14 @@ static void __init set_volt_table(void)
 		break;
 	}
 
-	/*
-	 * If ASV group is S, can not support 1.4GHz
-	 * Disabling table entry
-	 */
-//	if ((asv_group == 0) || !for_1400)
-//		exynos4210_freq_table[L0].frequency = CPUFREQ_ENTRY_INVALID;
-
 	if (for_1000)
 		exynos4210_freq_table[L4].frequency = CPUFREQ_ENTRY_INVALID; /* 1200Mhz */
 		printk(KERN_INFO "DVFS : VDD_ARM Voltage table set with %d Group\n", asv_group);
 
-	if (for_1400) {
-		for (i = 0 ; i < CPUFREQ_LEVEL_END ; i++) {
-			exynos4210_volt_table[i] =
-					asv_voltage_B[i][asv_group];
-		}
-	} else {
-		for (i = 0 ; i < CPUFREQ_LEVEL_END ; i++) {
+	if (for_1600) {
+		for (i = 0 ; i < CPUFREQ_LEVEL_END ; i++)
 			exynos4210_volt_table[i] =
 					asv_voltage_A[i][asv_group];
-		}
 	}
 }
 

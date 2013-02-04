@@ -683,7 +683,7 @@ static const struct file_operations l2_all_counter_src1_fops = {
 static ssize_t power_events_write(struct file *filp, const char __user *ubuf, size_t cnt, loff_t *ppos)
 {
 
-	memset(pwr_buf,0,POWER_BUFFER_SIZE);
+	memset(pwr_buf, 0, POWER_BUFFER_SIZE);
 	virtual_power_status_register = 0;
 	if (!strncmp(ubuf,mali_power_events[_MALI_DEVICE_SUSPEND],strlen(mali_power_events[_MALI_DEVICE_SUSPEND])))
 	{
@@ -1076,6 +1076,7 @@ int mali_sysfs_register(struct mali_dev *device, dev_t dev, const char *mali_dev
 			struct dentry *mali_profiling_dir;
 #endif
 
+			/* @@@@ todo: make a nicer solution? */
 			mali_power_dir = debugfs_create_dir("power", mali_debugfs_dir);
 			if (mali_power_dir != NULL)
 			{

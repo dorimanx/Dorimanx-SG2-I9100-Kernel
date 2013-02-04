@@ -125,7 +125,6 @@ _mali_osk_errcode_t _mali_ukk_sw_counters_report(_mali_uk_sw_counters_report_s *
  */
 int _mali_profiling_set_event(u32 counter_id, s32 event_id)
 {
-
 	if (counter_id == COUNTER_VP_C0)
 	{
 		struct mali_gp_core* gp_core = mali_gp_get_global_gp_core();
