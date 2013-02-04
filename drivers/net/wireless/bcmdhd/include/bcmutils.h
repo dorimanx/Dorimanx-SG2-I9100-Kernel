@@ -663,8 +663,7 @@ extern void *_bcmutils_dummy_fn;
 #else
 #define MACDBG				"%02x:%02x:%02x"
 #define MAC2STRDBG(ea) (ea)[0], (ea)[4], (ea)[5]
-#endif 
-
+#endif /* SIMPLE_MAC_PRINT */
 
 typedef struct bcm_bit_desc {
 	uint32	bit;
@@ -779,4 +778,4 @@ unsigned int process_nvram_vars(char *varbuf, unsigned int len);
 	}
 #endif
 
-#endif	
+#endif

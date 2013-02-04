@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_android.c 363784 2012-10-19 06:44:03Z $
+ * $Id: wl_android.c 372668 2012-12-04 14:07:12Z $
  */
 
 #include <linux/module.h>
@@ -543,7 +543,7 @@ static int wl_android_get_full_roam_scan_period(
 }
 
 int wl_android_set_country_rev(
-	struct net_device *dev, char* command, int total_len)
+	struct net_device *dev, char* command, int total_len, bool notify)
 {
 	int error = 0;
 	wl_country_t cspec = {{0}, 0, {0} };
@@ -567,7 +567,7 @@ int wl_android_set_country_rev(
 		DHD_ERROR(("%s: set country '%s/%d' failed code %d\n",
 			__FUNCTION__, cspec.ccode, cspec.rev, error));
 	} else {
-		dhd_bus_country_set(dev, &cspec);
+		dhd_bus_country_set(dev, &cspec, notify);
 		DHD_INFO(("%s: set country '%s/%d'\n",
 			__FUNCTION__, cspec.ccode, cspec.rev));
 	}
@@ -1153,7 +1153,7 @@ static int wl_android_set_pno_setup(struct net_device *dev, char *command, int t
 exit_proc:
 	return res;
 }
-#endif 
+#endif /* PNO_SUPPORT */
 
 static int wl_android_get_p2p_dev_addr(struct net_device *ndev, char *command, int total_len)
 {
@@ -1625,6 +1625,7 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		ret = -EFAULT;
 		goto exit;
 	}
+
 	DHD_INFO(("%s: Android private cmd \"%s\" on %s\n", __FUNCTION__, command, ifr->ifr_name));
 
 	if (strnicmp(command, CMD_START, strlen(CMD_START)) == 0) {
@@ -1728,7 +1729,7 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 	/* CUSTOMER_SET_COUNTRY feature is define for only GGSM model */
 	else if (strnicmp(command, CMD_COUNTRY, strlen(CMD_COUNTRY)) == 0) {
 		char *country_code = command + strlen(CMD_COUNTRY) + 1;
-		bytes_written = wldev_set_country(net, country_code);
+		bytes_written = wldev_set_country(net, country_code, true);
 	}
 #endif
 #endif /* WL_CFG80211 */
@@ -1768,8 +1769,8 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 	} else if (strnicmp(command, CMD_COUNTRYREV_SET,
 		strlen(CMD_COUNTRYREV_SET)) == 0) {
 		bytes_written = wl_android_set_country_rev(net, command,
-		priv_cmd.total_len);
-		wl_update_wiphybands(NULL);
+		priv_cmd.total_len, true);
+		wl_update_wiphybands(NULL, true);
 	} else if (strnicmp(command, CMD_COUNTRYREV_GET,
 		strlen(CMD_COUNTRYREV_GET)) == 0) {
 		bytes_written = wl_android_get_country_rev(net, command,
@@ -1845,7 +1846,7 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		uint pfn_enabled = *(command + strlen(CMD_PNOENABLE_SET) + 1) - '0';
 		bytes_written = dhd_dev_pno_enable(net, pfn_enabled);
 	}
-#endif 
+#endif /* PNO_SUPPORT && !WL_SCHED_SCAN */
 	else if (strnicmp(command, CMD_P2P_DEV_ADDR, strlen(CMD_P2P_DEV_ADDR)) == 0) {
 		bytes_written = wl_android_get_p2p_dev_addr(net, command, priv_cmd.total_len);
 	}
@@ -2346,7 +2347,7 @@ static struct platform_driver wifi_device_legacy = {
 
 static int wifi_add_dev(void)
 {
-	int ret = 0;
+	int ret;
 	DHD_TRACE(("## Calling platform_driver_register\n"));
 	ret = platform_driver_register(&wifi_device);
 	if (ret)

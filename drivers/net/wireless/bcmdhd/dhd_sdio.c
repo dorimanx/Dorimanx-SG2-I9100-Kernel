@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_sdio.c 363280 2012-10-17 00:53:50Z $
+ * $Id: dhd_sdio.c 373330 2012-12-07 04:46:17Z $
  */
 
 #include <typedefs.h>
@@ -1073,6 +1073,8 @@ dhdsdio_clk_devsleep_iovar(dhd_bus_t *bus, bool on)
 		bus->kso = on ? FALSE : TRUE;
 	else {
 		DHD_ERROR(("%s: Sleep request failed: on:%d err:%d\n", __FUNCTION__, on, err));
+		if (!on && retry > 2)
+			bus->kso = TRUE;
 	}
 
 	return err;
@@ -2376,15 +2378,14 @@ dhd_bus_rxctl(struct dhd_bus *bus, uchar *msg, uint msglen)
 		DHD_ERROR(("%s: resumed on timeout\n", __FUNCTION__));
 #endif /* DHD_DEBUG */
 #ifdef DHD_DEBUG
-			dhd_os_sdlock(bus->dhd);
-			dhdsdio_checkdied(bus, NULL, 0);
-			dhd_os_sdunlock(bus->dhd);
+		dhd_os_sdlock(bus->dhd);
+		dhdsdio_checkdied(bus, NULL, 0);
+		dhd_os_sdunlock(bus->dhd);
 #endif /* DHD_DEBUG */
 	} else if (pending == TRUE) {
 		/* signal pending */
 		DHD_ERROR(("%s: signal pending\n", __FUNCTION__));
 		return -EINTR;
-
 	} else {
 		DHD_CTL(("%s: resumed for unknown reason?\n", __FUNCTION__));
 #ifdef DHD_DEBUG
@@ -3641,7 +3642,6 @@ dhdsdio_doiovar(dhd_bus_t *bus, const bcm_iovar_t *vi, uint32 actionid, const ch
 		break;
 #endif /* SDIO_CRC_ERROR_FIX */
 
-
 	case IOV_GVAL(IOV_DONGLEISOLATION):
 		int_val = bus->dhd->dongle_isolation;
 		bcopy(&int_val, arg, val_size);
@@ -4152,7 +4152,6 @@ dhd_bus_stop(struct dhd_bus *bus, bool enforce_mutex)
 		bus->hostintmask = 0;
 		bcmsdh_intr_disable(bus->sdh);
 	} else {
-
 		BUS_WAKE(bus);
 
 		if (KSO_ENAB(bus)) {
@@ -4167,34 +4166,32 @@ dhd_bus_stop(struct dhd_bus *bus, bool enforce_mutex)
 
 		if (KSO_ENAB(bus)) {
 
-		/* Enable clock for device interrupts */
-		dhdsdio_clkctl(bus, CLK_AVAIL, FALSE);
+			/* Enable clock for device interrupts */
+			dhdsdio_clkctl(bus, CLK_AVAIL, FALSE);
 
-		/* Disable and clear interrupts at the chip level also */
-		W_SDREG(0, &bus->regs->hostintmask, retries);
-		local_hostintmask = bus->hostintmask;
-		bus->hostintmask = 0;
+			/* Disable and clear interrupts at the chip level also */
+			W_SDREG(0, &bus->regs->hostintmask, retries);
+			local_hostintmask = bus->hostintmask;
+			bus->hostintmask = 0;
 
-		/* Force clocks on backplane to be sure F2 interrupt propagates */
-		saveclk = bcmsdh_cfg_read(bus->sdh, SDIO_FUNC_1, SBSDIO_FUNC1_CHIPCLKCSR, &err);
-		if (!err) {
-			bcmsdh_cfg_write(bus->sdh, SDIO_FUNC_1, SBSDIO_FUNC1_CHIPCLKCSR,
-			                 (saveclk | SBSDIO_FORCE_HT), &err);
-		}
-		if (err) {
-			DHD_ERROR(("%s: Failed to force clock for F2: err %d\n",
-			            __FUNCTION__, err));
-		}
+			/* Force clocks on backplane to be sure F2 interrupt propagates */
+			saveclk = bcmsdh_cfg_read(bus->sdh, SDIO_FUNC_1, SBSDIO_FUNC1_CHIPCLKCSR, &err);
+			if (!err) {
+				bcmsdh_cfg_write(bus->sdh, SDIO_FUNC_1, SBSDIO_FUNC1_CHIPCLKCSR,
+						 (saveclk | SBSDIO_FORCE_HT), &err);
+			}
+			if (err) {
+				DHD_ERROR(("%s: Failed to force clock for F2: err %d\n", __FUNCTION__, err));
+			}
 
-		/* Turn off the bus (F2), free any pending packets */
-		DHD_INTR(("%s: disable SDIO interrupts\n", __FUNCTION__));
-		bcmsdh_intr_disable(bus->sdh);
+			/* Turn off the bus (F2), free any pending packets */
+			DHD_INTR(("%s: disable SDIO interrupts\n", __FUNCTION__));
+			bcmsdh_intr_disable(bus->sdh);
 #ifndef BCMSPI
-		bcmsdh_cfg_write(bus->sdh, SDIO_FUNC_0, SDIOD_CCCR_IOEN, SDIO_FUNC_ENABLE_1, NULL);
+			bcmsdh_cfg_write(bus->sdh, SDIO_FUNC_0, SDIOD_CCCR_IOEN, SDIO_FUNC_ENABLE_1, NULL);
 #endif /* !BCMSPI */
-
-		/* Clear any pending interrupts now that F2 is disabled */
-		W_SDREG(local_hostintmask, &bus->regs->intstatus, retries);
+			/* Clear any pending interrupts now that F2 is disabled */
+			W_SDREG(local_hostintmask, &bus->regs->intstatus, retries);
 		}
 
 		/* Turn off the backplane clock (only) */
@@ -5707,7 +5704,6 @@ deliver:
 		else
 			pkt_count = 1;
 
-
 		/* Unlock during rx call */
 		dhd_os_sdunlock(bus->dhd);
 		dhd_rx_frame(bus->dhd, ifidx, pkt, pkt_count, chan);
@@ -6019,7 +6015,7 @@ clkwait:
 		          __FUNCTION__, rxdone, framecnt));
 		bus->intdis = FALSE;
 #if defined(OOB_INTR_ONLY) || defined(BCMSPI_ANDROID)
-	bcmsdh_oob_intr_set(1);
+		bcmsdh_oob_intr_set(1);
 #endif /* defined(OOB_INTR_ONLY) || defined(BCMSPI_ANDROID) */
 		bcmsdh_intr_enable(sdh);
 	}
@@ -6199,11 +6195,9 @@ dhdsdio_isr(void *arg)
 	while (dhdsdio_dpc(bus));
 	DHD_OS_WAKE_UNLOCK(bus->dhd);
 #else
-
 	bus->dpc_sched = TRUE;
 	dhd_sched_dpc(bus->dhd);
-
-#endif 
+#endif
 
 }
 
@@ -6240,32 +6234,30 @@ dhdsdio_pktgen(dhd_bus_t *bus)
 	uint fillbyte;
 	osl_t *osh = bus->dhd->osh;
 	uint16 len;
-	ulong cur_jiffies;
 	ulong time_lapse;
 	uint sent_pkts;
 	uint rcvd_pkts;
 
 	/* Display current count if appropriate */
-	bus->pktgen_ptick = 0;
-	printf("%s: send attempts %d, rcvd %d, errors %d\n",
-	       __FUNCTION__, bus->pktgen_sent, bus->pktgen_rcvd, bus->pktgen_fail);
+	if (bus->pktgen_print && (++bus->pktgen_ptick >= bus->pktgen_print)) {
+		bus->pktgen_ptick = 0;
+		printf("%s: send attempts %d, rcvd %d, errors %d\n",
+		       __FUNCTION__, bus->pktgen_sent, bus->pktgen_rcvd, bus->pktgen_fail);
 
-	/* Print throughput stats only for constant length packet runs */
-	if (bus->pktgen_minlen == bus->pktgen_maxlen) {
-		cur_jiffies = jiffies;
-		if(cur_jiffies >= bus->pktgen_prev_time) /* Check for jiffies wrap around */
-			time_lapse = cur_jiffies - bus->pktgen_prev_time;
-		else
-			time_lapse = bus->pktgen_prev_time - cur_jiffies;
-		bus->pktgen_prev_time = jiffies;
-		sent_pkts = bus->pktgen_sent - bus->pktgen_prev_sent;
-		bus->pktgen_prev_sent = bus->pktgen_sent;
-		rcvd_pkts = bus->pktgen_rcvd - bus->pktgen_prev_rcvd;
-		bus->pktgen_prev_rcvd = bus->pktgen_rcvd;
+		/* Print throughput stats only for constant length packet runs */
+		if (bus->pktgen_minlen == bus->pktgen_maxlen) {
+			time_lapse = jiffies - bus->pktgen_prev_time;
+			bus->pktgen_prev_time = jiffies;
+			sent_pkts = bus->pktgen_sent - bus->pktgen_prev_sent;
+			bus->pktgen_prev_sent = bus->pktgen_sent;
+			rcvd_pkts = bus->pktgen_rcvd - bus->pktgen_prev_rcvd;
+			bus->pktgen_prev_rcvd = bus->pktgen_rcvd;
 
-		printf("%s: Tx Throughput %d kbps, Rx Throughput %d kbps\n", __FUNCTION__,
-			(sent_pkts * bus->pktgen_len / jiffies_to_msecs(time_lapse)) * 8,
-			(rcvd_pkts * bus->pktgen_len  / jiffies_to_msecs(time_lapse)) * 8);
+			printf("%s: Tx Throughput %d kbps, Rx Throughput %d kbps\n",
+			  __FUNCTION__,
+			  (sent_pkts * bus->pktgen_len / jiffies_to_msecs(time_lapse)) * 8,
+			  (rcvd_pkts * bus->pktgen_len  / jiffies_to_msecs(time_lapse)) * 8);
+		}
 	}
 
 	/* For recv mode, just make sure dongle has started sending */
@@ -7418,7 +7410,6 @@ dhdsdio_release_malloc(dhd_bus_t *bus, osl_t *osh)
 
 }
 
-
 static void
 dhdsdio_release_dongle(dhd_bus_t *bus, osl_t *osh, bool dongle_isolation, bool reset_flag)
 {
@@ -7429,10 +7420,10 @@ dhdsdio_release_dongle(dhd_bus_t *bus, osl_t *osh, bool dongle_isolation, bool r
 		return;
 
 	if (bus->sih) {
+#if !defined(BCMLXSDMMC)
 		if (bus->dhd) {
 			dhdsdio_clkctl(bus, CLK_AVAIL, FALSE);
 		}
-#if !defined(BCMLXSDMMC)
 		if (KSO_ENAB(bus) && (dongle_isolation == FALSE))
 			si_watchdog(bus->sih, 4);
 #endif /* !defined(BCMLXSDMMC) */
@@ -8002,7 +7993,7 @@ uint dhd_bus_chip_id(dhd_pub_t *dhdp)
 {
 	dhd_bus_t *bus = dhdp->bus;
 
-	return  bus->sih->chip;
+	return bus->sih->chip;
 }
 
 /* Get Chip Rev ID version */

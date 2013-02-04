@@ -32,7 +32,6 @@
  * automatically
  */
 
-
 #ifdef WL_GENL
 #include <net/genetlink.h>
 #endif

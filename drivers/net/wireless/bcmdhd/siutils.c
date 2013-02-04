@@ -58,7 +58,6 @@ static bool si_buscore_setup(si_info_t *sii, chipcregs_t *cc, uint bustype, uint
 	uint *origidx, void *regs);
 
 
-
 /* global variable to indicate reservation/release of gpio's */
 static uint32 si_gpioreservation = 0;
 
@@ -109,7 +108,7 @@ si_kattach(osl_t *osh)
 	static bool ksii_attached = FALSE;
 
 	if (!ksii_attached) {
-		void *regs = NULL;
+		void *regs;
 		regs = REG_MAP(SI_ENUM_BASE, SI_CORE_SIZE);
 
 		if (si_doattach(&ksii, BCM4710_DEVICE_ID, osh, regs,
@@ -137,7 +136,6 @@ si_kattach(osl_t *osh)
 
 	return &ksii.pub;
 }
-
 
 static bool
 si_buscore_prep(si_info_t *sii, uint bustype, uint devid, void *sdh)
@@ -325,9 +323,6 @@ si_buscore_setup(si_info_t *sii, chipcregs_t *cc, uint bustype, uint32 savewin,
 	return TRUE;
 }
 
-
-
-
 static si_info_t *
 si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
                        uint bustype, void *sdh, char **vars, uint *varsz)
@@ -349,8 +344,6 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 	sii->curmap = regs;
 	sii->sdh = sdh;
 	sii->osh = osh;
-
-
 
 	/* find Chipcommon address */
 	if (bustype == PCI_BUS) {
@@ -462,8 +455,6 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 	pvars = NULL;
 	BCM_REFERENCE(pvars);
 
-
-
 		if (sii->pub.ccrev >= 20) {
 			uint32 gpiopullup = 0, gpiopulldown = 0;
 			cc = (chipcregs_t *)si_setcore(sih, CC_CORE_ID, 0);
@@ -480,7 +471,6 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 			W_REG(osh, &cc->gpiopulldown, gpiopulldown);
 			si_setcoreidx(sih, origidx);
 		}
-
 
 	/* clear any previous epidiag-induced target abort */
 	ASSERT(!si_taclear(sih, FALSE));
@@ -511,8 +501,6 @@ si_detach(si_t *sih)
 				REG_UNMAP(sii->regs[idx]);
 				sii->regs[idx] = NULL;
 			}
-
-
 
 #if !defined(BCMBUSTYPE) || (BCMBUSTYPE == SI_BUS)
 	if (sii != &ksii)
@@ -1162,8 +1150,6 @@ si_taclear(si_t *sih, bool details)
 {
 	return FALSE;
 }
-
-
 
 /* return the slow clock source - LPO, XTAL, or PCI */
 static uint
@@ -1948,7 +1934,6 @@ done:
 	return memsize;
 }
 
-
 /* Return the TCM-RAM size of the ARMCR4 core. */
 uint32
 si_tcm_size(si_t *sih)
@@ -2066,7 +2051,6 @@ done:
 
 	return memsize;
 }
-
 
 void
 si_btcgpiowar(si_t *sih)
@@ -2442,7 +2426,6 @@ si_is_sprom_available(si_t *sih)
 		return TRUE;
 	}
 }
-
 
 uint32 si_get_sromctl(si_t *sih)
 {

@@ -116,7 +116,6 @@ static const sdiod_drive_str_t sdiod_drive_strength_tab6_1v8[] = {
 	{1, 0x1},
 	{0, 0x0} };
 
-
 #define SDIOD_DRVSTR_KEY(chip, pmu)	(((chip) << 16) | (pmu))
 
 void

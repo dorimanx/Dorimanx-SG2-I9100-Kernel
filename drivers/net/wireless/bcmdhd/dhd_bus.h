@@ -97,7 +97,6 @@ extern void *dhd_bus_pub(struct dhd_bus *bus);
 extern void *dhd_bus_txq(struct dhd_bus *bus);
 extern uint dhd_bus_hdrlen(struct dhd_bus *bus);
 
-
 #define DHD_SET_BUS_STATE_DOWN(_bus)  do { \
 	(_bus)->dhd->busstate = DHD_BUS_DOWN; \
 } while (0)
