@@ -1288,6 +1288,10 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		int load = 0;
 		unsigned int freq = 0;
 
+		/* reset variables percpu*/
+		hotplug_histories->usage[num_hist].load[j] = 0;
+		hotplug_histories->usage[num_hist].freq[j] = 0;
+
 		j_dbs_info = &per_cpu(od_cpu_dbs_info, j);
 		
 		prev_wall_time = j_dbs_info->prev_cpu_wall;
