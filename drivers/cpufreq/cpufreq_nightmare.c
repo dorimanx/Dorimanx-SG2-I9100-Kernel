@@ -393,10 +393,10 @@ int cpufreq_nightmare_cpu_unlock(int num_core)
 
 	if (prev_lock < num_core)
 		return 0;
-	else if (prev_lock == num_core)
+	else if (prev_lock == num_core && atomic_read(&g_hotplug_count) > 0)
 		atomic_dec(&g_hotplug_count);
 
-	if (atomic_read(&g_hotplug_count) == 0)
+	if (atomic_read(&g_hotplug_count) == 0 && atomic_read(&g_hotplug_lock) > 0)
 		atomic_set(&g_hotplug_lock, 0);
 
 	return 0;
@@ -707,13 +707,16 @@ static ssize_t store_hotplug_lock(struct kobject *a, struct attribute *b,
 	input = min(input, num_possible_cpus());
 	prev_lock = atomic_read(&dbs_tuners_ins.hotplug_lock);
 
-	if (prev_lock)
-		cpufreq_nightmare_cpu_unlock(prev_lock);
-
+	/* Fix: If input = 0 set all parameters to 0 and go out */
 	if (input == 0) {
+		atomic_set(&g_hotplug_lock, 0);
+		atomic_set(&g_hotplug_count, 0);
 		atomic_set(&dbs_tuners_ins.hotplug_lock, 0);
 		return count;
 	}
+
+	if (prev_lock)
+		cpufreq_nightmare_cpu_unlock(prev_lock);
 
 	ret = cpufreq_nightmare_cpu_lock(input);
 	if (ret) {
@@ -1159,8 +1162,8 @@ standalone_hotplug(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	nr_rq_min = hotplug_histories->usage[num_hist].nr_rq_min;
 	cpu_rq_min = hotplug_histories->usage[num_hist].cpu_rq_min;
 
-	//cur_freq = policy->cur;
-	cur_freq = cpufreq_get(0);
+	cur_freq = policy->cur;
+	//cur_freq = hotplug_histories->usage[num_hist].avg_freq;
 
 	nr_online_cpu = num_online_cpus();
 
@@ -1336,13 +1339,12 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		if (unlikely(!wall_time || wall_time < idle_time))
 			continue;
 
+		ncores++;
+
 		// LOAD
 		load = 100 * (wall_time - idle_time) / wall_time;
 		hotplug_histories->usage[num_hist].load[j] = load;
 		total_load += load;
-
-		if (load > 0)
-			ncores++;
 
 		// FREQUENCY
 		freq = j_dbs_info->cur_policy->cur;	
@@ -1659,6 +1661,9 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
 		cpumask_setall(policy->related_cpus);
 		cpumask_setall(policy->cpus);
+
+		// FIX HOTPLUG_LOCK AT GOV START
+		atomic_set(&dbs_tuners_ins.hotplug_lock, 0);
 
 		dbs_tuners_ins.max_freq = policy->max;
 		dbs_tuners_ins.min_freq = policy->min;
