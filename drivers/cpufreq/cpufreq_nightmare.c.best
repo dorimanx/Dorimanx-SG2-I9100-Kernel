@@ -1159,8 +1159,8 @@ standalone_hotplug(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	nr_rq_min = hotplug_histories->usage[num_hist].nr_rq_min;
 	cpu_rq_min = hotplug_histories->usage[num_hist].cpu_rq_min;
 
-	//cur_freq = policy->cur;
-	cur_freq = cpufreq_get(0);
+	cur_freq = policy->cur;
+	//cur_freq = hotplug_histories->usage[num_hist].avg_freq;
 
 	nr_online_cpu = num_online_cpus();
 
@@ -1336,13 +1336,12 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 		if (unlikely(!wall_time || wall_time < idle_time))
 			continue;
 
+		ncores++;
+
 		// LOAD
 		load = 100 * (wall_time - idle_time) / wall_time;
 		hotplug_histories->usage[num_hist].load[j] = load;
 		total_load += load;
-
-		if (load > 0)
-			ncores++;
 
 		// FREQUENCY
 		freq = j_dbs_info->cur_policy->cur;	
