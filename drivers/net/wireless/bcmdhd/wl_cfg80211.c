@@ -398,6 +398,7 @@ static s32 wl_inform_bss(struct wl_priv *wl);
 static s32 wl_inform_single_bss(struct wl_priv *wl, struct wl_bss_info *bi, u8 is_roam_done);
 static s32 wl_update_bss_info(struct wl_priv *wl, struct net_device *ndev, u8 is_roam_done);
 static chanspec_t wl_cfg80211_get_shared_freq(struct wiphy *wiphy);
+static s32 wl_cfg80211_40MHz_to_20MHz_Channel(chanspec_t chspec);
 s32 wl_cfg80211_channel_to_freq(u32 channel);
 
 #if defined(DHCP_SCAN_SUPPRESS)
@@ -967,6 +968,44 @@ wl_validate_wps_ie(char *wps_ie, s32 wps_ie_len, bool *pbc)
 }
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0) */
 
+static s32
+wl_cfg80211_40MHz_to_20MHz_Channel(chanspec_t chspec)
+{
+	u32 channel = chspec & WL_CHANSPEC_CHAN_MASK;
+
+	/* If chspec is not for 40MHz. Do nothing */
+	if (!(chspec & WL_CHANSPEC_BW_40))
+		return channel;
+
+	if ((channel < 1) || (channel > MAXCHANNEL))
+		return -1;
+
+	switch (channel) {
+		/* 5G Channels */
+		case 38:
+		case 46:
+		case 54:
+		case 62:
+		case 102:
+		case 110:
+		case 118:
+		case 126:
+		case 134:
+		case 151:
+		case 159:
+			if (chspec & WL_LCHANSPEC_CTL_SB_LOWER)
+				channel = channel - CH_10MHZ_APART;
+			else if (chspec & WL_LCHANSPEC_CTL_SB_UPPER)
+				channel = channel + CH_10MHZ_APART;
+			break;
+		default:
+			/* Mhz adjustment not required. Use as is */
+			WL_ERR(("Unsupported channel: %d \n", channel));
+	}
+
+	return channel;
+}
+
 static chanspec_t wl_cfg80211_get_shared_freq(struct wiphy *wiphy)
 {
 	chanspec_t chspec;
@@ -995,6 +1034,11 @@ static chanspec_t wl_cfg80211_get_shared_freq(struct wiphy *wiphy)
 	else {
 			bss = (struct wl_bss_info *) (wl->extra_buf + 4);
 			chspec =  bss->chanspec;
+			if (chspec & WL_CHANSPEC_BW_40) {
+				uint32 channel = wl_cfg80211_40MHz_to_20MHz_Channel(chspec);
+				chspec = wl_ch_host_to_driver(channel);
+			}
+
 			WL_DBG(("Valid BSS Found. chanspec:%d \n", chspec));
 	}
 	return chspec;
@@ -4871,6 +4915,9 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	enum nl80211_channel_type channel_type)
 {
 	s32 _chan;
+#ifdef HT40_GO
+	s32 center_chan;
+#endif
 	chanspec_t chspec = 0;
 	chanspec_t fw_chspec = 0;
 	u32 bw = WL_CHANSPEC_BW_20;
@@ -4890,6 +4937,60 @@ wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
 	WL_ERR(("netdev_ifidx(%d), chan_type(%d) target channel(%d) \n",
 		dev->ifindex, channel_type, _chan));
 
+#ifdef NOT_YET
+	switch (channel_type) {
+		case NL80211_CHAN_HT40MINUS:
+			/* secondary channel is below the control channel */
+			chspec = CH40MHZ_CHSPEC(channel, WL_CHANSPEC_CTL_SB_UPPER);
+			break;
+		case NL80211_CHAN_HT40PLUS:
+			/* secondary channel is above the control channel */
+			chspec = CH40MHZ_CHSPEC(channel, WL_CHANSPEC_CTL_SB_LOWER);
+			break;
+		default:
+			chspec = CH20MHZ_CHSPEC(channel);
+
+	}
+#endif /* NOT_YET */
+#ifdef HT40_GO
+	switch (_chan) {
+		/* adjust channel to center of 40MHz band */
+		case 40:
+		case 48:
+		case 153:
+		case 161:
+			if (_chan <= (MAXCHANNEL - CH_20MHZ_APART))
+				center_chan = _chan - CH_10MHZ_APART;
+				chspec = CH40MHZ_CHSPEC(center_chan, WL_CHANSPEC_CTL_SB_UPPER);
+			break;
+		case 36:
+		case 44:
+		case 149:
+		case 157:
+			if (_chan <= (MAXCHANNEL - CH_20MHZ_APART))
+				center_chan = _chan + CH_10MHZ_APART;
+				chspec = CH40MHZ_CHSPEC(center_chan, WL_CHANSPEC_CTL_SB_LOWER);
+			break;
+		default:
+			chspec = CH20MHZ_CHSPEC(_chan);
+			break;
+	}
+
+	chspec = wl_chspec_host_to_driver(chspec);
+	if ((err = wldev_iovar_setint(dev, "chanspec", chspec)) == BCME_BADCHAN) {
+		err = wldev_ioctl(dev, WLC_SET_CHANNEL, &_chan, sizeof(_chan), true);
+		if (err < 0) {
+			WL_ERR(("WLC_SET_CHANNEL error %d"
+				"chip may not be supporting this channel\n", err));
+		}
+	}
+#else
+	err = wldev_ioctl(dev, WLC_SET_CHANNEL, &_chan, sizeof(_chan), true);
+	if (err < 0) {
+		WL_ERR(("WLC_SET_CHANNEL error %d"
+			"chip may not be supporting this channel\n", err));
+	}
+#endif /* HT40_GO */
 
 	if (chan->band == IEEE80211_BAND_5GHZ) {
 		param.band = WLC_BAND_5G;
