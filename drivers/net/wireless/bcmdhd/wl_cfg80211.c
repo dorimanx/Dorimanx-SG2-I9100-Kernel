@@ -9488,7 +9488,7 @@ static int wl_construct_reginfo(struct wl_priv *wl, s32 bw_cap)
 			band = IEEE80211_BAND_5GHZ;
 			ht40_allowed = (bw_cap  == WLC_N_BW_20ALL)? false : true;
 		} else {
-			WL_ERR(("Invalid channel Sepc. 0x%x.\n", c));
+			/* WL_ERR(("Invalid channel Sepc. 0x%x.\n", c)); */
 			continue;
 		}
 		if (!ht40_allowed && CHSPEC_IS40(c))
@@ -9616,7 +9616,7 @@ s32 wl_update_wiphybands(struct wl_priv *wl, bool notify)
 
 	err = wl_construct_reginfo(wl, bw_cap);
 	if (err) {
-		/* WL_ERR(("wl_construct_reginfo() fails err=%d\n", err)); */
+		WL_ERR(("wl_construct_reginfo() fails err=%d\n", err));
 		if (err != BCME_UNSUPPORTED)
 			goto end_bands;
 		/* Ignore error if "chanspecs" command is not supported */
