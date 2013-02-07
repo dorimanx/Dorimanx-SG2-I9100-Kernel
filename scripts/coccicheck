@@ -10,13 +10,17 @@ if [ "$C" = "1" -o "$C" = "2" ]; then
 #    OPTIONS=$*
 
 # Workaround for Coccinelle < 0.2.3
-    FLAGS="-I $srctree/include -very_quiet"
-    shift $(( $# - 1 ))
-    OPTIONS=$1
+	FLAGS="-I $srctree/include -very_quiet"
+	shift $(( $# - 1 ))
+	OPTIONS=$1
 else
     ONLINE=0
     FLAGS="-very_quiet"
-    OPTIONS="-dir $srctree"
+    if [ "$KBUILD_EXTMOD" = "" ] ; then
+        OPTIONS="-dir $srctree"
+    else
+        OPTIONS="-dir $KBUILD_EXTMOD -patch $srctree -I $srctree/include -I $KBUILD_EXTMOD/include"
+    fi
 fi
 
 if [ ! -x "$SPATCH" ]; then
@@ -91,6 +95,9 @@ coccinelle () {
 	$SPATCH -D report  $FLAGS -sp_file $COCCI $OPT $OPTIONS -no_show_diff || \
 	$SPATCH -D context $FLAGS -sp_file $COCCI $OPT $OPTIONS               || \
 	$SPATCH -D org     $FLAGS -sp_file $COCCI $OPT $OPTIONS -no_show_diff || exit 1
+    elif [ "$MODE" = "rep+ctxt" ] ; then
+	$SPATCH -D report  $FLAGS -sp_file $COCCI $OPT $OPTIONS -no_show_diff && \
+	$SPATCH -D context $FLAGS -sp_file $COCCI $OPT $OPTIONS || exit 1
     else
 	$SPATCH -D $MODE   $FLAGS -sp_file $COCCI $OPT $OPTIONS || exit 1
     fi
