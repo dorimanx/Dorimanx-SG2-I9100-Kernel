@@ -1156,16 +1156,14 @@ standalone_hotplug(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	static void __iomem *clk_fimc;
 	unsigned char fimc_stat;
 
-	policy = cpufreq_cpu_get(0);
-	if (!policy)
-		return HOTPLUG_NOP;
+	policy = this_dbs_info->cur_policy;
 
 	avg_load = hotplug_histories->usage[num_hist].avg_load;
 	nr_rq_min = hotplug_histories->usage[num_hist].nr_rq_min;
 	cpu_rq_min = hotplug_histories->usage[num_hist].cpu_rq_min;
 
 	cur_freq = policy->cur;
-	cpufreq_cpu_put(policy);
+	//cur_freq = hotplug_histories->usage[num_hist].avg_freq;
 
 	nr_online_cpu = num_online_cpus();
 
@@ -1262,6 +1260,7 @@ static void debug_hotplug_check(int which, int rq_avg, int freq,
 static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 {
 	struct cpu_hotplug_info tmp_hotplug_info[4];
+	struct cpufreq_policy *policy;
 	unsigned int j;
 	int num_hist = hotplug_histories->num_hist;
 	int max_hotplug_rate = 20;
@@ -1278,11 +1277,13 @@ static void dbs_check_cpu(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 
 	enum flag flag_hotplug;
 
+	policy = this_dbs_info->cur_policy;
+
 	/* get last num_hist used */
 	hotplug_histories->last_num_hist = num_hist;
 	++hotplug_histories->num_hist;
 
-	for_each_online_cpu(j) {
+	for_each_cpu(j, policy->cpus) {
 		struct cpufreq_nightmare_cpuinfo *j_dbs_info;
 		cputime64_t cur_wall_time, cur_idle_time, cur_iowait_time;
 		cputime64_t prev_wall_time, prev_idle_time, prev_iowait_time;
@@ -1436,7 +1437,11 @@ static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 			continue;
 
 		policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
+		cpumask_setall(policy->related_cpus);
 		cpumask_setall(policy->cpus);
+
+		/* I need to integrate into exynos_cpufreq.c */
+		/*policy->cpu = j;*/
 
 		/* CPUs Online Scale Frequency*/
 		if (policy->cur < dbs_tuners_ins.freq_for_responsiveness)
@@ -1760,6 +1765,7 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 				continue;
 
 			cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
+			cpumask_setall(cpu_policy->related_cpus);
 			cpumask_setall(cpu_policy->cpus);
 
 			if (policy->max < cpu_policy->cur)
