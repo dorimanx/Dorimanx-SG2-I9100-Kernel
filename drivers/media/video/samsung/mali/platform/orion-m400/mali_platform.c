@@ -160,30 +160,6 @@ void mali_regulator_set_voltage(int min_uV, int max_uV)
 	min_uV = mali_gpu_vol;
 	max_uV = mali_gpu_vol;
 #endif
-/*
-#if MALI_VOLTAGE_LOCK
-	if (mali_vol_lock_flag == MALI_FALSE) {
-		if (min_uV < MALI_BOTTOMLOCK_VOL || max_uV < MALI_BOTTOMLOCK_VOL) {
-			min_uV = MALI_BOTTOMLOCK_VOL;
-			max_uV = MALI_BOTTOMLOCK_VOL;
-		}
-	} else if (_mali_osk_atomic_read(&voltage_lock_status) > 0 ) {
-		if (min_uV < mali_lock_vol || max_uV < mali_lock_vol) {
-#if MALI_DVFS_ENABLED
-			int mali_vol_get;
-			mali_vol_get = mali_vol_get_from_table(mali_lock_vol);
-			if (mali_vol_get) {
-				min_uV = mali_vol_get;
-				max_uV = mali_vol_get;
-			}
-#else
-			min_uV = mali_lock_vol;
-			max_uV = mali_lock_vol;
-#endif
-		}
-	}
-#endif
-*/
 
 	_mali_osk_lock_wait(mali_dvfs_lock, _MALI_OSK_LOCKMODE_RW);
 

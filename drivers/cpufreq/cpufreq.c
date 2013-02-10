@@ -237,7 +237,7 @@ static void adjust_jiffies(unsigned long val, struct cpufreq_freqs *ci)
 	}
 	//if ((val == CPUFREQ_POSTCHANGE  && ci->old != ci->new) ||
 	if ((val == CPUFREQ_PRECHANGE  && ci->old < ci->new) ||
-	    (val == CPUFREQ_POSTCHANGE && ci->old > ci->new) || 
+	    (val == CPUFREQ_POSTCHANGE && ci->old > ci->new) ||
 	    (val == CPUFREQ_RESUMECHANGE || val == CPUFREQ_SUSPENDCHANGE)) {
 		loops_per_jiffy = cpufreq_scale(l_p_j_ref, l_p_j_ref_freq,
 								ci->new);
@@ -2044,7 +2044,8 @@ static int __init cpufreq_core_init(void)
 		init_rwsem(&per_cpu(cpu_policy_rwsem, cpu));
 	}
 
-	cpufreq_global_kobject = kobject_create_and_add("cpufreq", &cpu_subsys.dev_root->kobj);
+	cpufreq_global_kobject = kobject_create_and_add("cpufreq",
+						&cpu_subsys.dev_root->kobj);
 	BUG_ON(!cpufreq_global_kobject);
 	register_syscore_ops(&cpufreq_syscore_ops);
 	register_early_suspend(&_powersave_early_suspend);

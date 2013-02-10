@@ -60,6 +60,9 @@ MODULE_ALIAS("mmc:block");
 #define MMC_IOCTL_GET_SECTOR_COUNT	_IOR(MMC_IOCTL_BASE, 100, int)
 #define MMC_IOCTL_GET_SECTOR_SIZE		_IOR(MMC_IOCTL_BASE, 101, int)
 #define MMC_IOCTL_GET_BLOCK_SIZE		_IOR(MMC_IOCTL_BASE, 102, int)
+#define MMC_IOCTL_SET_RETRY_AKE_PROCESS		_IOR(MMC_IOCTL_BASE, 104, int)
+
+static int cprm_ake_retry_flag;
 #endif
 
 #ifdef MOVI_DEBUG
@@ -467,6 +470,9 @@ static int mmc_blk_ioctl(struct block_device *bdev, fmode_t mode,
 #ifdef MMC_ENABLE_CPRM
 	struct mmc_blk_data *md = bdev->bd_disk->private_data;
 	struct mmc_card *card = md->queue.card;
+
+	static int i;
+	static unsigned long temp_arg[16] = {0};
 #endif
 	int ret = -EINVAL;
 	if (cmd == MMC_IOC_CMD)
@@ -476,6 +482,11 @@ static int mmc_blk_ioctl(struct block_device *bdev, fmode_t mode,
 	pr_debug("[%s], %x ", __func__, cmd);
 
 	switch (cmd) {
+	case MMC_IOCTL_SET_RETRY_AKE_PROCESS:
+		cprm_ake_retry_flag = 1;
+		ret = 0;
+		break;
+
 	case MMC_IOCTL_GET_SECTOR_COUNT: {
 		int size = 0;
 
@@ -498,9 +509,49 @@ static int mmc_blk_ioctl(struct block_device *bdev, fmode_t mode,
 		struct cprm_request *req = (struct cprm_request *)arg;
 
 		pr_debug("[%s]: cmd [%x]\n", __func__, cmd);
-		return stub_sendcmd(card, req->cmd, req->arg, \
-				req->len, req->buff);
+
+		if (cmd == ACMD43) {
+			pr_debug("storing acmd43 arg[%d] = %ul\n",
+				i, (unsigned int)req->arg);
+			temp_arg[i] = req->arg;
+			i++;
+			if (i >= 16) {
+				pr_debug("reset acmd43 i = %d\n", i);
+					i = 0;
+			}
 		}
+
+		if (cmd == ACMD45 && cprm_ake_retry_flag == 1) {
+			cprm_ake_retry_flag = 0;
+			pr_debug("ACMD45.. I'll call ACMD43 and ACMD44 first\n");
+
+			for (i = 0; i < 16; i++) {
+				pr_debug("calling ACMD43 with arg[%d] = %ul\n",
+					i, (unsigned int)temp_arg[i]);
+				if (stub_sendcmd(card, ACMD43, temp_arg[i],
+					512, NULL) < 0) {
+					pr_debug("error ACMD43 %d\n",
+						 i);
+					return -EINVAL;
+				}
+			}
+
+			pr_debug("calling ACMD44\n");
+			if (stub_sendcmd(card, ACMD44, 0, 8, NULL) < 0) {
+
+				pr_debug("error in ACMD44 %d\n",
+					i);
+				return -EINVAL;
+			}
+		}
+		return stub_sendcmd(card, req->cmd,
+					req->arg, req->len, req->buff);
+		}
+		break;
+
+	default:
+		pr_debug("[%s]: Invalid ioctl command\n", __func__);
+		break;
 	}
 #endif
 	return ret;
@@ -1068,7 +1119,7 @@ static int mmc_blk_err_check(struct mmc_card *card,
 		do {
 			int err = get_card_status(card, &status, 5);
 			if (err) {
-				pr_err("%s: error %d requesting status\n",
+				pr_err("[%s]: error %d requesting status\n",
 				       req->rq_disk->disk_name, err);
 				return MMC_BLK_CMD_ERR;
 			}
@@ -1273,9 +1324,11 @@ static void mmc_blk_rw_rq_prep(struct mmc_queue_req *mqrq,
 	 * We'll avoid using CMD23-bounded multiblock writes for
 	 * these, while retaining features like reliable writes.
 	 */
-	if ((md->flags & MMC_BLK_CMD23) && mmc_op_multi(brq->cmd.opcode) &&
+
+	if ((md->flags & MMC_BLK_CMD23) &&
+	    mmc_op_multi(brq->cmd.opcode) &&
 	    (do_rel_wr || !(card->quirks & MMC_QUIRK_BLK_NO_CMD23) ||
-	     do_data_tag)) {
+		do_data_tag)) {
 		brq->sbc.opcode = MMC_SET_BLOCK_COUNT;
 		brq->sbc.arg = brq->data.blocks |
 			(do_rel_wr ? (1 << 31) : 0) |
@@ -2037,7 +2090,8 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 		/* complete ongoing async transfer before issuing discard */
 		if (card->host->areq)
 			mmc_blk_issue_rw_rq(mq, NULL);
-		if (req->cmd_flags & REQ_SECURE)
+		if (req->cmd_flags & REQ_SECURE &&
+			!(card->quirks & MMC_QUIRK_MOVINAND_SECURE))
 			ret = mmc_blk_issue_secdiscard_rq(mq, req);
 		else
 			ret = mmc_blk_issue_discard_rq(mq, req);
@@ -2245,6 +2299,24 @@ static int mmc_blk_alloc_parts(struct mmc_card *card, struct mmc_blk_data *md)
 	return ret;
 }
 
+static int
+mmc_blk_set_blksize(struct mmc_blk_data *md, struct mmc_card *card)
+{
+	int err;
+
+	mmc_claim_host(card->host);
+	err = mmc_set_blocklen(card, 512);
+	mmc_release_host(card->host);
+
+	if (err) {
+		pr_err("[%s]: unable to set block size to 512: %d\n",
+			md->disk->disk_name, err);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static void mmc_blk_remove_req(struct mmc_blk_data *md)
 {
 	if (md) {
@@ -2292,22 +2364,15 @@ static int mmc_add_disk(struct mmc_blk_data *md)
 	return ret;
 }
 
-#define CID_MANFID_SANDISK	0x2
-#define CID_MANFID_TOSHIBA	0x11
-#define CID_MANFID_MICRON	0x13
+#define CID_MANFID_SAMSUNG	0x15
 
 static const struct mmc_fixup blk_fixups[] =
 {
-	MMC_FIXUP("SEM02G", CID_MANFID_SANDISK, 0x100, add_quirk,
-		  MMC_QUIRK_INAND_CMD38),
-	MMC_FIXUP("SEM04G", CID_MANFID_SANDISK, 0x100, add_quirk,
-		  MMC_QUIRK_INAND_CMD38),
-	MMC_FIXUP("SEM08G", CID_MANFID_SANDISK, 0x100, add_quirk,
-		  MMC_QUIRK_INAND_CMD38),
-	MMC_FIXUP("SEM16G", CID_MANFID_SANDISK, 0x100, add_quirk,
-		  MMC_QUIRK_INAND_CMD38),
-	MMC_FIXUP("SEM32G", CID_MANFID_SANDISK, 0x100, add_quirk,
-		  MMC_QUIRK_INAND_CMD38),
+	MMC_FIXUP("SEM02G", 0x2, 0x100, add_quirk, MMC_QUIRK_INAND_CMD38),
+	MMC_FIXUP("SEM04G", 0x2, 0x100, add_quirk, MMC_QUIRK_INAND_CMD38),
+	MMC_FIXUP("SEM08G", 0x2, 0x100, add_quirk, MMC_QUIRK_INAND_CMD38),
+	MMC_FIXUP("SEM16G", 0x2, 0x100, add_quirk, MMC_QUIRK_INAND_CMD38),
+	MMC_FIXUP("SEM32G", 0x2, 0x100, add_quirk, MMC_QUIRK_INAND_CMD38),
 
 	/*
 	 * Some MMC cards experience performance degradation with CMD23
@@ -2317,12 +2382,33 @@ static const struct mmc_fixup blk_fixups[] =
 	 *
 	 * N.B. This doesn't affect SD cards.
 	 */
-	MMC_FIXUP("MMC08G", CID_MANFID_TOSHIBA, CID_OEMID_ANY, add_quirk_mmc,
+	MMC_FIXUP("MMC08G", 0x11, CID_OEMID_ANY, add_quirk_mmc,
 		  MMC_QUIRK_BLK_NO_CMD23),
-	MMC_FIXUP("MMC16G", CID_MANFID_TOSHIBA, CID_OEMID_ANY, add_quirk_mmc,
+	MMC_FIXUP("MMC16G", 0x11, CID_OEMID_ANY, add_quirk_mmc,
 		  MMC_QUIRK_BLK_NO_CMD23),
-	MMC_FIXUP("MMC32G", CID_MANFID_TOSHIBA, CID_OEMID_ANY, add_quirk_mmc,
+	MMC_FIXUP("MMC32G", 0x11, CID_OEMID_ANY, add_quirk_mmc,
 		  MMC_QUIRK_BLK_NO_CMD23),
+
+	/*
+	 * Some issue about secure erase/secure trim for Samsung MoviNAND
+	 */
+
+	MMC_FIXUP("M8G2FA", CID_MANFID_SAMSUNG, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_MOVINAND_SECURE),
+	MMC_FIXUP("MAG4FA", CID_MANFID_SAMSUNG, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_MOVINAND_SECURE),
+	MMC_FIXUP("MBG8FA", CID_MANFID_SAMSUNG, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_MOVINAND_SECURE),
+	MMC_FIXUP("MCGAFA", CID_MANFID_SAMSUNG, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_MOVINAND_SECURE),
+	MMC_FIXUP("VAL00M", CID_MANFID_SAMSUNG, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_MOVINAND_SECURE),
+	MMC_FIXUP("VYL00M", CID_MANFID_SAMSUNG, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_MOVINAND_SECURE),
+	MMC_FIXUP("KYL00M", CID_MANFID_SAMSUNG, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_MOVINAND_SECURE),
+	MMC_FIXUP("VZL00M", CID_MANFID_SAMSUNG, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_MOVINAND_SECURE),
 
 	END_FIXUP
 };
@@ -2330,6 +2416,7 @@ static const struct mmc_fixup blk_fixups[] =
 static int mmc_blk_probe(struct mmc_card *card)
 {
 	struct mmc_blk_data *md, *part_md;
+	int err;
 	char cap_str[10];
 
 	/*
@@ -2341,6 +2428,10 @@ static int mmc_blk_probe(struct mmc_card *card)
 	md = mmc_blk_alloc(card);
 	if (IS_ERR(md))
 		return PTR_ERR(md);
+
+	err = mmc_blk_set_blksize(md, card);
+	if (err)
+		goto out;
 
 	string_get_size((u64)get_capacity(md->disk) << 9, STRING_UNITS_2,
 			cap_str, sizeof(cap_str));
@@ -2369,7 +2460,7 @@ static int mmc_blk_probe(struct mmc_card *card)
  out:
 	mmc_blk_remove_parts(card, md);
 	mmc_blk_remove_req(md);
-	return 0;
+	return err;
 }
 
 static void mmc_blk_remove(struct mmc_card *card)
@@ -2408,6 +2499,10 @@ static int mmc_blk_resume(struct mmc_card *card)
 	struct mmc_blk_data *md = mmc_get_drvdata(card);
 
 	if (md) {
+#ifndef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+		mmc_blk_set_blksize(md, card);
+#endif
+
 		/*
 		 * Resume involves the card going into idle state,
 		 * so current partition is always the main one.
