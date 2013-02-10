@@ -1117,6 +1117,21 @@ static struct usb_driver usbtmc_driver = {
 	.resume		= usbtmc_resume,
 };
 
-module_usb_driver(usbtmc_driver);
+static int __init usbtmc_init(void)
+{
+	int retcode;
+
+	retcode = usb_register(&usbtmc_driver);
+	if (retcode)
+		printk(KERN_ERR KBUILD_MODNAME": Unable to register driver\n");
+	return retcode;
+}
+module_init(usbtmc_init);
+
+static void __exit usbtmc_exit(void)
+{
+	usb_deregister(&usbtmc_driver);
+}
+module_exit(usbtmc_exit);
 
 MODULE_LICENSE("GPL");

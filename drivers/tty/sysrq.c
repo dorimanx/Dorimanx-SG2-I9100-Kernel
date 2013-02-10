@@ -32,6 +32,7 @@
 #include <linux/module.h>
 #include <linux/suspend.h>
 #include <linux/writeback.h>
+#include <linux/buffer_head.h>		/* for fsync_bdev() */
 #include <linux/swap.h>
 #include <linux/spinlock.h>
 #include <linux/vt_kern.h>
