@@ -163,6 +163,12 @@ static unsigned int get_nr_run_avg(void)
 #define DEF_START_DELAY				(0)
 
 #define FREQ_FOR_RESPONSIVENESS			(400000)
+#define MAX_FREQ_FOR_CALC_INCR			(400000)
+#define DEF_FREQ_FOR_CALC_INCR			(200000)
+#define MIN_FREQ_FOR_CALC_INCR			(50000)
+#define MAX_FREQ_FOR_CALC_DECR			(400000)
+#define DEF_FREQ_FOR_CALC_DECR			(200000)
+#define MIN_FREQ_FOR_CALC_DECR			(50000)
 #define FIRST_CORE_FREQ_LIMIT			(0)
 #define SECOND_CORE_FREQ_LIMIT			(0)
 
@@ -274,6 +280,8 @@ static struct dbs_tuners {
 #endif
 	unsigned int inc_cpu_load_at_min_freq;
 	unsigned int freq_for_responsiveness;
+	unsigned int freq_for_calc_incr;
+	unsigned int freq_for_calc_decr;
 	unsigned int first_core_freq_limit;
 	unsigned int second_core_freq_limit;
 	unsigned int inc_cpu_load;
@@ -311,6 +319,8 @@ static struct dbs_tuners {
 #endif
 	.inc_cpu_load_at_min_freq = INC_CPU_LOAD_AT_MIN_FREQ,
 	.freq_for_responsiveness = FREQ_FOR_RESPONSIVENESS,
+	.freq_for_calc_incr = DEF_FREQ_FOR_CALC_INCR,
+	.freq_for_calc_decr = DEF_FREQ_FOR_CALC_DECR,
 	.first_core_freq_limit = FIRST_CORE_FREQ_LIMIT,
 	.second_core_freq_limit = SECOND_CORE_FREQ_LIMIT,
 	.inc_cpu_load = DEF_INC_CPU_LOAD,
@@ -530,6 +540,8 @@ show_one(min_cpu_lock, min_cpu_lock);
 show_one(dvfs_debug, dvfs_debug);
 show_one(inc_cpu_load_at_min_freq, inc_cpu_load_at_min_freq);
 show_one(freq_for_responsiveness, freq_for_responsiveness);
+show_one(freq_for_calc_incr, freq_for_calc_incr);
+show_one(freq_for_calc_decr, freq_for_calc_decr);
 show_one(first_core_freq_limit, first_core_freq_limit);
 show_one(second_core_freq_limit, second_core_freq_limit);
 show_one(inc_cpu_load, inc_cpu_load);
@@ -765,6 +777,40 @@ static ssize_t store_freq_for_responsiveness(struct kobject *a, struct attribute
 	if (ret != 1)
 		return -EINVAL;
 	dbs_tuners_ins.freq_for_responsiveness = input;
+	return count;
+}
+
+static ssize_t store_freq_for_calc_incr(struct kobject *a, struct attribute *b,
+				   const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	if (input > MAX_FREQ_FOR_CALC_INCR)
+		input = MAX_FREQ_FOR_CALC_INCR;
+	else if (input < MIN_FREQ_FOR_CALC_INCR)
+		input = MIN_FREQ_FOR_CALC_INCR;
+
+	dbs_tuners_ins.freq_for_calc_incr = input;
+	return count;
+}
+
+static ssize_t store_freq_for_calc_decr(struct kobject *a, struct attribute *b,
+				   const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	if (input > MAX_FREQ_FOR_CALC_DECR)
+		input = MAX_FREQ_FOR_CALC_DECR;
+	else if (input < MIN_FREQ_FOR_CALC_DECR)
+		input = MIN_FREQ_FOR_CALC_DECR;
+
+	dbs_tuners_ins.freq_for_calc_decr = input;
 	return count;
 }
 
@@ -1041,6 +1087,8 @@ define_one_global_rw(hotplug_lock);
 define_one_global_rw(dvfs_debug);
 define_one_global_rw(inc_cpu_load_at_min_freq);
 define_one_global_rw(freq_for_responsiveness);
+define_one_global_rw(freq_for_calc_incr);
+define_one_global_rw(freq_for_calc_decr);
 define_one_global_rw(first_core_freq_limit);
 define_one_global_rw(second_core_freq_limit);
 define_one_global_rw(inc_cpu_load);
@@ -1080,6 +1128,8 @@ static struct attribute *dbs_attributes[] = {
 	&dvfs_debug.attr,
 	&inc_cpu_load_at_min_freq.attr,
 	&freq_for_responsiveness.attr,
+	&freq_for_calc_incr.attr,
+	&freq_for_calc_decr.attr,
 	&first_core_freq_limit.attr,
 	&second_core_freq_limit.attr,
 	&inc_cpu_load.attr,
@@ -1419,6 +1469,8 @@ static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 	unsigned int freq_up = 0;
 	unsigned int dec_load = 0;
 	unsigned int freq_down = 0;
+	unsigned int freq_for_calc_incr = dbs_tuners_ins.freq_for_calc_incr;
+	unsigned int freq_for_calc_decr = dbs_tuners_ins.freq_for_calc_decr;
 	unsigned int first_core_freq_limit = dbs_tuners_ins.first_core_freq_limit;
 	unsigned int second_core_freq_limit = dbs_tuners_ins.second_core_freq_limit;
 	unsigned int ccore = 0;
@@ -1454,8 +1506,8 @@ static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 				continue;
 			}
 
-			inc_load = ((load * policy->min) / 100) + ((freq_step * policy->min) / 100);
-			inc_brake = (freq_up_brake * policy->min) / 100;
+			inc_load = ((load * freq_for_calc_incr) / 100) + ((freq_step * freq_for_calc_incr) / 100);
+			inc_brake = (freq_up_brake * freq_for_calc_incr) / 100;
 
 			if (inc_brake > inc_load) {
 				cpufreq_cpu_put(policy);
@@ -1487,7 +1539,7 @@ static void dbs_check_frequency(struct cpufreq_nightmare_cpuinfo *this_dbs_info)
 				continue;
 			}
 	
-			dec_load = (((100 - load) * policy->min) / 100) + ((freq_step_dec * policy->min) / 100);
+			dec_load = (((100 - load) * freq_for_calc_decr) / 100) + ((freq_step_dec * freq_for_calc_decr) / 100);
 
 			if (policy->cur > dec_load + policy->min) {
 				freq_down = policy->cur - dec_load;
