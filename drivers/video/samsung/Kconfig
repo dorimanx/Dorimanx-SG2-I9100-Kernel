@@ -290,6 +290,10 @@ config S6E8AA0_AMS480GYXX
 	---help---
 	This enables support for Samsung S6E8AA0 AMS480GYXX(M0) PANEL
 
+config S6E8AA0_AMS465XX
+	bool "AMS465XX(Superior)"
+	---help---
+	This enables support for Samsung S6E8AA0 AMS465XX(Superior) PANEL
 endchoice
 
 config AID_DIMMING
@@ -298,6 +302,11 @@ config AID_DIMMING
        default n
        ---help---
          This enables support for Samsung S6E8AA0 MIPI LCD AID DIMMING
+
+config LCD_REVERSE
+       bool "LCD REVERSE"
+       depends on FB_S5P_S6E8AA0
+       default n
 
 config LCD_FREQ_SWITCH
        bool "support for LCD Frequency switch"

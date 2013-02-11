@@ -250,7 +250,7 @@ static spinlock_t gestures_lock;
 static u8 mov_hysti = 255;
 unsigned int lock_freq = TOUCH_LOCK_FREQ;
 
-#undef CLEAR_MEDIAN_FILTER_ERROR
+#define CLEAR_MEDIAN_FILTER_ERROR
 struct mxt224_data *copy_data;
 int touch_is_pressed;
 EXPORT_SYMBOL(touch_is_pressed);
@@ -2063,6 +2063,7 @@ static irqreturn_t mxt224_irq_thread(int irq, void *ptr)
 				}
 			}
 		}
+#if 0
 #ifdef CLEAR_MEDIAN_FILTER_ERROR
 		if ((msg[0] == 18) && (data->family_id == 0x81)) {
 			if ((msg[4] & 0x5) == 0x5) {
@@ -2091,6 +2092,7 @@ static irqreturn_t mxt224_irq_thread(int irq, void *ptr)
 				}
 			}
 		}
+#endif
 #endif
 		if (msg[0] > 1 && msg[0] < 12) {
 

@@ -63,8 +63,6 @@
 #include "mdnie_table_gc1.h"
 #elif defined(CONFIG_FB_S5P_LMS501XX)
 #include "mdnie_table_baffin.h"
-#elif defined(CONFIG_FB_S5P_NT71391)
-#include "mdnie_table_kona.h"
 #else
 #include "mdnie_table_4412.h"
 #endif
@@ -125,7 +123,7 @@ struct class *mdnie_class;
 
 struct mdnie_info *g_mdnie;
 
-#if defined(CONFIG_MACH_P4NOTE) || defined(CONFIG_MACH_KONA)
+#ifdef CONFIG_MACH_P4NOTE
 static struct mdnie_backlight_value b_value;
 #endif
 

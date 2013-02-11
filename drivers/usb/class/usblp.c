@@ -1413,7 +1413,18 @@ static struct usb_driver usblp_driver = {
 	.supports_autosuspend =	1,
 };
 
-module_usb_driver(usblp_driver);
+static int __init usblp_init(void)
+{
+	return usb_register(&usblp_driver);
+}
+
+static void __exit usblp_exit(void)
+{
+	usb_deregister(&usblp_driver);
+}
+
+module_init(usblp_init);
+module_exit(usblp_exit);
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
