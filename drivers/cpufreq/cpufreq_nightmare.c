@@ -1526,6 +1526,11 @@ static void nightmare_check_frequency(struct cpufreq_nightmare_cpuinfo *this_nig
 				}
 			}
 
+			#ifdef CONFIG_HAS_EARLYSUSPEND
+				if (screen_off && freq_up > cpu_policy->max_suspend)
+					freq_up = cpu_policy->max_suspend;
+			#endif
+
 			if (freq_up != cpu_policy->cur && freq_up <= cpu_policy->max) {
 				__cpufreq_driver_target(cpu_policy, freq_up, CPUFREQ_RELATION_L);
 			}
@@ -1556,6 +1561,11 @@ static void nightmare_check_frequency(struct cpufreq_nightmare_cpuinfo *this_nig
 					freq_down = max(second_core_freq_limit,cpu_policy->min);
 				}
 			}
+
+			#ifdef CONFIG_HAS_EARLYSUSPEND
+				if (screen_off && freq_down < cpu_policy->min_suspend)
+					freq_down = cpu_policy->min_suspend;
+			#endif
 
 			if (freq_down != cpu_policy->cur) {
 				__cpufreq_driver_target(cpu_policy, freq_down, CPUFREQ_RELATION_L);
@@ -1653,19 +1663,51 @@ static struct notifier_block reboot_notifier = {
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend early_suspend;
-unsigned int previous_freq_step;
-unsigned int previous_sampling_rate;
+static unsigned int previous_freq_step;
+static unsigned int previous_sampling_rate;
+static void nightmare_suspend(int suspend)
+{        
+	unsigned int i;
+    if (nightmare_enable == 0) return;
+
+    if (!suspend) { // resume but doesn't set speed
+			screen_off = false;
+			dbs_tuners_ins.freq_step = previous_freq_step;
+			dbs_tuners_ins.sampling_rate = previous_sampling_rate;
+    } else {
+			screen_off = true;
+			previous_freq_step = dbs_tuners_ins.freq_step;
+			previous_sampling_rate = dbs_tuners_ins.sampling_rate;
+			dbs_tuners_ins.freq_step = 10;
+			dbs_tuners_ins.sampling_rate = 200000;
+
+			for_each_online_cpu(i) {
+				struct cpufreq_policy *cpu_policy;
+
+				cpu_policy = cpufreq_cpu_get(i);
+				if (!cpu_policy)
+					continue;
+
+				cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
+				cpumask_setall(cpu_policy->cpus);
+
+				// let's give it a little breathing room
+				if (cpu_policy->max_suspend <= cpu_policy->max && cpu_policy->max_suspend >= cpu_policy->min)
+					__cpufreq_driver_target(cpu_policy,cpu_policy->max_suspend,CPUFREQ_RELATION_H);
+
+				cpufreq_cpu_put(cpu_policy);
+
+			}
+    }
+}
 static void cpufreq_nightmare_early_suspend(struct early_suspend *h)
 {
 #if EARLYSUSPEND_HOTPLUGLOCK
 	dbs_tuners_ins.early_suspend =
 		atomic_read(&g_hotplug_lock);
 #endif
-	screen_off = true;
-	previous_freq_step = dbs_tuners_ins.freq_step;
-	previous_sampling_rate = dbs_tuners_ins.sampling_rate;
-	dbs_tuners_ins.freq_step = 10;
-	dbs_tuners_ins.sampling_rate = 200000;
+	/* It is set by Dorimanx Kernel cortexbrain, not needed! */
+	nightmare_suspend(1);
 #if EARLYSUSPEND_HOTPLUGLOCK
 	atomic_set(&g_hotplug_lock,
 	    (dbs_tuners_ins.min_cpu_lock) ? dbs_tuners_ins.min_cpu_lock : 1);
@@ -1677,11 +1719,10 @@ static void cpufreq_nightmare_late_resume(struct early_suspend *h)
 {
 #if EARLYSUSPEND_HOTPLUGLOCK
 	atomic_set(&g_hotplug_lock, dbs_tuners_ins.early_suspend);
+		dbs_tuners_ins.early_suspend = -1;
 #endif
-	screen_off = false;
-	dbs_tuners_ins.early_suspend = -1;
-	dbs_tuners_ins.freq_step = previous_freq_step;
-	dbs_tuners_ins.sampling_rate = previous_sampling_rate;
+	/* It is set by Dorimanx Kernel cortexbrain, not needed! */
+	nightmare_suspend(0);
 #if EARLYSUSPEND_HOTPLUGLOCK
 	apply_hotplug_lock();
 	start_rq_work();
@@ -1793,29 +1834,6 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 
 	case CPUFREQ_GOV_LIMITS:
 		mutex_lock(&this_nightmare_cpuinfo->timer_mutex);
-
-		/*for_each_online_cpu(j) {
-			struct cpufreq_policy *cpu_policy;
-			struct cpufreq_nightmare_cpuinfo *cpu_nightmare_cpuinfo;
-
-			cpu_policy = cpufreq_cpu_get(j);
-			if (!cpu_policy)
-				continue;
-
-			cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
-			cpumask_setall(cpu_policy->cpus);
-
-			if (policy->max < cpu_policy->cur)
-				__cpufreq_driver_target(cpu_policy,policy->max,CPUFREQ_RELATION_H);
-			else if (policy->min > cpu_policy->cur)
-				__cpufreq_driver_target(cpu_policy,policy->min,CPUFREQ_RELATION_L);
-
-			cpu_nightmare_cpuinfo = &per_cpu(od_nightmare_cpuinfo, j);
-			cpu_nightmare_cpuinfo->cur_policy = cpu_policy;
-
-			cpufreq_cpu_put(cpu_policy);
-
-		}*/
 
 		for_each_online_cpu(j) {
 			struct cpufreq_policy *cpu_policy;
