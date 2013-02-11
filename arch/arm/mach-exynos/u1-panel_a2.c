@@ -1698,9 +1698,14 @@ static const unsigned short ld9040_sm2_a2_19_10_dimming[] = {
 
 /* LD9040, 4.27", SM2 A2 Panel Gamma Table */
 static const unsigned short *psm2_a2_22Gamma_set[] = {
+#if defined(CONFIG_TARGET_LOCALE_NAATT)
+	ld9040_sm2_a2_22_50,
+	ld9040_sm2_a2_22_60,
+#else
 	ld9040_sm2_a2_22_10_dimming,
 	ld9040_sm2_a2_22_30_dimming,
 	ld9040_sm2_a2_22_40,
+#endif
 	ld9040_sm2_a2_22_50,
 	ld9040_sm2_a2_22_60,
 	ld9040_sm2_a2_22_70,
@@ -1730,9 +1735,14 @@ static const unsigned short *psm2_a2_22Gamma_set[] = {
 };
 
 static const unsigned short *psm2_a2_19Gamma_set[] = {
+#if defined(CONFIG_TARGET_LOCALE_NAATT)
+	ld9040_sm2_a2_19_50,
+	ld9040_sm2_a2_19_60,
+#else
 	ld9040_sm2_a2_19_10_dimming,
 	ld9040_sm2_a2_19_30_dimming,
 	ld9040_sm2_a2_19_40,
+#endif
 	ld9040_sm2_a2_19_50,
 	ld9040_sm2_a2_19_60,
 	ld9040_sm2_a2_19_70,

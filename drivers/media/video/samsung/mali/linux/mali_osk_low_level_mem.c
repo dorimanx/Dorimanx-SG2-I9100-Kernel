@@ -26,9 +26,6 @@
 #include "mali_ukk.h" /* required to hook in _mali_ukk_mem_mmap handling */
 #include "mali_kernel_common.h"
 #include "mali_kernel_linux.h"
-#ifdef CONFIG_PROC_SEC_MEMINFO
-#include "linux/sec_meminfo.h"
-#endif
 
 static void mali_kernel_memory_vma_open(struct vm_area_struct * vma);
 static void mali_kernel_memory_vma_close(struct vm_area_struct * vma);
@@ -134,9 +131,7 @@ static u32 _kernel_page_allocate(void)
 	{
 		return 0;
 	}
-#ifdef CONFIG_PROC_SEC_MEMINFO
-	sec_meminfo_set_alloc_cnt(0, 1, new_page);
-#endif
+
 	/* Ensure page is flushed from CPU caches. */
 	linux_phys_addr = dma_map_page(NULL, new_page, 0, PAGE_SIZE, DMA_BIDIRECTIONAL);
 
@@ -154,9 +149,6 @@ static void _kernel_page_release(u32 physical_address)
 	unmap_page = pfn_to_page( physical_address >> PAGE_SHIFT );
 	MALI_DEBUG_ASSERT_POINTER( unmap_page );
 	__free_page( unmap_page );
-#ifdef CONFIG_PROC_SEC_MEMINFO
-	sec_meminfo_set_alloc_cnt(0, 0, unmap_page);
-#endif
 }
 
 static AllocationList * _allocation_list_item_get(void)

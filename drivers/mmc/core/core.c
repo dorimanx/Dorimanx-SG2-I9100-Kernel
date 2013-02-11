@@ -2229,7 +2229,7 @@ int mmc_card_sleep(struct mmc_host *host)
 
 	mmc_bus_get(host);
 
-	if (host->bus_ops && !host->bus_dead && host->bus_ops->sleep)
+	if (host->bus_ops && !host->bus_dead && host->bus_ops->awake)
 		err = host->bus_ops->sleep(host);
 
 	mmc_bus_put(host);
@@ -2378,6 +2378,12 @@ int mmc_suspend_host(struct mmc_host *host)
 		 */
 		if (mmc_try_claim_host(host)) {
 			if (host->bus_ops->suspend) {
+				/*
+				 * For eMMC 4.5 device send notify command
+				 * before sleep, because in sleep state eMMC 4.5
+				 * devices respond to only RESET and AWAKE cmd
+				 */
+				mmc_poweroff_notify(host);
 				err = host->bus_ops->suspend(host);
 			}
 			if (err == -ENOSYS || !host->bus_ops->resume) {

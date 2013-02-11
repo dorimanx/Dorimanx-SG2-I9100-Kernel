@@ -1,6 +1,6 @@
-/* sec_thermistor.c
+/* sec_subthermistor.c
  *
- * Copyright (C) 2011 Samsung Electronics
+ * Copyright (C) 2012 Samsung Electronics
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -21,7 +21,7 @@
 
 #define ADC_SAMPLING_CNT	7
 
-struct sec_therm_info {
+struct sec_subtherm_info {
 	struct device *dev;
 	struct sec_therm_platform_data *pdata;
 	struct s3c_adc_client *padc;
@@ -31,77 +31,38 @@ struct sec_therm_info {
 	int curr_temp_adc;
 };
 
-#if defined(CONFIG_MACH_C1_KOR_SKT) || defined(CONFIG_MACH_C1_KOR_KT) || \
-	defined(CONFIG_MACH_C1_KOR_LGT)
-static void notify_change_of_temperature(struct sec_therm_info *info);
-int siopLevellimit;
-EXPORT_SYMBOL(siopLevellimit);
-#endif
-
-static ssize_t sec_therm_show_temperature(struct device *dev,
+static ssize_t sec_subtherm_show_temperature(struct device *dev,
 				   struct device_attribute *attr,
 				   char *buf)
 {
-	struct sec_therm_info *info = dev_get_drvdata(dev);
+	struct sec_subtherm_info *info = dev_get_drvdata(dev);
 
 	return sprintf(buf, "%d\n", info->curr_temperature);
 }
 
-static ssize_t sec_therm_show_temp_adc(struct device *dev,
+static ssize_t sec_subtherm_show_temp_adc(struct device *dev,
 				   struct device_attribute *attr,
 				   char *buf)
 {
-	struct sec_therm_info *info = dev_get_drvdata(dev);
+	struct sec_subtherm_info *info = dev_get_drvdata(dev);
 
 	return sprintf(buf, "%d\n", info->curr_temp_adc);
 }
 
-#if defined(CONFIG_MACH_C1_KOR_SKT) || defined(CONFIG_MACH_C1_KOR_KT) || \
-	defined(CONFIG_MACH_C1_KOR_LGT)
-static ssize_t sec_therm_show_sioplevel(struct device *dev,
-				   struct device_attribute *attr,
-				   char *buf)
-{
-	return sprintf(buf, "%d\n", siopLevellimit);
-}
+static DEVICE_ATTR(temperature, S_IRUGO, sec_subtherm_show_temperature, NULL);
+static DEVICE_ATTR(temp_adc, S_IRUGO, sec_subtherm_show_temp_adc, NULL);
 
-static ssize_t sec_therm_store_sioplevel(struct device *dev,
-				   struct device_attribute *attr,
-				   const char *buf, size_t n)
-{
-	unsigned int val;
-	struct sec_therm_info *info = dev_get_drvdata(dev);
-
-	if (sscanf(buf, "%u", &val) == 1)
-		siopLevellimit = val;
-
-	notify_change_of_temperature(info);
-
-	return n;
-}
-
-static DEVICE_ATTR(sioplevel, S_IWUSR | S_IRUGO, sec_therm_show_sioplevel, \
-				 sec_therm_store_sioplevel);
-#endif
-
-static DEVICE_ATTR(temperature, S_IRUGO, sec_therm_show_temperature, NULL);
-static DEVICE_ATTR(temp_adc, S_IRUGO, sec_therm_show_temp_adc, NULL);
-
-static struct attribute *sec_therm_attributes[] = {
+static struct attribute *sec_subtherm_attributes[] = {
 	&dev_attr_temperature.attr,
 	&dev_attr_temp_adc.attr,
-#if defined(CONFIG_MACH_C1_KOR_SKT) || defined(CONFIG_MACH_C1_KOR_KT) || \
-	defined(CONFIG_MACH_C1_KOR_LGT)
-	&dev_attr_sioplevel.attr,
-#endif
 	NULL
 };
 
-static const struct attribute_group sec_therm_group = {
-	.attrs = sec_therm_attributes,
+static const struct attribute_group sec_subtherm_group = {
+	.attrs = sec_subtherm_attributes,
 };
 
-static int sec_therm_get_adc_data(struct sec_therm_info *info)
+static int sec_subtherm_get_adc_data(struct sec_subtherm_info *info)
 {
 	int adc_ch;
 	int adc_data;
@@ -140,7 +101,7 @@ err:
 	return err_value;
 }
 
-static int convert_adc_to_temper(struct sec_therm_info *info, unsigned int adc)
+static int convert_adc_to_subtemper(struct sec_subtherm_info *info, unsigned int adc)
 {
 	int low = 0;
 	int high = 0;
@@ -165,7 +126,7 @@ static int convert_adc_to_temper(struct sec_therm_info *info, unsigned int adc)
 	return info->pdata->adc_table[mid].temperature;
 }
 
-static void notify_change_of_temperature(struct sec_therm_info *info)
+static void notify_change_of_subtemperature(struct sec_subtherm_info *info)
 {
 	char temp_buf[20];
 	char siop_buf[20];
@@ -173,7 +134,7 @@ static void notify_change_of_temperature(struct sec_therm_info *info)
 	int env_offset = 0;
 	int siop_level = -1;
 
-	snprintf(temp_buf, sizeof(temp_buf), "TEMPERATURE=%d",
+	snprintf(temp_buf, sizeof(temp_buf), "SUBTEMPERATURE=%d",
 		 info->curr_temperature);
 	envp[env_offset++] = temp_buf;
 
@@ -193,40 +154,40 @@ static void notify_change_of_temperature(struct sec_therm_info *info)
 	kobject_uevent_env(&info->dev->kobj, KOBJ_CHANGE, envp);
 }
 
-static void sec_therm_polling_work(struct work_struct *work)
+static void sec_subtherm_polling_work(struct work_struct *work)
 {
-	struct sec_therm_info *info =
-		container_of(work, struct sec_therm_info, polling_work.work);
+	struct sec_subtherm_info *info =
+		container_of(work, struct sec_subtherm_info, polling_work.work);
 	int adc;
 	int temper;
 
-	adc = sec_therm_get_adc_data(info);
+	adc = sec_subtherm_get_adc_data(info);
 	dev_dbg(info->dev, "%s: adc=%d\n", __func__, adc);
 
 	if (adc < 0)
 		goto out;
 
-	temper = convert_adc_to_temper(info, adc);
+	temper = convert_adc_to_subtemper(info, adc);
 	dev_dbg(info->dev, "%s: temper=%d\n", __func__, temper);
 
 	/* if temperature was changed, notify to framework */
 	if (info->curr_temperature != temper) {
 		info->curr_temp_adc = adc;
 		info->curr_temperature = temper;
-		notify_change_of_temperature(info);
+		notify_change_of_subtemperature(info);
 	}
 out:
 	schedule_delayed_work(&info->polling_work,
 			msecs_to_jiffies(info->pdata->polling_interval));
 }
 
-static __devinit int sec_therm_probe(struct platform_device *pdev)
+static __devinit int sec_subtherm_probe(struct platform_device *pdev)
 {
 	struct sec_therm_platform_data *pdata = dev_get_platdata(&pdev->dev);
-	struct sec_therm_info *info;
+	struct sec_subtherm_info *info;
 	int ret = 0;
 
-	dev_info(&pdev->dev, "%s: SEC Thermistor Driver Loading\n", __func__);
+	dev_info(&pdev->dev, "%s: SEC Sub Thermistor Driver Loading\n", __func__);
 
 	info = kzalloc(sizeof(*info), GFP_KERNEL);
 	if (!info)
@@ -239,29 +200,29 @@ static __devinit int sec_therm_probe(struct platform_device *pdev)
 
 	info->padc = s3c_adc_register(pdev, NULL, NULL, 0);
 
-	ret = sysfs_create_group(&info->dev->kobj, &sec_therm_group);
+	ret = sysfs_create_group(&info->dev->kobj, &sec_subtherm_group);
 
 	if (ret) {
 		dev_err(info->dev,
 			"failed to create sysfs attribute group\n");
 	}
 
-	INIT_DEFERRABLE_WORK(&info->polling_work,
-			sec_therm_polling_work);
+	INIT_DELAYED_WORK_DEFERRABLE(&info->polling_work,
+			sec_subtherm_polling_work);
 	schedule_delayed_work(&info->polling_work,
 			msecs_to_jiffies(info->pdata->polling_interval));
 
 	return ret;
 }
 
-static int __devexit sec_therm_remove(struct platform_device *pdev)
+static int __devexit sec_subtherm_remove(struct platform_device *pdev)
 {
-	struct sec_therm_info *info = platform_get_drvdata(pdev);
+	struct sec_subtherm_info *info = platform_get_drvdata(pdev);
 
 	if (!info)
 		return 0;
 
-	sysfs_remove_group(&info->dev->kobj, &sec_therm_group);
+	sysfs_remove_group(&info->dev->kobj, &sec_subtherm_group);
 
 	cancel_delayed_work(&info->polling_work);
 	s3c_adc_release(info->padc);
@@ -271,55 +232,55 @@ static int __devexit sec_therm_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-static int sec_therm_suspend(struct device *dev)
+static int sec_subtherm_suspend(struct device *dev)
 {
-	struct sec_therm_info *info = dev_get_drvdata(dev);
+	struct sec_subtherm_info *info = dev_get_drvdata(dev);
 
 	cancel_delayed_work(&info->polling_work);
 
 	return 0;
 }
 
-static int sec_therm_resume(struct device *dev)
+static int sec_subtherm_resume(struct device *dev)
 {
-	struct sec_therm_info *info = dev_get_drvdata(dev);
+	struct sec_subtherm_info *info = dev_get_drvdata(dev);
 
 	schedule_delayed_work(&info->polling_work,
 			msecs_to_jiffies(info->pdata->polling_interval));
 	return 0;
 }
 #else
-#define sec_therm_suspend	NULL
-#define sec_therm_resume	NULL
-#endif /* CONFIG_PM */
+#define	sec_subtherm_suspend	NULL
+#define sec_subtherm_resume	NULL
+#endif
 
-static const struct dev_pm_ops sec_thermistor_pm_ops = {
-	.suspend = sec_therm_suspend,
-	.resume = sec_therm_resume,
+static const struct dev_pm_ops sec_subthermistor_pm_ops = {
+	.suspend = sec_subtherm_suspend,
+	.resume = sec_subtherm_resume,
 };
 
-static struct platform_driver sec_thermistor_driver = {
+static struct platform_driver sec_subthermistor_driver = {
 	.driver = {
-		   .name = "sec-thermistor",
-		   .owner = THIS_MODULE,
-		   .pm = &sec_thermistor_pm_ops,
+		.name = "sec-subthermistor",
+		.owner = THIS_MODULE,
+		.pm = &sec_subthermistor_pm_ops,
 	},
-	.probe = sec_therm_probe,
-	.remove = __devexit_p(sec_therm_remove),
+	.probe = sec_subtherm_probe,
+	.remove = __devexit_p(sec_subtherm_remove),
 };
 
-static int __init sec_therm_init(void)
+static int __init sec_subtherm_init(void)
 {
-	return platform_driver_register(&sec_thermistor_driver);
+	return platform_driver_register(&sec_subthermistor_driver);
 }
-module_init(sec_therm_init);
+module_init(sec_subtherm_init);
 
-static void __exit sec_therm_exit(void)
+static void __exit sec_subtherm_exit(void)
 {
-	platform_driver_unregister(&sec_thermistor_driver);
+	platform_driver_unregister(&sec_subthermistor_driver);
 }
-module_exit(sec_therm_exit);
+module_exit(sec_subtherm_exit);
 
-MODULE_AUTHOR("ms925.kim@samsung.com");
-MODULE_DESCRIPTION("sec thermistor driver");
+MODULE_AUTHOR("bw.moon@samsung.com");
+MODULE_DESCRIPTION("sec sub thermistor driver");
 MODULE_LICENSE("GPL");

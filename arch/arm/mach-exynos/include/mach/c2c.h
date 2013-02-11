@@ -1,4 +1,5 @@
-/*
+/* linux/arch/arm/mach-exynos/include/mach/c2c.h
+ *
  * Copyright 2011 Samsung Electronics Co., Ltd.
  *		http://www.samsung.com/
  *

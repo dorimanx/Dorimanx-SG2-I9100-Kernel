@@ -427,36 +427,6 @@ void gpio_keys_check_zoom_exception(unsigned int code,
 	}
 	*zoomkey = true;
 }
-
-#define ZOOM_OUT    0
-#define ZOOM_MIDDLE 1
-#define ZOOM_IN     2
-
-bool is_zoom_key(unsigned int code, unsigned int *type)
-{
-	if (code == KEY_CAMERA_ZOOMIN ||
-		code == 0x221) {
-		*type = ZOOM_IN;
-		return true;
-	} else if (code == KEY_CAMERA_ZOOMOUT ||
-		code == 0x222) {
-		*type == ZOOM_OUT;
-		return true;
-	}
-
-	*type = ZOOM_MIDDLE;
-	return false;
-}
-
-unsigned int check_zoom_state(struct gpio_keys_drvdata *ddata)
-{
-	if (ddata->data[5].key_state || ddata->data[3].key_state)
-		return ZOOM_IN;
-	else if (ddata->data[6].key_state || ddata->data[4].key_state)
-		return ZOOM_OUT;
-
-	return ZOOM_MIDDLE;
-}
 #endif
 
 #ifdef CONFIG_FAST_BOOT
@@ -538,7 +508,6 @@ static void gpio_keys_report_event(struct gpio_button_data *bdata)
 					wake_unlock(&fake_lock);
 			}
 		}
-		bdata->wakeup = false;
 		return ;
 	}
 #endif
@@ -560,31 +529,6 @@ static void gpio_keys_report_event(struct gpio_button_data *bdata)
 
 		gpio_keys_check_zoom_exception(button->code, &zoomkey,
 				&hotkey, &index_hotkey);
-	} else if (system_rev >= 6) {
-		/*exclusive check for zoom dial*/
-		unsigned int zoom_type = 0;
-		unsigned int current_zoom_state = 0;
-		bool pass_cur_event = false;
-
-		if (is_zoom_key(button->code, &zoom_type)) {
-			current_zoom_state = check_zoom_state(ddata);
-
-			if (zoom_type == ZOOM_IN
-				&& current_zoom_state == ZOOM_OUT)
-					pass_cur_event = true;
-			else if (zoom_type == ZOOM_OUT
-				&& current_zoom_state == ZOOM_IN)
-					pass_cur_event = true;
-
-			if (pass_cur_event) {
-#if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-				printk(KERN_DEBUG "[keys] Pass zoom"
-					"current %d, code %d\n",
-					current_zoom_state, button->code);
-#endif
-				return ;
-			}
-		}
 	}
 #endif
 

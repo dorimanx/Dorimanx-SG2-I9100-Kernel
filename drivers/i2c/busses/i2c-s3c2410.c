@@ -532,9 +532,6 @@ static int s3c24xx_i2c_doxfer(struct s3c24xx_i2c *i2c,
 	unsigned long iicstat, timeout;
 	int spins = 20;
 	int ret;
-#ifdef CONFIG_MACH_GC1
-	unsigned int cur_slave_addr;
-#endif
 
 	if (i2c->suspended)
 		return -EIO;
@@ -584,16 +581,9 @@ static int s3c24xx_i2c_doxfer(struct s3c24xx_i2c *i2c,
 	/* first, try busy waiting briefly */
 #ifdef CONFIG_MACH_GC1
 	iicstat = readl(i2c->regs + S3C2410_IICSTAT);
-	cur_slave_addr = readl(i2c->regs + S3C2410_IICADD);
-	if (cur_slave_addr == 0x1F) {
-		while ((iicstat & S3C2410_IICSTAT_START) && --spins) {
-			udelay(1000);
-			iicstat = readl(i2c->regs + S3C2410_IICSTAT);
-		}
-	} else {
-		do {
-			iicstat = readl(i2c->regs + S3C2410_IICSTAT);
-		} while ((iicstat & S3C2410_IICSTAT_START) && --spins);
+	while ((iicstat & S3C2410_IICSTAT_START) && --spins) {
+		udelay(1000);
+		iicstat = readl(i2c->regs + S3C2410_IICSTAT);
 	}
 #else
 	do {
@@ -601,11 +591,12 @@ static int s3c24xx_i2c_doxfer(struct s3c24xx_i2c *i2c,
 	} while ((iicstat & S3C2410_IICSTAT_START) && --spins);
 #endif
 
-
 	/* if that timed out sleep */
 	if (!spins) {
 		usleep_range(1000, 1000);
 		iicstat = readl(i2c->regs + S3C2410_IICSTAT);
+		dev_err(i2c->dev, "s3c24xx_i2c_doxfer time out sleep %d\n",
+				spins);
 	}
 
 	/* if still not finished, clean it up */
@@ -613,25 +604,9 @@ static int s3c24xx_i2c_doxfer(struct s3c24xx_i2c *i2c,
 
 	if (iicstat & S3C2410_IICSTAT_BUSBUSY) {
 #ifdef CONFIG_MACH_GC1
-		if (cur_slave_addr == 0x1F) {
-			dev_err(i2c->dev, "timeout waiting for bus idle\n");
-			dump_i2c_register(i2c);
-			ret =  -EINVAL;
-		} else {
-			dev_dbg(i2c->dev, "timeout waiting for bus idle\n");
-			dump_i2c_register(i2c);
-
-			if (i2c->state != STATE_STOP) {
-				dev_dbg(i2c->dev, "timeout : i2c interrupt hasn't occurred\n");
-				s3c24xx_i2c_stop(i2c, 0);
-			}
-
-			/* Disable Serial Out : \
-			   To forcely terminate the connection */
-			iicstat = readl(i2c->regs + S3C2410_IICSTAT);
-			iicstat &= ~S3C2410_IICSTAT_TXRXEN;
-			writel(iicstat, i2c->regs + S3C2410_IICSTAT);
-		}
+		dev_err(i2c->dev, "timeout waiting for bus idle\n");
+		dump_i2c_register(i2c);
+		ret =  -EINVAL;
 #else
 		dev_dbg(i2c->dev, "timeout waiting for bus idle\n");
 		dump_i2c_register(i2c);
