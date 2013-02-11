@@ -830,7 +830,7 @@ irqreturn_t usb_resume_irq(int irq, void *data)
 	 * this is temporary solution until SYS.LSI resolve this problem.
 	 */
 	__raw_writel(eint_irq_to_bit(irq), S5P_EINT_PEND(EINT_REG_NR(irq)));
-	wake_lock_timeout(&usb_ld->gpiolock, 100);
+	wake_lock_timeout(&usb_ld->gpiolock, 50);
 
 	mif_err("< H-WUP %d\n", hwup);
 
