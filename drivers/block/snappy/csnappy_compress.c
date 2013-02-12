@@ -140,12 +140,10 @@ static uint8_t* emit_copy(
 	DCHECK_GE(len, 4);
 	if ((len < 12) && (offset < 2048)) {
 		int len_minus_4 = len - 4;
-		*op++ = COPY_1_BYTE_OFFSET   |
-			((len_minus_4) << 2) |
-			((offset >> 8) << 5);
+		*op++ = COPY_1_BYTE_OFFSET + ((len_minus_4) << 2) + ((offset >> 8) << 5);
 		*op++ = offset & 0xff;
 	} else {
-		*op++ = COPY_2_BYTE_OFFSET | ((len-1) << 2);
+		*op++ = COPY_2_BYTE_OFFSET + ((len-1) << 2);
 		*op++ = offset & 255;
 		*op++ = offset >> 8;
 	}
