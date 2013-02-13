@@ -48,6 +48,9 @@
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
+#include <net/bluetooth/hci_mon.h>
+
+static atomic_t monitor_promisc = ATOMIC_INIT(0);
 
 /* ----- HCI socket interface ----- */
 
@@ -92,6 +95,7 @@ void hci_send_to_sock(struct hci_dev *hdev, struct sk_buff *skb,
 	BT_DBG("hdev %p len %d", hdev, skb->len);
 
 	read_lock(&hci_sk_list.lock);
+
 	sk_for_each(sk, node, &hci_sk_list.head) {
 		struct hci_filter *flt;
 		struct sk_buff *nskb;
@@ -116,7 +120,8 @@ void hci_send_to_sock(struct hci_dev *hdev, struct sk_buff *skb,
 		flt = &hci_pi(sk)->filter;
 
 		if (!test_bit((bt_cb(skb)->pkt_type == HCI_VENDOR_PKT) ?
-				0 : (bt_cb(skb)->pkt_type & HCI_FLT_TYPE_BITS), &flt->type_mask))
+			      0 : (bt_cb(skb)->pkt_type & HCI_FLT_TYPE_BITS),
+			      &flt->type_mask))
 			continue;
 
 		if (bt_cb(skb)->pkt_type == HCI_EVENT_PKT) {
@@ -215,7 +220,8 @@ static int hci_sock_blacklist_del(struct hci_dev *hdev, void __user *arg)
 }
 
 /* Ioctls that require bound socket */
-static inline int hci_sock_bound_ioctl(struct sock *sk, unsigned int cmd, unsigned long arg)
+static inline int hci_sock_bound_ioctl(struct sock *sk, unsigned int cmd,
+				unsigned long arg)
 {
 	struct hci_dev *hdev = hci_pi(sk)->hdev;
 
@@ -260,7 +266,8 @@ static inline int hci_sock_bound_ioctl(struct sock *sk, unsigned int cmd, unsign
 	}
 }
 
-static int hci_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long arg)
+static int hci_sock_ioctl(struct socket *sock, unsigned int cmd,
+			  unsigned long arg)
 {
 	struct sock *sk = sock->sk;
 	void __user *argp = (void __user *) arg;
@@ -321,7 +328,8 @@ static int hci_sock_ioctl(struct socket *sock, unsigned int cmd, unsigned long a
 	}
 }
 
-static int hci_sock_bind(struct socket *sock, struct sockaddr *addr, int addr_len)
+static int hci_sock_bind(struct socket *sock, struct sockaddr *addr,
+			 int addr_len)
 {
 	struct sockaddr_hci haddr;
 	struct sock *sk = sock->sk;
@@ -373,7 +381,8 @@ done:
 	return err;
 }
 
-static int hci_sock_getname(struct socket *sock, struct sockaddr *addr, int *addr_len, int peer)
+static int hci_sock_getname(struct socket *sock, struct sockaddr *addr,
+			    int *addr_len, int peer)
 {
 	struct sockaddr_hci *haddr = (struct sockaddr_hci *) addr;
 	struct sock *sk = sock->sk;
@@ -389,18 +398,21 @@ static int hci_sock_getname(struct socket *sock, struct sockaddr *addr, int *add
 	*addr_len = sizeof(*haddr);
 	haddr->hci_family = AF_BLUETOOTH;
 	haddr->hci_dev    = hdev->id;
+	haddr->hci_channel= 0;
 
 	release_sock(sk);
 	return 0;
 }
 
-static inline void hci_sock_cmsg(struct sock *sk, struct msghdr *msg, struct sk_buff *skb)
+static void hci_sock_cmsg(struct sock *sk, struct msghdr *msg,
+			  struct sk_buff *skb)
 {
 	__u32 mask = hci_pi(sk)->cmsg_mask;
 
 	if (mask & HCI_CMSG_DIR) {
 		int incoming = bt_cb(skb)->incoming;
-		put_cmsg(msg, SOL_HCI, HCI_CMSG_DIR, sizeof(incoming), &incoming);
+		put_cmsg(msg, SOL_HCI, HCI_CMSG_DIR, sizeof(incoming),
+			 &incoming);
 	}
 
 	if (mask & HCI_CMSG_TSTAMP) {
@@ -416,7 +428,8 @@ static inline void hci_sock_cmsg(struct sock *sk, struct msghdr *msg, struct sk_
 		data = &tv;
 		len = sizeof(tv);
 #ifdef CONFIG_COMPAT
-		if (msg->msg_flags & MSG_CMSG_COMPAT) {
+		if (!COMPAT_USE_64BIT_TIME &&
+		    (msg->msg_flags & MSG_CMSG_COMPAT)) {
 			ctv.tv_sec = tv.tv_sec;
 			ctv.tv_usec = tv.tv_usec;
 			data = &ctv;
@@ -429,7 +442,7 @@ static inline void hci_sock_cmsg(struct sock *sk, struct msghdr *msg, struct sk_
 }
 
 static int hci_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
-				struct msghdr *msg, size_t len, int flags)
+			    struct msghdr *msg, size_t len, int flags)
 {
 	int noblock = flags & MSG_DONTWAIT;
 	struct sock *sk = sock->sk;
@@ -528,8 +541,9 @@ static int hci_sock_sendmsg(struct kiocb *iocb, struct socket *sock,
 		u16 ocf = hci_opcode_ocf(opcode);
 
 		if (((ogf > HCI_SFLT_MAX_OGF) ||
-				!hci_test_bit(ocf & HCI_FLT_OCF_BITS, &hci_sec_filter.ocf_mask[ogf])) &&
-					!capable(CAP_NET_RAW)) {
+		     !hci_test_bit(ocf & HCI_FLT_OCF_BITS,
+				   &hci_sec_filter.ocf_mask[ogf])) &&
+		    !capable(CAP_NET_RAW)) {
 			err = -EPERM;
 			goto drop;
 		}
@@ -562,7 +576,8 @@ drop:
 	goto done;
 }
 
-static int hci_sock_setsockopt(struct socket *sock, int level, int optname, char __user *optval, unsigned int len)
+static int hci_sock_setsockopt(struct socket *sock, int level, int optname,
+			       char __user *optval, unsigned int len)
 {
 	struct hci_ufilter uf = { .opcode = 0 };
 	struct sock *sk = sock->sk;
@@ -638,14 +653,24 @@ static int hci_sock_setsockopt(struct socket *sock, int level, int optname, char
 	return err;
 }
 
-static int hci_sock_getsockopt(struct socket *sock, int level, int optname, char __user *optval, int __user *optlen)
+static int hci_sock_getsockopt(struct socket *sock, int level, int optname,
+			       char __user *optval, int __user *optlen)
 {
 	struct hci_ufilter uf;
 	struct sock *sk = sock->sk;
-	int len, opt;
+	int len, opt, err = 0;
+
+	BT_DBG("sk %p, opt %d", sk, optname);
 
 	if (get_user(len, optlen))
 		return -EFAULT;
+
+	lock_sock(sk);
+
+	if (hci_pi(sk)->channel != HCI_CHANNEL_RAW) {
+		err = -EINVAL;
+		goto done;
+	}
 
 	switch (optname) {
 	case HCI_DATA_DIR:
@@ -655,7 +680,7 @@ static int hci_sock_getsockopt(struct socket *sock, int level, int optname, char
 			opt = 0;
 
 		if (put_user(opt, optval))
-			return -EFAULT;
+			err = -EFAULT;
 		break;
 
 	case HCI_TIME_STAMP:
@@ -665,13 +690,14 @@ static int hci_sock_getsockopt(struct socket *sock, int level, int optname, char
 			opt = 0;
 
 		if (put_user(opt, optval))
-			return -EFAULT;
+			err = -EFAULT;
 		break;
 
 	case HCI_FILTER:
 		{
 			struct hci_filter *f = &hci_pi(sk)->filter;
 
+			memset(&uf, 0, sizeof(uf));
 			uf.type_mask = f->type_mask;
 			uf.opcode    = f->opcode;
 			uf.event_mask[0] = *((u32 *) f->event_mask + 0);
@@ -680,15 +706,17 @@ static int hci_sock_getsockopt(struct socket *sock, int level, int optname, char
 
 		len = min_t(unsigned int, len, sizeof(uf));
 		if (copy_to_user(optval, &uf, len))
-			return -EFAULT;
+			err = -EFAULT;
 		break;
 
 	default:
-		return -ENOPROTOOPT;
+		err = -ENOPROTOOPT;
 		break;
 	}
 
-	return 0;
+done:
+	release_sock(sk);
+	return err;
 }
 
 static const struct proto_ops hci_sock_ops = {
@@ -803,8 +831,10 @@ int __init hci_sock_init(void)
 		return err;
 
 	err = bt_sock_register(BTPROTO_HCI, &hci_sock_family_ops);
-	if (err < 0)
+	if (err < 0) {
+		BT_ERR("HCI socket registration failed");
 		goto error;
+	}
 
 	hci_register_notifier(&hci_sock_nblock);
 
@@ -813,7 +843,6 @@ int __init hci_sock_init(void)
 	return 0;
 
 error:
-	BT_ERR("HCI socket registration failed");
 	proto_unregister(&hci_sk_proto);
 	return err;
 }

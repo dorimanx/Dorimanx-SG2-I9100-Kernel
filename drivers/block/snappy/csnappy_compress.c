@@ -69,17 +69,16 @@ encode_varint32(char *sptr, uint32_t v)
 	return (char *)ptr;
 }
 
-/*
- * *** DO NOT CHANGE THE VALUE OF kBlockSize ***
-
- * New Compression code chops up the input into blocks of at most
- * the following size.  This ensures that back-references in the
- * output never cross kBlockSize block boundaries.  This can be
- * helpful in implementing blocked decompression.  However the
- * decompression code should not rely on this guarantee since older
- * compression code may not obey it.
- */
-#define kBlockLog 15
+// The size of a compression block. Note that many parts of the compression
+// code assumes that kBlockSize <= 65536; in particular, the hash table
+// can only store 16-bit offsets, and EmitCopy() also assumes the offset
+// is 65535 bytes or less. Note also that if you change this, it will
+// affect the framing format (see framing_format.txt).
+//
+// Note that there might be older data around that is compressed with larger
+// block sizes, so the decompression code should not rely on the
+// non-existence of long backreferences.
+#define kBlockLog 16
 #define kBlockSize (1 << kBlockLog)
 
 

@@ -20,19 +20,22 @@
    SOFTWARE IS DISCLAIMED.
 */
 
+#include <linux/crypto.h>
+#include <linux/scatterlist.h>
+#include <crypto/b128ops.h>
+
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
 #include <net/bluetooth/l2cap.h>
 #include <net/bluetooth/mgmt.h>
 #include <net/bluetooth/smp.h>
-#include <linux/crypto.h>
-#include <linux/scatterlist.h>
-#include <crypto/b128ops.h>
+
+#define SMP_TIMEOUT	msecs_to_jiffies(30000)
+
+#define AUTH_REQ_MASK   0x07
 
 /* SSBT :: KJH + */
 #include <asm/unaligned.h>
-
-#define SMP_TIMEOUT 30000 /* 30 seconds */
 
 static inline void swap128(u8 src[16], u8 dst[16])
 {
@@ -190,8 +193,7 @@ static void smp_send_cmd(struct l2cap_conn *conn, u8 code, u16 len, void *data)
 
 	/* SSBT :: NEO + (0213) */
 	del_timer_sync(&conn->security_timer);
-	mod_timer(&conn->security_timer, jiffies +
-				msecs_to_jiffies(SMP_TIMEOUT));
+	mod_timer(&conn->security_timer, SMP_TIMEOUT);
 }
 
 static __u8 authreq_to_seclevel(__u8 authreq)
@@ -220,6 +222,7 @@ static void build_pairing_cmd(struct l2cap_conn *conn,
 				__u8 authreq)
 {
 	u8 dist_keys = 0;
+
 	if (test_bit(HCI_PAIRABLE, &conn->hcon->hdev->dev_flags)) {
 		dist_keys = SMP_DIST_ENC_KEY;
 		authreq |= SMP_AUTH_BONDING;
@@ -408,12 +411,11 @@ static void confirm_work(struct work_struct *work)
 
 	if (conn->hcon->out)
 		ret = smp_c1(tfm, smp->tk, smp->prnd, smp->preq, smp->prsp, 0,
-				conn->src, conn->hcon->dst_type, conn->dst,
-				res);
+			     conn->src, conn->hcon->dst_type, conn->dst, res);
 	else
 		ret = smp_c1(tfm, smp->tk, smp->prnd, smp->preq, smp->prsp,
-				conn->hcon->dst_type, conn->dst, 0, conn->src,
-				res);
+			     conn->hcon->dst_type, conn->dst, 0, conn->src,
+			     res);
 	if (ret) {
 		reason = SMP_UNSPECIFIED;
 		goto error;
@@ -448,12 +450,10 @@ static void random_work(struct work_struct *work)
 
 	if (hcon->out)
 		ret = smp_c1(tfm, smp->tk, smp->rrnd, smp->preq, smp->prsp, 0,
-				conn->src, hcon->dst_type, conn->dst,
-				res);
+			     conn->src, hcon->dst_type, conn->dst, res);
 	else
 		ret = smp_c1(tfm, smp->tk, smp->rrnd, smp->preq, smp->prsp,
-				hcon->dst_type, conn->dst, 0, conn->src,
-				res);
+			     hcon->dst_type, conn->dst, 0, conn->src, res);
 	if (ret) {
 		reason = SMP_UNSPECIFIED;
 		goto error;
@@ -478,7 +478,7 @@ static void random_work(struct work_struct *work)
 		swap128(key, stk);
 
 		memset(stk + smp->enc_key_size, 0,
-				SMP_MAX_ENC_KEY_SIZE - smp->enc_key_size);
+		       SMP_MAX_ENC_KEY_SIZE - smp->enc_key_size);
 
 		if (test_and_set_bit(HCI_CONN_ENCRYPT_PEND, &hcon->flags)) {
 			reason = SMP_UNSPECIFIED;
@@ -504,8 +504,8 @@ static void random_work(struct work_struct *work)
 				SMP_MAX_ENC_KEY_SIZE - smp->enc_key_size);
 
 		hci_add_ltk(hcon->hdev, conn->dst, hcon->dst_type,
-						HCI_SMP_STK_SLAVE, 0, 0, stk,
-						smp->enc_key_size, ediv, rand);
+			    HCI_SMP_STK_SLAVE, 0, 0, stk, smp->enc_key_size,
+			    ediv, rand);
 	}
 
 	return;
@@ -539,8 +539,6 @@ void smp_chan_destroy(struct l2cap_conn *conn)
 	struct smp_chan *smp = conn->smp_chan;
 
 	BUG_ON(!smp);
-
-	/* clear_bit(HCI_CONN_LE_SMP_PEND, &conn->hcon->flags); */
 
 	if (smp->tfm)
 		crypto_free_blkcipher(smp->tfm);
@@ -607,8 +605,11 @@ static u8 smp_cmd_pairing_req(struct l2cap_conn *conn, struct sk_buff *skb)
 
 	if (!test_and_set_bit(HCI_CONN_LE_SMP_PEND, &conn->hcon->flags))
 		smp = smp_chan_create(conn);
+	else
+		smp = conn->smp_chan;
 
-	smp = conn->smp_chan;
+	if (!smp)
+		return SMP_UNSPECIFIED;
 
 	smp->preq[0] = SMP_CMD_PAIRING_REQ;
 	memcpy(&smp->preq[1], req, sizeof(*req));
@@ -864,8 +865,8 @@ static int smp_cmd_master_ident(struct l2cap_conn *conn, struct sk_buff *skb)
 	hci_dev_lock(hdev);
 	authenticated = (conn->hcon->sec_level == BT_SECURITY_HIGH);
 	hci_add_ltk(conn->hcon->hdev, conn->dst, hcon->dst_type,
-					HCI_SMP_LTK, 1, authenticated, smp->tk,
-					smp->enc_key_size, rp->ediv, rp->rand);
+		    HCI_SMP_LTK, 1, authenticated, smp->tk, smp->enc_key_size,
+		    rp->ediv, rp->rand);
 	smp_distribute_keys(conn, 1);
 	hci_dev_unlock(hdev);
 
@@ -993,9 +994,8 @@ int smp_distribute_keys(struct l2cap_conn *conn, __u8 force)
 
 		authenticated = hcon->sec_level == BT_SECURITY_HIGH;
 		hci_add_ltk(conn->hcon->hdev, conn->dst, hcon->dst_type,
-					HCI_SMP_LTK_SLAVE, 1, authenticated,
-					enc.ltk, smp->enc_key_size,
-					ediv, ident.rand);
+			    HCI_SMP_LTK_SLAVE, 1, authenticated,
+			    enc.ltk, smp->enc_key_size, ediv, ident.rand);
 
 		ident.ediv = cpu_to_le16(ediv);
 

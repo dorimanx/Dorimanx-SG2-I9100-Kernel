@@ -56,8 +56,8 @@
 
 #define VERSION "1.3"
 
-static int compress_src = 1;
-static int compress_dst = 1;
+static bool compress_src = true;
+static bool compress_dst = true;
 
 static LIST_HEAD(bnep_session_list);
 static DECLARE_RWSEM(bnep_session_sem);
@@ -79,17 +79,12 @@ static struct bnep_session *__bnep_get_session(u8 *dst)
 
 static void __bnep_link_session(struct bnep_session *s)
 {
-	/* It's safe to call __module_get() here because sessions are added
-	   by the socket layer which has to hold the reference to this module.
-	 */
-	__module_get(THIS_MODULE);
 	list_add(&s->list, &bnep_session_list);
 }
 
 static void __bnep_unlink_session(struct bnep_session *s)
 {
 	list_del(&s->list);
-	module_put(THIS_MODULE);
 }
 
 static int bnep_send(struct bnep_session *s, void *data, size_t len)
@@ -124,8 +119,7 @@ static inline void bnep_set_default_proto_filter(struct bnep_session *s)
 }
 #endif
 
-static int bnep_ctrl_set_netfilter(struct bnep_session *s,
-					__be16 *data, int len)
+static int bnep_ctrl_set_netfilter(struct bnep_session *s, __be16 *data, int len)
 {
 	int n;
 
@@ -163,8 +157,7 @@ static int bnep_ctrl_set_netfilter(struct bnep_session *s,
 
 		bnep_send_rsp(s, BNEP_FILTER_NET_TYPE_RSP, BNEP_SUCCESS);
 	} else {
-		bnep_send_rsp(s, BNEP_FILTER_NET_TYPE_RSP,
-				BNEP_FILTER_LIMIT_REACHED);
+		bnep_send_rsp(s, BNEP_FILTER_NET_TYPE_RSP, BNEP_FILTER_LIMIT_REACHED);
 	}
 #else
 	bnep_send_rsp(s, BNEP_FILTER_NET_TYPE_RSP, BNEP_FILTER_UNSUPPORTED_REQ);
@@ -349,7 +342,7 @@ static inline int bnep_rx_frame(struct bnep_session *s, struct sk_buff *skb)
 	}
 
 	/* Strip 802.1p header */
-	if (ntohs(s->eh.h_proto) == 0x8100) {
+	if (ntohs(s->eh.h_proto) == ETH_P_8021Q) {
 		if (!skb_pull(skb, 4))
 			goto badframe;
 		s->eh.h_proto = get_unaligned((__be16 *) (skb->data - 2));
@@ -532,6 +525,7 @@ static int bnep_session(void *arg)
 
 	up_write(&bnep_session_sem);
 	free_netdev(dev);
+	module_put_and_exit(0);
 	return 0;
 }
 
@@ -618,9 +612,11 @@ int bnep_add_connection(struct bnep_connadd_req *req, struct socket *sock)
 
 	__bnep_link_session(s);
 
+	__module_get(THIS_MODULE);
 	s->task = kthread_run(bnep_session, s, "kbnepd %s", dev->name);
 	if (IS_ERR(s->task)) {
 		/* Session thread start failed, gotta cleanup. */
+		module_put(THIS_MODULE);
 		unregister_netdev(dev);
 		__bnep_unlink_session(s);
 		err = PTR_ERR(s->task);

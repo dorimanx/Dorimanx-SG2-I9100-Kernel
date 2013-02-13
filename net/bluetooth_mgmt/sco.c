@@ -50,7 +50,7 @@
 #include <net/bluetooth/hci_core.h>
 #include <net/bluetooth/sco.h>
 
-static int disable_esco;
+static bool disable_esco;
 
 static const struct proto_ops sco_sock_ops;
 
@@ -159,7 +159,8 @@ static int sco_conn_del(struct hci_conn *hcon, int err)
 	return 0;
 }
 
-static inline int sco_chan_add(struct sco_conn *conn, struct sock *sk, struct sock *parent)
+static inline int sco_chan_add(struct sco_conn *conn, struct sock *sk,
+			struct sock *parent)
 {
 	int err = 0;
 
@@ -189,7 +190,7 @@ static int sco_connect(struct sock *sk, __s8 is_wbs)
 	if (!hdev)
 		return -EHOSTUNREACH;
 
-	hci_dev_lock_bh(hdev);
+	hci_dev_lock(hdev);
 	/* SS_BT::VSC + HFP1.6 */
 	hdev->is_wbs = is_wbs;
 
@@ -240,7 +241,7 @@ static int sco_connect(struct sock *sk, __s8 is_wbs)
 	}
 
 done:
-	hci_dev_unlock_bh(hdev);
+	hci_dev_unlock(hdev);
 	hci_dev_put(hdev);
 	return err;
 }
@@ -295,8 +296,8 @@ drop:
 /* -------- Socket interface ---------- */
 static struct sock *__sco_get_sock_by_addr(bdaddr_t *ba)
 {
-	struct sock *sk;
 	struct hlist_node *node;
+	struct sock *sk;
 
 	sk_for_each(sk, node, &sco_sk_list.head)
 		if (!bacmp(&bt_sk(sk)->src, ba))
@@ -501,7 +502,7 @@ static int sco_sock_bind(struct socket *sock, struct sockaddr *addr, int alen)
 		goto done;
 	}
 
-	write_lock_bh(&sco_sk_list.lock);
+	write_lock(&sco_sk_list.lock);
 
 	if (bacmp(src, BDADDR_ANY) && __sco_get_sock_by_addr(src)) {
 		err = -EADDRINUSE;
@@ -512,7 +513,7 @@ static int sco_sock_bind(struct socket *sock, struct sockaddr *addr, int alen)
 		sk->sk_state = BT_BOUND;
 	}
 
-	write_unlock_bh(&sco_sk_list.lock);
+	write_unlock(&sco_sk_list.lock);
 
 done:
 	release_sock(sk);
@@ -804,7 +805,7 @@ static int sco_sock_shutdown(struct socket *sock, int how)
 
 		if (sock_flag(sk, SOCK_LINGER) && sk->sk_lingertime)
 			err = bt_sock_wait_state(sk, BT_CLOSED,
-							sk->sk_lingertime);
+						 sk->sk_lingertime);
 	}
 	release_sock(sk);
 	return err;
@@ -894,7 +895,7 @@ static void sco_conn_ready(struct sco_conn *conn)
 		bh_lock_sock(parent);
 
 		sk = sco_sock_alloc(sock_net(parent), NULL,
-				BTPROTO_SCO, GFP_ATOMIC);
+				    BTPROTO_SCO, GFP_ATOMIC);
 		if (!sk) {
 			bh_unlock_sock(parent);
 			goto done;
@@ -1009,14 +1010,14 @@ static int sco_debugfs_show(struct seq_file *f, void *p)
 	struct sock *sk;
 	struct hlist_node *node;
 
-	read_lock_bh(&sco_sk_list.lock);
+	read_lock(&sco_sk_list.lock);
 
 	sk_for_each(sk, node, &sco_sk_list.head) {
 		seq_printf(f, "%s %s %d\n", batostr(&bt_sk(sk)->src),
 				batostr(&bt_sk(sk)->dst), sk->sk_state);
 	}
 
-	read_unlock_bh(&sco_sk_list.lock);
+	read_unlock(&sco_sk_list.lock);
 
 	return 0;
 }
@@ -1092,8 +1093,8 @@ int __init sco_init(void)
 	}
 
 	if (bt_debugfs) {
-		sco_debugfs = debugfs_create_file("sco", 0444,
-					bt_debugfs, NULL, &sco_debugfs_fops);
+		sco_debugfs = debugfs_create_file("sco", 0444, bt_debugfs,
+						  NULL, &sco_debugfs_fops);
 		if (!sco_debugfs)
 			BT_ERR("Failed to create SCO debug file");
 	}
