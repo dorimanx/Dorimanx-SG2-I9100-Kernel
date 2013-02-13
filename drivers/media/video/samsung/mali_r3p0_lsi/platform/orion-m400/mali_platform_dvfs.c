@@ -366,11 +366,10 @@ static unsigned int decideNextStatus(unsigned int utilization)
 				level < MALI_DVFS_STEPS - 1) {
 			level++;
 		}
-	}
-
-	if (utilization < (int)(255 * mali_dvfs_threshold[maliDvfsStatus.currentStep].downthreshold / 100) &&
-			level > 0) {
-		level--;
+		if (utilization < (int)(255 * mali_dvfs_threshold[maliDvfsStatus.currentStep].downthreshold / 100) &&
+				level > 0) {
+			level--;
+		}
 	} else if (mali_dvfs_control == 999) {
 		int i = 0;
 		for (i = 0; i < MALI_DVFS_STEPS; i++) {
