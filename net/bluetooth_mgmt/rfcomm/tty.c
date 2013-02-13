@@ -47,6 +47,7 @@
 static struct tty_driver *rfcomm_tty_driver;
 
 struct rfcomm_dev {
+	struct tty_port		port;
 	struct list_head	list;
 	atomic_t		refcnt;
 
@@ -75,7 +76,7 @@ struct rfcomm_dev {
 };
 
 static LIST_HEAD(rfcomm_dev_list);
-static DEFINE_RWLOCK(rfcomm_dev_lock);
+static DEFINE_SPINLOCK(rfcomm_dev_lock);
 
 static void rfcomm_dev_data_ready(struct rfcomm_dlc *dlc, struct sk_buff *skb);
 static void rfcomm_dev_state_change(struct rfcomm_dlc *dlc, int err);
@@ -148,7 +149,7 @@ static inline struct rfcomm_dev *rfcomm_dev_get(int id)
 {
 	struct rfcomm_dev *dev;
 
-	read_lock(&rfcomm_dev_lock);
+	spin_lock(&rfcomm_dev_lock);
 
 	dev = __rfcomm_dev_get(id);
 
@@ -159,7 +160,7 @@ static inline struct rfcomm_dev *rfcomm_dev_get(int id)
 			rfcomm_dev_hold(dev);
 	}
 
-	read_unlock(&rfcomm_dev_lock);
+	spin_unlock(&rfcomm_dev_lock);
 
 	return dev;
 }
@@ -207,7 +208,7 @@ static int rfcomm_dev_add(struct rfcomm_dev_req *req, struct rfcomm_dlc *dlc)
 	if (!dev)
 		return -ENOMEM;
 
-	write_lock_bh(&rfcomm_dev_lock);
+	spin_lock(&rfcomm_dev_lock);
 
 	if (req->dev_id < 0) {
 		dev->id = 0;
@@ -294,7 +295,7 @@ static int rfcomm_dev_add(struct rfcomm_dev_req *req, struct rfcomm_dlc *dlc)
 	__module_get(THIS_MODULE);
 
 out:
-	write_unlock_bh(&rfcomm_dev_lock);
+	spin_unlock(&rfcomm_dev_lock);
 
 	if (err < 0)
 		goto free;
@@ -331,9 +332,9 @@ static void rfcomm_dev_del(struct rfcomm_dev *dev)
 	if (atomic_read(&dev->opened) > 0)
 		return;
 
-	write_lock_bh(&rfcomm_dev_lock);
+	spin_lock(&rfcomm_dev_lock);
 	list_del_init(&dev->list);
-	write_unlock_bh(&rfcomm_dev_lock);
+	spin_unlock(&rfcomm_dev_lock);
 
 	rfcomm_dev_put(dev);
 }
@@ -471,13 +472,13 @@ static int rfcomm_get_dev_list(void __user *arg)
 
 	size = sizeof(*dl) + dev_num * sizeof(*di);
 
-	dl = kmalloc(size, GFP_KERNEL);
+	dl = kzalloc(size, GFP_KERNEL);
 	if (!dl)
 		return -ENOMEM;
 
 	di = dl->dev_info;
 
-	read_lock_bh(&rfcomm_dev_lock);
+	spin_lock(&rfcomm_dev_lock);
 
 	list_for_each(p, &rfcomm_dev_list) {
 		struct rfcomm_dev *dev = list_entry(p, struct rfcomm_dev, list);
@@ -493,7 +494,7 @@ static int rfcomm_get_dev_list(void __user *arg)
 			break;
 	}
 
-	read_unlock_bh(&rfcomm_dev_lock);
+	spin_unlock(&rfcomm_dev_lock);
 
 	dl->dev_num = n;
 	size = sizeof(*dl) + n * sizeof(*di);
@@ -770,9 +771,9 @@ static void rfcomm_tty_close(struct tty_struct *tty, struct file *filp)
 		rfcomm_dlc_unlock(dev->dlc);
 
 		if (test_bit(RFCOMM_TTY_RELEASED, &dev->flags)) {
-			write_lock_bh(&rfcomm_dev_lock);
+			spin_lock(&rfcomm_dev_lock);
 			list_del_init(&dev->list);
-			write_unlock_bh(&rfcomm_dev_lock);
+			spin_unlock(&rfcomm_dev_lock);
 
 			rfcomm_dev_put(dev);
 		}

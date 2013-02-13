@@ -30,6 +30,7 @@
 #include <linux/list.h>
 #include <linux/poll.h>
 #include <net/sock.h>
+#include <linux/seq_file.h>
 
 #ifndef AF_BLUETOOTH
 #define AF_BLUETOOTH	31
@@ -82,6 +83,33 @@ struct bt_power {
 #define BT_POWER_FORCE_ACTIVE_OFF 0
 #define BT_POWER_FORCE_ACTIVE_ON  1
 
+#define BT_CHANNEL_POLICY	10
+
+/* BR/EDR only (default policy)
+ *   AMP controllers cannot be used.
+ *   Channel move requests from the remote device are denied.
+ *   If the L2CAP channel is currently using AMP, move the channel to BR/EDR.
+ */
+#define BT_CHANNEL_POLICY_BREDR_ONLY		0
+
+/* BR/EDR Preferred
+ *   Allow use of AMP controllers.
+ *   If the L2CAP channel is currently on AMP, move it to BR/EDR.
+ *   Channel move requests from the remote device are allowed.
+ */
+#define BT_CHANNEL_POLICY_BREDR_PREFERRED	1
+
+/* AMP Preferred
+ *   Allow use of AMP controllers
+ *   If the L2CAP channel is currently on BR/EDR and AMP controller
+ *     resources are available, initiate a channel move to AMP.
+ *   Channel move requests from the remote device are allowed.
+ *   If the L2CAP socket has not been connected yet, try to create
+ *     and configure the channel directly on an AMP controller rather
+ *     than BR/EDR.
+ */
+#define BT_CHANNEL_POLICY_AMP_PREFERRED		2
+
 __attribute__((format (printf, 2, 3)))
 int bt_printk(const char *level, const char *fmt, ...);
 
@@ -102,13 +130,45 @@ enum {
 	BT_CLOSED
 };
 
+/* If unused will be removed by compiler */
+static inline const char *state_to_string(int state)
+{
+	switch (state) {
+	case BT_CONNECTED:
+		return "BT_CONNECTED";
+	case BT_OPEN:
+		return "BT_OPEN";
+	case BT_BOUND:
+		return "BT_BOUND";
+	case BT_LISTEN:
+		return "BT_LISTEN";
+	case BT_CONNECT:
+		return "BT_CONNECT";
+	case BT_CONNECT2:
+		return "BT_CONNECT2";
+	case BT_CONFIG:
+		return "BT_CONFIG";
+	case BT_DISCONN:
+		return "BT_DISCONN";
+	case BT_CLOSED:
+		return "BT_CLOSED";
+	}
+
+	return "invalid state";
+}
+
 /* BD Address */
 typedef struct {
 	__u8 b[6];
 } __packed bdaddr_t;
 
-#define BDADDR_ANY   (&(bdaddr_t) {{0, 0, 0, 0, 0, 0}})
-#define BDADDR_LOCAL (&(bdaddr_t) {{0, 0, 0, 0xff, 0xff, 0xff}})
+/* BD Address type */
+#define BDADDR_BREDR		0x00
+#define BDADDR_LE_PUBLIC	0x01
+#define BDADDR_LE_RANDOM	0x02
+
+#define BDADDR_ANY   (&(bdaddr_t) {{0, 0, 0, 0, 0, 0} })
+#define BDADDR_LOCAL (&(bdaddr_t) {{0, 0, 0, 0xff, 0xff, 0xff} })
 
 /* Copy, swap, convert BD Address */
 static inline int bacmp(bdaddr_t *ba1, bdaddr_t *ba2)
@@ -135,11 +195,21 @@ struct bt_sock {
 	struct list_head accept_q;
 	struct sock *parent;
 	u32 defer_setup;
+	unsigned long flags;
+};
+
+enum {
+	BT_SK_DEFER_SETUP,
+	BT_SK_SUSPEND,
 };
 
 struct bt_sock_list {
 	struct hlist_head head;
 	rwlock_t          lock;
+#ifdef CONFIG_PROC_FS
+        struct file_operations   fops;
+        int (* custom_seq_show)(struct seq_file *, void *);
+#endif
 };
 
 int  bt_sock_register(int proto, const struct net_proto_family *ops);
@@ -159,6 +229,18 @@ void bt_accept_unlink(struct sock *sk);
 struct sock *bt_accept_dequeue(struct sock *parent, struct socket *newsock);
 
 /* Skb helpers */
+struct l2cap_ctrl {
+	unsigned int	sframe:1,
+			poll:1,
+			final:1,
+			fcs:1,
+			sar:2,
+			super:2;
+	__u16		reqseq;
+	__u16		txseq;
+	__u8		retries;
+};
+
 struct bt_skb_cb {
 	__u8 pkt_type;
 	__u8 incoming;
@@ -168,6 +250,7 @@ struct bt_skb_cb {
 	__u8 sar;
 	unsigned short channel;
 	__u8 force_active;
+	struct l2cap_ctrl control;
 };
 #define bt_cb(skb) ((struct bt_skb_cb *)((skb)->cb))
 
@@ -175,7 +258,8 @@ static inline struct sk_buff *bt_skb_alloc(unsigned int len, gfp_t how)
 {
 	struct sk_buff *skb;
 
-	if ((skb = alloc_skb(len + BT_SKB_RESERVE, how))) {
+	skb = alloc_skb(len + BT_SKB_RESERVE, how);
+	if (skb) {
 		skb_reserve(skb, BT_SKB_RESERVE);
 		bt_cb(skb)->incoming  = 0;
 	}
@@ -188,7 +272,8 @@ static inline struct sk_buff *bt_skb_send_alloc(struct sock *sk,
 	struct sk_buff *skb;
 
 	release_sock(sk);
-	if ((skb = sock_alloc_send_skb(sk, len + BT_SKB_RESERVE, nb, err))) {
+	skb = sock_alloc_send_skb(sk, len + BT_SKB_RESERVE, nb, err);
+	if (skb) {
 		skb_reserve(skb, BT_SKB_RESERVE);
 		bt_cb(skb)->incoming  = 0;
 	}
@@ -220,6 +305,11 @@ extern void hci_sock_cleanup(void);
 
 extern int bt_sysfs_init(void);
 extern void bt_sysfs_cleanup(void);
+
+extern int  bt_procfs_init(struct module* module, struct net *net, const char *name,
+			   struct bt_sock_list* sk_list,
+			   int (* seq_show)(struct seq_file *, void *));
+extern void bt_procfs_cleanup(struct net *net, const char *name);
 
 extern struct dentry *bt_debugfs;
 

@@ -249,11 +249,15 @@ static void hidp_input_report(struct hidp_session *session, struct sk_buff *skb)
 }
 
 static int __hidp_send_ctrl_message(struct hidp_session *session,
-			unsigned char hdr, unsigned char *data, int size)
+				    unsigned char hdr, unsigned char *data,
+				    int size)
 {
 	struct sk_buff *skb;
 
 	BT_DBG("session %p data %p size %d", session, data, size);
+
+	if (atomic_read(&session->terminate))
+		return -EIO;
 
 	skb = alloc_skb(size + 1, GFP_ATOMIC);
 	if (!skb) {
@@ -1012,6 +1016,8 @@ int hidp_add_connection(struct hidp_connadd_req *req, struct socket *ctrl_sock, 
 	session->flags   = req->flags & (1 << HIDP_BLUETOOTH_VENDOR_ID);
 	session->idle_to = req->idle_to;
 
+	__hidp_link_session(session);
+
 	if (req->rd_size > 0) {
 		err = hidp_setup_hid(session, req);
 		if (err && err != -ENODEV)
@@ -1023,8 +1029,6 @@ int hidp_add_connection(struct hidp_connadd_req *req, struct socket *ctrl_sock, 
 		if (err < 0)
 			goto purge;
 	}
-
-	__hidp_link_session(session);
 
 	hidp_set_timer(session);
 
@@ -1074,8 +1078,6 @@ int hidp_add_connection(struct hidp_connadd_req *req, struct socket *ctrl_sock, 
 unlink:
 	hidp_del_timer(session);
 
-	__hidp_unlink_session(session);
-
 	if (session->input) {
 		input_unregister_device(session->input);
 		session->input = NULL;
@@ -1090,6 +1092,8 @@ unlink:
 	session->rd_data = NULL;
 
 purge:
+	__hidp_unlink_session(session);
+
 	skb_queue_purge(&session->ctrl_transmit);
 	skb_queue_purge(&session->intr_transmit);
 

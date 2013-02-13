@@ -855,9 +855,6 @@ config MACH_Q1_BD
 	bool "Q1 Board"
 
 endchoice
-config TARGET_LOCALE_NAATT_TEMP
-        bool "Support North America GSM ATT Board"
-        default n
 
 config MACH_PX
 	bool "PX board"

@@ -2,7 +2,7 @@
 # Bluetooth subsystem configuration
 #
 
-menuconfig BT
+menuconfig BT_ANDROID
 	tristate "Bluetooth subsystem support(Android)"
 	depends on NET && !S390
 	depends on RFKILL || !RFKILL
@@ -33,7 +33,7 @@ menuconfig BT
 	  to Bluetooth kernel modules are provided in the BlueZ packages.  For
 	  more information, see <http://www.bluez.org/>.
 
-if BT != n
+if BT_ANDROID != n
 
 config BT_L2CAP
 	bool "L2CAP protocol support"

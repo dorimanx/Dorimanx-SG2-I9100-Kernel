@@ -35,10 +35,10 @@ obj-$(CONFIG_AX25)		+= ax25/
 obj-$(CONFIG_CAN)		+= can/
 obj-$(CONFIG_IRDA)		+= irda/
 ifeq ($(CONFIG_BT_MGMT),y)
-obj-$(CONFIG_BT)		+= bluetooth_mgmt/
+obj-$(CONFIG_BT_ANDROID)	+= bluetooth_mgmt/
 else
 ifeq ($(CONFIG_BT_TIZEN),y)
-obj-$(CONFIG_BT)		+= bluetooth_tizen/
+obj-$(CONFIG_BT_SG3)		+= bluetooth_tizen/
 else
 obj-$(CONFIG_BT)		+= bluetooth/
 endif
