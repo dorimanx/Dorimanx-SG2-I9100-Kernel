@@ -1081,7 +1081,7 @@ static struct l2cap_conn *l2cap_conn_add(struct hci_conn *hcon, u8 status)
 	if (conn || status)
 		return conn;
 
-	conn = kzalloc(sizeof(struct l2cap_conn), GFP_ATOMIC);
+	conn = kzalloc(sizeof(struct l2cap_conn), GFP_KERNEL);
 	if (!conn)
 		return NULL;
 
@@ -1799,7 +1799,7 @@ static void l2cap_raw_recv(struct l2cap_conn *conn, struct sk_buff *skb)
 		/* Don't send frame to the socket it came from */
 		if (skb->sk == sk)
 			continue;
-		nskb = skb_clone(skb, GFP_ATOMIC);
+		nskb = skb_clone(skb, GFP_KERNEL);
 		if (!nskb)
 			continue;
 
@@ -1824,7 +1824,7 @@ static struct sk_buff *l2cap_build_cmd(struct l2cap_conn *conn, u8 code,
 	len = L2CAP_HDR_SIZE + L2CAP_CMD_HDR_SIZE + dlen;
 	count = min_t(unsigned int, conn->mtu, len);
 
-	skb = bt_skb_alloc(count, GFP_ATOMIC);
+	skb = bt_skb_alloc(count, GFP_KERNEL);
 	if (!skb)
 		return NULL;
 
@@ -1854,7 +1854,7 @@ static struct sk_buff *l2cap_build_cmd(struct l2cap_conn *conn, u8 code,
 	while (len) {
 		count = min_t(unsigned int, conn->mtu, len);
 
-		*frag = bt_skb_alloc(count, GFP_ATOMIC);
+		*frag = bt_skb_alloc(count, GFP_KERNEL);
 		if (!*frag)
 			goto fail;
 
@@ -4367,7 +4367,7 @@ static int l2cap_recv_acldata(struct hci_conn *hcon, struct sk_buff *skb, u16 fl
 		}
 
 		/* Allocate skb for the complete frame (with header) */
-		conn->rx_skb = bt_skb_alloc(len, GFP_ATOMIC);
+		conn->rx_skb = bt_skb_alloc(len, GFP_KERNEL);
 		if (!conn->rx_skb)
 			goto drop;
 

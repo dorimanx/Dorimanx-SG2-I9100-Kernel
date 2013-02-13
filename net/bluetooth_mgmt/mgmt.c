@@ -216,7 +216,7 @@ static int cmd_status(struct sock *sk, u16 index, u16 cmd, u8 status)
 
 	BT_DBG("sock %p, index %u, cmd %u, status %u", sk, index, cmd, status);
 
-	skb = alloc_skb(sizeof(*hdr) + sizeof(*ev), GFP_ATOMIC);
+	skb = alloc_skb(sizeof(*hdr) + sizeof(*ev), GFP_KERNEL);
 	if (!skb)
 		return -ENOMEM;
 
@@ -247,7 +247,7 @@ static int cmd_complete(struct sock *sk, u16 index, u16 cmd, void *rp,
 
 	BT_DBG("sock %p", sk);
 
-	skb = alloc_skb(sizeof(*hdr) + sizeof(*ev) + rp_len, GFP_ATOMIC);
+	skb = alloc_skb(sizeof(*hdr) + sizeof(*ev) + rp_len, GFP_KERNEL);
 	if (!skb)
 		return -ENOMEM;
 
@@ -667,14 +667,14 @@ static struct pending_cmd *mgmt_pending_add(struct sock *sk, u16 opcode,
 {
 	struct pending_cmd *cmd;
 
-	cmd = kmalloc(sizeof(*cmd), GFP_ATOMIC);
+	cmd = kmalloc(sizeof(*cmd), GFP_KERNEL);
 	if (!cmd)
 		return NULL;
 
 	cmd->opcode = opcode;
 	cmd->index = hdev->id;
 
-	cmd->param = kmalloc(len, GFP_ATOMIC);
+	cmd->param = kmalloc(len, GFP_KERNEL);
 	if (!cmd->param) {
 		kfree(cmd);
 		return NULL;
@@ -1013,7 +1013,7 @@ static int add_uuid(struct sock *sk, u16 index, void *data, u16 len)
 
 	hci_dev_lock(hdev);
 
-	uuid = kmalloc(sizeof(*uuid), GFP_ATOMIC);
+	uuid = kmalloc(sizeof(*uuid), GFP_KERNEL);
 	if (!uuid) {
 		err = -ENOMEM;
 		goto failed;
@@ -1405,7 +1405,7 @@ static int get_connections(struct sock *sk, u16 index)
 	}
 
 	rp_len = sizeof(*rp) + (i * sizeof(struct mgmt_addr_info));
-	rp = kmalloc(rp_len, GFP_ATOMIC);
+	rp = kmalloc(rp_len, GFP_KERNEL);
 	if (!rp) {
 		err = -ENOMEM;
 		goto unlock;
