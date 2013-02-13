@@ -589,7 +589,7 @@ _mali_osk_errcode_t mali_platform_init()
 #endif
 #if MALI_DVFS_ENABLED
 	if (!clk_register_map) clk_register_map = _mali_osk_mem_mapioregion( CLK_DIV_STAT_G3D, 0x20, CLK_DESC );
-	if(!init_mali_dvfs_status(MALI_DVFS_DEFAULT_STEP))
+	if (!init_mali_dvfs_status(MALI_DVFS_DEFAULT_STEP))
 		MALI_DEBUG_PRINT(1, ("mali_platform_init failed\n"));
 #endif
 
