@@ -28,6 +28,7 @@
 #include <linux/jiffies.h>
 #include <linux/module.h>
 #include <linux/kmod.h>
+#include <linux/idr.h>
 
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -571,13 +572,13 @@ int hci_inquiry(void __user *arg)
 	if (!hdev)
 		return -ENODEV;
 
-	hci_dev_lock(hdev);
+	hci_dev_lock_bh(hdev);
 	if (inquiry_cache_age(hdev) > INQUIRY_CACHE_AGE_MAX ||
 	    inquiry_cache_empty(hdev) || ir.flags & IREQ_CACHE_FLUSH) {
 		inquiry_cache_flush(hdev);
 		do_inquiry = 1;
 	}
-	hci_dev_unlock(hdev);
+	hci_dev_unlock_bh(hdev);
 
 	timeo = ir.length * msecs_to_jiffies(2000);
 
@@ -601,9 +602,9 @@ int hci_inquiry(void __user *arg)
 		goto done;
 	}
 
-	hci_dev_lock(hdev);
+	hci_dev_lock_bh(hdev);
 	ir.num_rsp = inquiry_cache_dump(hdev, max_rsp, buf);
-	hci_dev_unlock(hdev);
+	hci_dev_unlock_bh(hdev);
 
 	BT_DBG("num_rsp %d", ir.num_rsp);
 
@@ -682,9 +683,9 @@ int hci_dev_open(__u16 dev)
 		set_bit(HCI_UP, &hdev->flags);
 		hci_notify(hdev, HCI_DEV_UP);
 		if (!test_bit(HCI_SETUP, &hdev->dev_flags)) {
-			hci_dev_lock(hdev);
+			hci_dev_lock_bh(hdev);
 			mgmt_powered(hdev, 1);
-			hci_dev_unlock(hdev);
+			hci_dev_unlock_bh(hdev);
 		}
 	} else {
 		/* Init failed, cleanup */
@@ -746,10 +747,10 @@ static int hci_dev_do_close(struct hci_dev *hdev)
 
 	cancel_delayed_work_sync(&hdev->le_scan_disable);
 
-	hci_dev_lock(hdev);
+	hci_dev_lock_bh(hdev);
 	inquiry_cache_flush(hdev);
 	hci_conn_hash_flush(hdev);
-	hci_dev_unlock(hdev);
+	hci_dev_unlock_bh(hdev);
 
 	hci_notify(hdev, HCI_DEV_DOWN);
 
@@ -786,9 +787,9 @@ static int hci_dev_do_close(struct hci_dev *hdev)
 	 * and no tasks are scheduled. */
 	hdev->close(hdev);
 
-	hci_dev_lock(hdev);
+	hci_dev_lock_bh(hdev);
 	mgmt_powered(hdev, 0);
-	hci_dev_unlock(hdev);
+	hci_dev_unlock_bh(hdev);
 
 	/* Clear flags */
 	hdev->flags = 0;
@@ -838,10 +839,10 @@ int hci_dev_reset(__u16 dev)
 	skb_queue_purge(&hdev->rx_q);
 	skb_queue_purge(&hdev->cmd_q);
 
-	hci_dev_lock(hdev);
+	hci_dev_lock_bh(hdev);
 	inquiry_cache_flush(hdev);
 	hci_conn_hash_flush(hdev);
-	hci_dev_unlock(hdev);
+	hci_dev_unlock_bh(hdev);
 
 	if (hdev->flush)
 		hdev->flush(hdev);
@@ -972,7 +973,7 @@ int hci_get_dev_list(void __user *arg)
 
 	dr = dl->dev_req;
 
-	read_lock(&hci_dev_list_lock);
+	read_lock_bh(&hci_dev_list_lock);
 	list_for_each(p, &hci_dev_list) {
 		struct hci_dev *hdev;
 
@@ -990,7 +991,7 @@ int hci_get_dev_list(void __user *arg)
 		if (++n >= dev_num)
 			break;
 	}
-	read_unlock(&hci_dev_list_lock);
+	read_unlock_bh(&hci_dev_list_lock);
 
 	dl->dev_num = n;
 	size = sizeof(*dl) + n * sizeof(*dr);
@@ -1756,7 +1757,7 @@ int hci_register_dev(struct hci_dev *hdev)
 	if (!hdev->open || !hdev->close || !hdev->destruct)
 		return -EINVAL;
 
-	write_lock(&hci_dev_list_lock);
+	write_lock_bh(&hci_dev_list_lock);
 
 	/* Find first available device id */
 	list_for_each(p, &hci_dev_list) {
@@ -1826,7 +1827,7 @@ int hci_register_dev(struct hci_dev *hdev)
 
 	INIT_DELAYED_WORK(&hdev->le_scan_disable, le_scan_disable_work);
 
-	write_unlock(&hci_dev_list_lock);
+	write_unlock_bh(&hci_dev_list_lock);
 
 	hdev->workqueue = create_singlethread_workqueue(hdev->name);
 	if (!hdev->workqueue)
@@ -1859,9 +1860,9 @@ int hci_register_dev(struct hci_dev *hdev)
 	return id;
 
 nomem:
-	write_lock(&hci_dev_list_lock);
+	write_lock_bh(&hci_dev_list_lock);
 	list_del(&hdev->list);
-	write_unlock(&hci_dev_list_lock);
+	write_unlock_bh(&hci_dev_list_lock);
 
 	return -ENOMEM;
 }
@@ -1876,9 +1877,9 @@ int hci_unregister_dev(struct hci_dev *hdev)
 
 	set_bit(HCI_UNREGISTER, &hdev->flags);
 
-	write_lock(&hci_dev_list_lock);
+	write_lock_bh(&hci_dev_list_lock);
 	list_del(&hdev->list);
-	write_unlock(&hci_dev_list_lock);
+	write_unlock_bh(&hci_dev_list_lock);
 
 	hci_dev_do_close(hdev);
 
@@ -1887,9 +1888,9 @@ int hci_unregister_dev(struct hci_dev *hdev)
 
 	if (!test_bit(HCI_INIT, &hdev->flags) &&
 	    !test_bit(HCI_SETUP, &hdev->dev_flags)) {
-		hci_dev_lock(hdev);
+		hci_dev_lock_bh(hdev);
 		mgmt_index_removed(hdev);
-		hci_dev_unlock(hdev);
+		hci_dev_unlock_bh(hdev);
 	}
 	if (!IS_ERR(hdev->tfm))
 		crypto_free_blkcipher(hdev->tfm);
@@ -1910,14 +1911,14 @@ int hci_unregister_dev(struct hci_dev *hdev)
 
 	destroy_workqueue(hdev->workqueue);
 
-	hci_dev_lock(hdev);
+	hci_dev_lock_bh(hdev);
 	hci_blacklist_clear(hdev);
 	hci_uuids_clear(hdev);
 	hci_link_keys_clear(hdev);
 	hci_smp_ltks_clear(hdev);
 	hci_remote_oob_data_clear(hdev);
 	hci_adv_entries_clear(hdev);
-	hci_dev_unlock(hdev);
+	hci_dev_unlock_bh(hdev);
 
 	__hci_dev_put(hdev);
 
@@ -2145,14 +2146,14 @@ int hci_register_proto(struct hci_proto *hp)
 	if (hp->id >= HCI_MAX_PROTO)
 		return -EINVAL;
 
-	write_lock(&hci_task_lock);
+	write_lock_bh(&hci_task_lock);
 
 	if (!hci_proto[hp->id])
 		hci_proto[hp->id] = hp;
 	else
 		err = -EEXIST;
 
-	write_unlock(&hci_task_lock);
+	write_unlock_bh(&hci_task_lock);
 
 	return err;
 }
@@ -2167,14 +2168,14 @@ int hci_unregister_proto(struct hci_proto *hp)
 	if (hp->id >= HCI_MAX_PROTO)
 		return -EINVAL;
 
-	write_lock(&hci_task_lock);
+	write_lock_bh(&hci_task_lock);
 
 	if (hci_proto[hp->id])
 		hci_proto[hp->id] = NULL;
 	else
 		err = -ENOENT;
 
-	write_unlock(&hci_task_lock);
+	write_unlock_bh(&hci_task_lock);
 
 	return err;
 }
@@ -2184,9 +2185,9 @@ int hci_register_cb(struct hci_cb *cb)
 {
 	BT_DBG("%p name %s", cb, cb->name);
 
-	write_lock(&hci_cb_list_lock);
+	write_lock_bh(&hci_cb_list_lock);
 	list_add(&cb->list, &hci_cb_list);
-	write_unlock(&hci_cb_list_lock);
+	write_unlock_bh(&hci_cb_list_lock);
 
 	return 0;
 }
@@ -2196,9 +2197,9 @@ int hci_unregister_cb(struct hci_cb *cb)
 {
 	BT_DBG("%p name %s", cb, cb->name);
 
-	write_lock(&hci_cb_list_lock);
+	write_lock_bh(&hci_cb_list_lock);
 	list_del(&cb->list);
-	write_unlock(&hci_cb_list_lock);
+	write_unlock_bh(&hci_cb_list_lock);
 
 	return 0;
 }
@@ -2334,7 +2335,7 @@ void hci_send_acl(struct hci_conn *conn, struct sk_buff *skb, __u16 flags)
 		skb_shinfo(skb)->frag_list = NULL;
 
 		/* Queue all fragments atomically */
-		spin_lock(&conn->data_q.lock);
+		spin_lock_bh(&conn->data_q.lock);
 
 		__skb_queue_tail(&conn->data_q, skb);
 
@@ -2352,7 +2353,7 @@ void hci_send_acl(struct hci_conn *conn, struct sk_buff *skb, __u16 flags)
 			__skb_queue_tail(&conn->data_q, skb);
 		} while (list);
 
-		spin_unlock(&conn->data_q.lock);
+		spin_unlock_bh(&conn->data_q.lock);
 	}
 
 	tasklet_schedule(&hdev->tx_task);

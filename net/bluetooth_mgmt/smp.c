@@ -30,12 +30,10 @@
 #include <net/bluetooth/mgmt.h>
 #include <net/bluetooth/smp.h>
 
-#define SMP_TIMEOUT	msecs_to_jiffies(30000)
-
-#define AUTH_REQ_MASK   0x07
-
 /* SSBT :: KJH + */
 #include <asm/unaligned.h>
+
+#define SMP_TIMEOUT 30000 /* 30 seconds */
 
 static inline void swap128(u8 src[16], u8 dst[16])
 {
@@ -193,7 +191,8 @@ static void smp_send_cmd(struct l2cap_conn *conn, u8 code, u16 len, void *data)
 
 	/* SSBT :: NEO + (0213) */
 	del_timer_sync(&conn->security_timer);
-	mod_timer(&conn->security_timer, SMP_TIMEOUT);
+	mod_timer(&conn->security_timer, jiffies +
+				msecs_to_jiffies(SMP_TIMEOUT));
 }
 
 static __u8 authreq_to_seclevel(__u8 authreq)
@@ -605,11 +604,8 @@ static u8 smp_cmd_pairing_req(struct l2cap_conn *conn, struct sk_buff *skb)
 
 	if (!test_and_set_bit(HCI_CONN_LE_SMP_PEND, &conn->hcon->flags))
 		smp = smp_chan_create(conn);
-	else
-		smp = conn->smp_chan;
 
-	if (!smp)
-		return SMP_UNSPECIFIED;
+	smp = conn->smp_chan;
 
 	smp->preq[0] = SMP_CMD_PAIRING_REQ;
 	memcpy(&smp->preq[1], req, sizeof(*req));

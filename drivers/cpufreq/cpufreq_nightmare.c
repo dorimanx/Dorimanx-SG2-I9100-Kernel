@@ -171,10 +171,8 @@ static unsigned int get_nr_run_avg(void)
 #define MIN_FREQ_FOR_CALC_DECR			(50000)
 #define FIRST_CORE_FREQ_LIMIT			(0)
 #define SECOND_CORE_FREQ_LIMIT			(0)
-
 #define HOTPLUG_DOWN_INDEX			(0)
 #define HOTPLUG_UP_INDEX			(1)
-
 /* CPU freq will be increased if measured load > inc_cpu_load;*/
 #define DEF_INC_CPU_LOAD (80)
 #define INC_CPU_LOAD_AT_MIN_FREQ		(40)
@@ -194,11 +192,12 @@ static unsigned int get_nr_run_avg(void)
 #define TRANS_LOAD_RQ 20
 #define CPU_OFF 0
 #define CPU_ON  1
-
 #define NUM_CPUS num_possible_cpus()
 #define CPULOAD_TABLE (NR_CPUS + 1)
+#define DEF_TRANSITION_LATENCY (60 * 1000)
+#define MIN_TRANSITION_LATENCY (10 * 1000)
+#define MAX_TRANSITION_LATENCY (130 * 1000)
 /* HOTPLUG FROM STANDALONE */
-
 static unsigned int min_sampling_rate;
 static void do_nightmare_timer(struct work_struct *work);
 static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
@@ -303,6 +302,8 @@ static struct nightmare_tuners {
 	unsigned int trans_load_h2;
 	unsigned int trans_load_l3;
 #endif
+	unsigned int transition_latency_with_one_core;
+	unsigned int transition_latency_with_two_cores;
 
 } nightmare_tuners_ins = {
 	.sampling_down_factor = DEF_SAMPLING_DOWN_FACTOR,
@@ -342,8 +343,9 @@ static struct nightmare_tuners {
 	.trans_load_h2 = TRANS_LOAD_H2,
 	.trans_load_l3 = TRANS_LOAD_L3,
 #endif
+	.transition_latency_with_one_core = DEF_TRANSITION_LATENCY,
+	.transition_latency_with_two_cores = DEF_TRANSITION_LATENCY,
 };
-
 
 /*
  * CPU hotplug lock interface
@@ -444,7 +446,6 @@ void cpufreq_nightmare_min_cpu_unlock(void)
 		return;
 	queue_work_on(nightmare_cpuinfo->cpu, dvfs_workqueues, &nightmare_cpuinfo->down_work);
 }
-
 /*
  * History of CPU usage
  */
@@ -520,7 +521,6 @@ static ssize_t show_sampling_rate_min(struct kobject *kobj,
 }
 
 define_one_global_ro(sampling_rate_min);
-
 /* cpufreq_nightmare Governor Tunables */
 #define show_one(file_name, object)					\
 static ssize_t show_##file_name						\
@@ -563,6 +563,8 @@ show_one(trans_load_l2, trans_load_l2);
 show_one(trans_load_h2, trans_load_h2);
 show_one(trans_load_l3, trans_load_l3);
 #endif
+show_one(transition_latency_with_one_core, transition_latency_with_one_core);
+show_one(transition_latency_with_two_cores, transition_latency_with_two_cores);
 
 static ssize_t show_hotplug_lock(struct kobject *kobj,
 				struct attribute *attr, char *buf)
@@ -1071,8 +1073,42 @@ static ssize_t store_trans_load_h1_scroff(struct kobject *a, struct attribute *b
 		return count;
 	}
 #endif
+static ssize_t store_transition_latency_with_one_core(struct kobject *a, struct attribute *b,
+				   const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
+	
+	if (input < MIN_TRANSITION_LATENCY)
+		nightmare_tuners_ins.transition_latency_with_one_core = MIN_TRANSITION_LATENCY;
+	else if (input > MAX_TRANSITION_LATENCY)
+		nightmare_tuners_ins.transition_latency_with_one_core = MAX_TRANSITION_LATENCY;
+	else
+		nightmare_tuners_ins.transition_latency_with_one_core = input;
 
+	return count;
+}
+static ssize_t store_transition_latency_with_two_cores(struct kobject *a, struct attribute *b,
+				   const char *buf, size_t count)
+{
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+	if (ret != 1)
+		return -EINVAL;
 
+	if (input < MIN_TRANSITION_LATENCY)
+		nightmare_tuners_ins.transition_latency_with_two_cores = MIN_TRANSITION_LATENCY;
+	else if (input > MAX_TRANSITION_LATENCY)
+		nightmare_tuners_ins.transition_latency_with_two_cores = MAX_TRANSITION_LATENCY;
+	else
+		nightmare_tuners_ins.transition_latency_with_two_cores = input;
+
+	return count;
+}
 
 define_one_global_rw(sampling_rate);
 define_one_global_rw(io_is_busy);
@@ -1110,6 +1146,8 @@ define_one_global_rw(trans_load_l2);
 define_one_global_rw(trans_load_h2);
 define_one_global_rw(trans_load_l3);
 #endif
+define_one_global_rw(transition_latency_with_one_core);
+define_one_global_rw(transition_latency_with_two_cores);
 
 static struct attribute *dbs_attributes[] = {
 	&sampling_rate_min.attr,
@@ -1151,6 +1189,8 @@ static struct attribute *dbs_attributes[] = {
 	&trans_load_h2.attr,
 	&trans_load_l3.attr,
 #endif
+	&transition_latency_with_one_core.attr,
+	&transition_latency_with_two_cores.attr,
 	NULL
 };
 
@@ -1474,6 +1514,7 @@ static void nightmare_check_frequency(struct cpufreq_nightmare_cpuinfo *this_nig
 	unsigned int first_core_freq_limit = nightmare_tuners_ins.first_core_freq_limit;
 	unsigned int second_core_freq_limit = nightmare_tuners_ins.second_core_freq_limit;
 	unsigned int ncores = 0;
+	unsigned int online = num_online_cpus();
 
 	for_each_online_cpu(j) {
 		struct cpufreq_policy *cpu_policy;
@@ -1488,6 +1529,11 @@ static void nightmare_check_frequency(struct cpufreq_nightmare_cpuinfo *this_nig
 			continue;
 
 		cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
+		if (online == 1)
+			cpu_policy->cpuinfo.transition_latency = nightmare_tuners_ins.transition_latency_with_one_core;
+		else if (online == 2)
+			cpu_policy->cpuinfo.transition_latency = nightmare_tuners_ins.transition_latency_with_two_cores;
+
 		/* cpumask_setall(cpu_policy->cpus); */
 		cpumask_and(cpu_policy->cpus, cpu_policy->cpus, cpu_online_mask);
 
@@ -1669,6 +1715,8 @@ static unsigned int previous_sampling_rate;
 static void nightmare_suspend(int suspend)
 {        
 	unsigned int i;
+	unsigned int online = num_online_cpus();
+
     if (nightmare_enable == 0) return;
 
     if (!suspend) { // resume but doesn't set speed
@@ -1684,6 +1732,11 @@ static void nightmare_suspend(int suspend)
 					continue;
 
 				cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
+				if (online == 1)
+					cpu_policy->cpuinfo.transition_latency = nightmare_tuners_ins.transition_latency_with_one_core;
+				else if (online == 2)
+					cpu_policy->cpuinfo.transition_latency = nightmare_tuners_ins.transition_latency_with_two_cores;
+
 				/* cpumask_setall(cpu_policy->cpus); */
 				cpumask_and(cpu_policy->cpus, cpu_policy->cpus, cpu_online_mask);
 
@@ -1709,6 +1762,12 @@ static void nightmare_suspend(int suspend)
 					continue;
 
 				cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
+
+				if (online == 1)
+					cpu_policy->cpuinfo.transition_latency = nightmare_tuners_ins.transition_latency_with_one_core;
+				else if (online == 2)
+					cpu_policy->cpuinfo.transition_latency = nightmare_tuners_ins.transition_latency_with_two_cores;
+
 				/* cpumask_setall(cpu_policy->cpus); */
 				cpumask_and(cpu_policy->cpus, cpu_policy->cpus, cpu_online_mask);
 
@@ -1759,6 +1818,8 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 	struct cpufreq_frequency_table *freq_table;
 	unsigned int j;
 	int rc;
+	unsigned int ncores = 0;
+	unsigned int online;
 
 	this_nightmare_cpuinfo = &per_cpu(od_nightmare_cpuinfo, cpu);
 
@@ -1768,6 +1829,7 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 			return -EINVAL;
 
 		policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
+		policy->cpuinfo.transition_latency = DEF_TRANSITION_LATENCY;
 		cpumask_setall(policy->related_cpus);
 		cpumask_setall(policy->cpus);
 
@@ -1835,6 +1897,8 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		unregister_pm_notifier(&pm_notifier);
 #endif
 
+		policy->cpuinfo.transition_latency = DEF_TRANSITION_LATENCY;
+
 		nightmare_timer_exit(this_nightmare_cpuinfo);
 
 		mutex_lock(&nightmare_mutex);
@@ -1856,22 +1920,53 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 	case CPUFREQ_GOV_LIMITS:
 		mutex_lock(&this_nightmare_cpuinfo->timer_mutex);
 
+		online = num_online_cpus();
+		ncores = 0;
+
 		for_each_online_cpu(j) {
+			unsigned int pmax;
+			unsigned int pmin;
 			struct cpufreq_policy *cpu_policy;
 			struct cpufreq_nightmare_cpuinfo *cpu_nightmare_cpuinfo;
+
+			ncores++;
 
 			cpu_policy = cpufreq_cpu_get(j);
 			if (!cpu_policy)
 				continue;
 
 			cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
+			if (online == 1)
+				cpu_policy->cpuinfo.transition_latency = nightmare_tuners_ins.transition_latency_with_one_core;
+			else if (online == 2)
+				cpu_policy->cpuinfo.transition_latency = nightmare_tuners_ins.transition_latency_with_two_cores;
+
 			/* cpumask_setall(cpu_policy->cpus); */
 			cpumask_and(cpu_policy->cpus, cpu_policy->cpus, cpu_online_mask);
 
-			if (cpu_policy->max < cpu_policy->cur)
-				__cpufreq_driver_target(cpu_policy,cpu_policy->max,CPUFREQ_RELATION_H);
-			else if (cpu_policy->min > cpu_policy->cur)
-				__cpufreq_driver_target(cpu_policy,cpu_policy->min,CPUFREQ_RELATION_L);
+			pmax = cpu_policy->max;
+			pmin = cpu_policy->min;
+
+			if (ncores == 1 && nightmare_tuners_ins.first_core_freq_limit > 0) {
+				if (pmax > nightmare_tuners_ins.first_core_freq_limit) {
+					pmax = min(nightmare_tuners_ins.first_core_freq_limit,pmax);
+				}
+				if (pmin > nightmare_tuners_ins.first_core_freq_limit) {
+					pmin = min(nightmare_tuners_ins.first_core_freq_limit,pmin);
+				}
+			} else if (ncores == 2 && nightmare_tuners_ins.second_core_freq_limit > 0) {
+				if (pmax > nightmare_tuners_ins.second_core_freq_limit) {
+					pmax = min(nightmare_tuners_ins.second_core_freq_limit,pmax);
+				}
+				if (pmin > nightmare_tuners_ins.second_core_freq_limit) {
+					pmin = min(nightmare_tuners_ins.second_core_freq_limit,pmin);
+				}
+			}
+
+			if (pmax < cpu_policy->cur)
+				__cpufreq_driver_target(cpu_policy,pmax,CPUFREQ_RELATION_H);
+			else if (pmin > cpu_policy->cur)
+				__cpufreq_driver_target(cpu_policy,pmin,CPUFREQ_RELATION_L);
 
 			cpu_nightmare_cpuinfo = &per_cpu(od_nightmare_cpuinfo, j);
 			cpu_nightmare_cpuinfo->cur_policy = cpu_policy;
