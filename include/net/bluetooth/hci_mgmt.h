@@ -95,7 +95,6 @@ enum {
 	HCI_INQUIRY,
 
 	HCI_RAW,
-
 	HCI_RESET,
 };
 
@@ -112,7 +111,6 @@ enum {
 	HCI_LINK_KEYS,
 	HCI_DEBUG_KEYS,
 	HCI_UNREGISTER,
-
 	HCI_LE_SCAN,
 	HCI_SSP_ENABLED,
 	HCI_HS_ENABLED,
@@ -158,7 +156,7 @@ enum {
 #define HCI_PAIRING_TIMEOUT	msecs_to_jiffies(60000)	/* 60 seconds */
 #define HCI_IDLE_TIMEOUT	msecs_to_jiffies(6000)	/* 6 seconds */
 #define HCI_INIT_TIMEOUT	msecs_to_jiffies(10000)	/* 10 seconds */
-#define HCI_CMD_TIMEOUT		msecs_to_jiffies(2000)	/* 2 seconds */
+#define HCI_CMD_TIMEOUT		msecs_to_jiffies(3000)	/* 3 seconds */
 #define HCI_ACL_TX_TIMEOUT	msecs_to_jiffies(45000)	/* 45 seconds */
 #define HCI_AUTO_OFF_TIMEOUT	msecs_to_jiffies(2000)	/* 2 seconds */
 
@@ -1564,7 +1562,7 @@ struct sockaddr_hci {
 
 #define HCI_CHANNEL_RAW		0
 #define HCI_CHANNEL_MONITOR	2
-#define HCI_CHANNEL_CONTROL	3
+#define HCI_CHANNEL_CONTROL	1
 
 struct hci_filter {
 	unsigned long type_mask;

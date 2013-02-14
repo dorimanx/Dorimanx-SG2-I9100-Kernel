@@ -81,13 +81,9 @@ static const char *const bt_slock_key_strings[BT_MAX_PROTO] = {
 	"slock-AF_BLUETOOTH-BTPROTO_AVDTP",
 };
 
-static inline void bt_sock_reclassify_lock(struct socket *sock, int proto)
+void bt_sock_reclassify_lock(struct sock *sk, int proto)
 {
-	struct sock *sk = sock->sk;
-
-	if (!sk)
-		return;
-
+	BUG_ON(!sk);
 	BUG_ON(sock_owned_by_user(sk));
 
 	sock_lock_init_class_and_name(sk,
@@ -185,7 +181,8 @@ static int bt_sock_create(struct net *net, struct socket *sock, int proto,
 
 	if (bt_proto[proto] && try_module_get(bt_proto[proto]->owner)) {
 		err = bt_proto[proto]->create(net, sock, proto, kern);
-		bt_sock_reclassify_lock(sock, proto);
+		if (!err)
+			bt_sock_reclassify_lock(sock->sk, proto);
 		module_put(bt_proto[proto]->owner);
 	}
 
@@ -196,17 +193,17 @@ static int bt_sock_create(struct net *net, struct socket *sock, int proto,
 
 void bt_sock_link(struct bt_sock_list *l, struct sock *sk)
 {
-	write_lock(&l->lock);
+	write_lock_bh(&l->lock);
 	sk_add_node(sk, &l->head);
-	write_unlock(&l->lock);
+	write_unlock_bh(&l->lock);
 }
 EXPORT_SYMBOL(bt_sock_link);
 
 void bt_sock_unlink(struct bt_sock_list *l, struct sock *sk)
 {
-	write_lock(&l->lock);
+	write_lock_bh(&l->lock);
 	sk_del_node_init(sk);
-	write_unlock(&l->lock);
+	write_unlock_bh(&l->lock);
 }
 EXPORT_SYMBOL(bt_sock_unlink);
 
@@ -255,7 +252,7 @@ struct sock *bt_accept_dequeue(struct sock *parent, struct socket *newsock)
 		}
 
 		if (sk->sk_state == BT_CONNECTED || !newsock ||
-						bt_sk(parent)->defer_setup) {
+		    test_bit(BT_SK_DEFER_SETUP, &bt_sk(parent)->flags)) {
 			bt_accept_unlink(sk);
 			if (newsock)
 				sock_graft(sk, newsock);
@@ -391,7 +388,7 @@ int bt_sock_stream_recvmsg(struct kiocb *iocb, struct socket *sock,
 		}
 
 		chunk = min_t(unsigned int, skb->len, size);
-		if (memcpy_toiovec(msg->msg_iov, skb->data, chunk)) {
+		if (skb_copy_datagram_iovec(skb, 0, msg->msg_iov, chunk)) {
 			skb_queue_head(&sk->sk_receive_queue, skb);
 			if (!copied)
 				copied = -EFAULT;
@@ -403,7 +400,33 @@ int bt_sock_stream_recvmsg(struct kiocb *iocb, struct socket *sock,
 		sock_recv_ts_and_drops(msg, sk, skb);
 
 		if (!(flags & MSG_PEEK)) {
-			skb_pull(skb, chunk);
+			int skb_len = skb_headlen(skb);
+
+			if (chunk <= skb_len) {
+				__skb_pull(skb, chunk);
+			} else {
+				struct sk_buff *frag;
+
+				__skb_pull(skb, skb_len);
+				chunk -= skb_len;
+
+				skb_walk_frags(skb, frag) {
+					if (chunk <= frag->len) {
+						/* Pulling partial data */
+						skb->len -= chunk;
+						skb->data_len -= chunk;
+						__skb_pull(frag, chunk);
+						break;
+					} else if (frag->len) {
+						/* Pulling all frag data */
+						chunk -= frag->len;
+						skb->len -= frag->len;
+						skb->data_len -= frag->len;
+						__skb_pull(frag, frag->len);
+					}
+				}
+			}
+
 			if (skb->len) {
 				skb_queue_head(&sk->sk_receive_queue, skb);
 				break;
@@ -431,8 +454,8 @@ static inline unsigned int bt_accept_poll(struct sock *parent)
 	list_for_each_safe(p, n, &bt_sk(parent)->accept_q) {
 		sk = (struct sock *) list_entry(p, struct bt_sock, accept_q);
 		if (sk->sk_state == BT_CONNECTED ||
-					(bt_sk(parent)->defer_setup &&
-						sk->sk_state == BT_CONNECT2))
+		    (test_bit(BT_SK_DEFER_SETUP, &bt_sk(parent)->flags) &&
+		     sk->sk_state == BT_CONNECT2))
 			return POLLIN | POLLRDNORM;
 	}
 
@@ -472,7 +495,7 @@ unsigned int bt_sock_poll(struct file *file, struct socket *sock,
 			sk->sk_state == BT_CONFIG)
 		return mask;
 
-	if (sock_writeable(sk))
+	if (!test_bit(BT_SK_SUSPEND, &bt_sk(sk)->flags) && sock_writeable(sk))
 		mask |= POLLOUT | POLLWRNORM | POLLWRBAND;
 	else
 		set_bit(SOCK_ASYNC_NOSPACE, &sk->sk_socket->flags);
@@ -596,7 +619,6 @@ static void bt_seq_stop(struct seq_file *seq, void *v)
 	read_unlock(&l->lock);
 }
 
-#if 0
 static int bt_seq_show(struct seq_file *seq, void *v)
 {
 	struct bt_seq_state *s = seq->private;
@@ -621,7 +643,7 @@ static int bt_seq_show(struct seq_file *seq, void *v)
 			   atomic_read(&sk->sk_refcnt),
 			   sk_rmem_alloc_get(sk),
 			   sk_wmem_alloc_get(sk),
-			   from_uid(seq_user_ns(seq), sock_i_uid(sk)),
+			   sock_i_uid(sk),
 			   sock_i_ino(sk),
 			   &bt->src,
 			   &bt->dst,
@@ -636,13 +658,12 @@ static int bt_seq_show(struct seq_file *seq, void *v)
 	}
 	return 0;
 }
-#endif
 
 static struct seq_operations bt_seq_ops = {
 	.start = bt_seq_start,
 	.next  = bt_seq_next,
 	.stop  = bt_seq_stop,
-//	.show  = bt_seq_show,
+	.show  = bt_seq_show,
 };
 
 static int bt_seq_open(struct inode *inode, struct file *file)

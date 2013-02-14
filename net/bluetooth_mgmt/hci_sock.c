@@ -404,7 +404,7 @@ static int hci_sock_getname(struct socket *sock, struct sockaddr *addr,
 	return 0;
 }
 
-static void hci_sock_cmsg(struct sock *sk, struct msghdr *msg,
+static inline void hci_sock_cmsg(struct sock *sk, struct msghdr *msg,
 			  struct sk_buff *skb)
 {
 	__u32 mask = hci_pi(sk)->cmsg_mask;
@@ -428,8 +428,7 @@ static void hci_sock_cmsg(struct sock *sk, struct msghdr *msg,
 		data = &tv;
 		len = sizeof(tv);
 #ifdef CONFIG_COMPAT
-		if (!COMPAT_USE_64BIT_TIME &&
-		    (msg->msg_flags & MSG_CMSG_COMPAT)) {
+		if (msg->msg_flags & MSG_CMSG_COMPAT) {
 			ctv.tv_sec = tv.tv_sec;
 			ctv.tv_usec = tv.tv_usec;
 			data = &ctv;
