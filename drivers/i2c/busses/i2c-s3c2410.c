@@ -595,8 +595,8 @@ static int s3c24xx_i2c_doxfer(struct s3c24xx_i2c *i2c,
 	if (!spins) {
 		usleep_range(1000, 1000);
 		iicstat = readl(i2c->regs + S3C2410_IICSTAT);
-		dev_err(i2c->dev, "s3c24xx_i2c_doxfer time out sleep %d\n",
-				spins);
+		/* dev_err(i2c->dev, "s3c24xx_i2c_doxfer time out sleep %d\n",
+				spins); */
 	}
 
 	/* if still not finished, clean it up */
