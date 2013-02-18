@@ -172,6 +172,7 @@ extern pgprot_t protection_map[16];
 #define FAULT_FLAG_RETRY_NOWAIT	0x10	/* Don't drop mmap_sem and wait when retrying */
 #define FAULT_FLAG_KILLABLE	0x20	/* The fault task is in SIGKILL killable region */
 #define FAULT_FLAG_TRIED	0x40	/* second try */
+#define FAULT_FLAG_NO_CMA	0x80	/* don't use CMA pages */
 
 /*
  * This interface is used by x86 PAT code to identify a pfn mapping that is
@@ -482,7 +483,11 @@ void put_page(struct page *page);
 void put_pages_list(struct list_head *pages);
 
 void split_page(struct page *page, unsigned int order);
+#ifndef CONFIG_DMA_CMA
 int split_free_page(struct page *page);
+#else
+int split_free_page(struct page *page, bool for_cma);
+#endif
 
 /*
  * Compound pages have a destructor function.  Provide a
@@ -1076,6 +1081,16 @@ int __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 int get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 			unsigned long start, int nr_pages, int write, int force,
 			struct page **pages, struct vm_area_struct **vmas);
+
+#ifdef CONFIG_DMA_CMA
+int get_user_pages_nocma(struct task_struct *tsk, struct mm_struct *mm,
+			unsigned long start, int nr_pages, int write, int force,
+			struct page **pages, struct vm_area_struct **vmas);
+#else
+#define get_user_pages_nocma(tsk, mm, start, nr_pages, wr, force, pgs, vmas) \
+	get_user_pages(tsk, mm, start, nr_pages, wr, force, pgs, vmas)
+#endif
+
 int get_user_pages_fast(unsigned long start, int nr_pages, int write,
 			struct page **pages);
 struct kvec;

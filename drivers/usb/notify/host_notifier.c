@@ -176,7 +176,12 @@ static int stop_usbhostd_notify(void)
 static void host_notifier_booster(int enable)
 {
 	pr_info("host_notifier: booster %s\n", enable ? "ON" : "OFF");
-
+#ifdef CONFIG_MACH_P4NOTE
+	if (enable)
+		host_notifier_enable_irq();
+	else
+		host_notifier_disable_irq();
+#endif
 	ninfo.pdata->booster(enable);
 
 	if (ninfo.pdata->thread_enable) {

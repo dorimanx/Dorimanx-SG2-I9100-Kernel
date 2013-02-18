@@ -936,7 +936,7 @@ config PANEL_U1_NA_SPR
 
 endchoice
 
-if MACH_U1 || MACH_C1 || MACH_M3 || MACH_M0 || MACH_P4 || MACH_P2 || MACH_P4NOTE || MACH_T0 || MACH_TRATS || MACH_GRANDE || MACH_GC1 || MACH_BAFFIN || MACH_P8 || MACH_KONA
+if MACH_U1 || MACH_C1 || MACH_M3 || MACH_M0 || MACH_P4 || MACH_P2 || MACH_P4NOTE || MACH_T0 || MACH_TRATS || MACH_GRANDE || MACH_GC1 || MACH_BAFFIN || MACH_P8
 source "arch/arm/mach-exynos/Kconfig.local"
 endif
 
@@ -1069,12 +1069,6 @@ config MACH_T0
 	select S3C_DEV_I2C4
 	select S3C_DEV_I2C5
 
-config MACH_KONA
-	bool "KONA Note8 board"
-	select S3C_DEV_I2C4
-	select S3C_DEV_I2C5
-	select KONA_00_BD
-
 config MACH_IRON
 	bool "Iron board"
 	select S3C_DEV_I2C4
@@ -1110,20 +1104,8 @@ config T0_00_BD
 	bool "T0 Revison 00 board"
 	default n
 
-config KONA_00_BD
-	bool "KONA note8 common Board"
-	default n
-
 config T0_04_BD
 	bool "T0 Revison 04 board"
-	default n
-
-config MACH_T0_GODIVA_LTE
-	bool "Godiva LTE"
-	default n
-
-config MACH_T0_VOLTE_Q
-	bool "Volte Qualcomm"
 	default n
 
 config IRON_BD
@@ -1718,14 +1700,6 @@ config SEC_MODEM_U1_SPR
         select CDMA_MODEM_QSC6085
         select LINK_DEVICE_DPRAM
         select INTERNAL_MODEM_IF
-
-config SEC_MODEM_GODIVA2
-	bool "T0 with SS222 and CBP8.2"
-#	select LTE_VIA_SWITCH
-	select CDMA_MODEM_CBP82
-	select UMTS_MODEM_SS222
-	select LINK_DEVICE_DPRAM
-	select LINK_DEVICE_C2C
 
 endchoice
 

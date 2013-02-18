@@ -453,12 +453,10 @@ int __cpuinit local_timer_setup(struct clock_event_device *evt)
 	return 0;
 }
 
-int local_timer_stop(struct clock_event_device *evt)
+int local_timer_ack(void)
 {
 	unsigned int cpu = smp_processor_id();
 	struct mct_clock_event_device *mevt = &mct_tick[cpu];
-	evt->set_mode(CLOCK_EVT_MODE_UNUSED, evt);
-	disable_irq(evt->irq);
 
 	return exynos4_mct_tick_clear(mevt);
 }

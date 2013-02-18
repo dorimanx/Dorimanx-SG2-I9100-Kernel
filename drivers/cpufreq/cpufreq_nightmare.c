@@ -145,56 +145,58 @@ static unsigned int get_nr_run_avg(void)
  * It helps to keep variable names smaller, simpler
  */
 
-#define DEF_SAMPLING_UP_FACTOR			(1)
+#define DEF_SAMPLING_UP_FACTOR		(1)
 #define MAX_SAMPLING_UP_FACTOR		(100000)
-#define DEF_SAMPLING_DOWN_FACTOR		(1)
-#define MAX_SAMPLING_DOWN_FACTOR		(100000)
+#define DEF_SAMPLING_DOWN_FACTOR	(1)
+#define MAX_SAMPLING_DOWN_FACTOR	(100000)
 #define DEF_FREQ_STEP_DEC		(5)
 
-#define DEF_SAMPLING_RATE			(60000)
-#define MIN_SAMPLING_RATE			(10000)
-#define MAX_HOTPLUG_RATE			(40u)
+#define DEF_SAMPLING_RATE		(60000)
+#define MIN_SAMPLING_RATE		(10000)
+#define MAX_HOTPLUG_RATE		(40u)
 
-#define DEF_MAX_CPU_LOCK			(0)
-#define DEF_MIN_CPU_LOCK			(0)
-#define DEF_UP_NR_CPUS				(1)
-#define DEF_FREQ_STEP				(30)
+#define DEF_MAX_CPU_LOCK		(0)
+#define DEF_MIN_CPU_LOCK		(0)
+#define DEF_UP_NR_CPUS			(1)
+#define DEF_FREQ_STEP			(30)
 
-#define DEF_START_DELAY				(0)
+#define DEF_START_DELAY			(0)
 
-#define FREQ_FOR_RESPONSIVENESS			(400000)
-#define MAX_FREQ_FOR_CALC_INCR			(400000)
-#define DEF_FREQ_FOR_CALC_INCR			(200000)
-#define MIN_FREQ_FOR_CALC_INCR			(50000)
-#define MAX_FREQ_FOR_CALC_DECR			(400000)
-#define DEF_FREQ_FOR_CALC_DECR			(200000)
-#define MIN_FREQ_FOR_CALC_DECR			(125000)
-#define HOTPLUG_DOWN_INDEX			(0)
-#define HOTPLUG_UP_INDEX			(1)
+#define FREQ_FOR_RESPONSIVENESS		(400000)
+#define MAX_FREQ_FOR_CALC_INCR		(400000)
+#define DEF_FREQ_FOR_CALC_INCR		(200000)
+#define MIN_FREQ_FOR_CALC_INCR		(50000)
+#define MAX_FREQ_FOR_CALC_DECR		(400000)
+#define DEF_FREQ_FOR_CALC_DECR		(200000)
+#define MIN_FREQ_FOR_CALC_DECR		(125000)
+#define HOTPLUG_DOWN_INDEX		(0)
+#define HOTPLUG_UP_INDEX		(1)
 /* CPU freq will be increased if measured load > inc_cpu_load;*/
-#define DEF_INC_CPU_LOAD (80)
-#define INC_CPU_LOAD_AT_MIN_FREQ		(40)
+#define DEF_INC_CPU_LOAD 		(80)
+#define INC_CPU_LOAD_AT_MIN_FREQ	(40)
 /* CPU freq will be decreased if measured load < dec_cpu_load;*/
-#define DEF_DEC_CPU_LOAD (60)
-#define DEF_FREQ_UP_BRAKE				(5u)
+#define DEF_DEC_CPU_LOAD 		(60)
+#define DEF_FREQ_UP_BRAKE		(5u)
+
 /* HOTPLUG FROM STANDALONE */
-#define CPU1_ON_FREQ 800000
-#define CPU1_OFF_FREQ 800000
-#define TRANS_LOAD_H0 20
-#define TRANS_LOAD_L1 20
-#define TRANS_LOAD_H1 100
-#define TRANS_LOAD_H0_SCROFF 20
-#define TRANS_LOAD_L1_SCROFF 20
-#define TRANS_LOAD_H1_SCROFF 100
-#define TRANS_RQ 2
-#define TRANS_LOAD_RQ 20
-#define CPU_OFF 0
-#define CPU_ON  1
-#define NUM_CPUS num_possible_cpus()
-#define CPULOAD_TABLE (NR_CPUS + 1)
-#define DEF_TRANSITION_LATENCY (60 * 1000)
-#define MIN_TRANSITION_LATENCY (10 * 1000)
-#define MAX_TRANSITION_LATENCY (130 * 1000)
+#define CPU1_ON_FREQ			800000
+#define CPU1_OFF_FREQ			800000
+#define TRANS_LOAD_H0			20
+#define TRANS_LOAD_L1			20
+#define TRANS_LOAD_H1			100
+#define TRANS_LOAD_H0_SCROFF		20
+#define TRANS_LOAD_L1_SCROFF		20
+#define TRANS_LOAD_H1_SCROFF		100
+#define TRANS_RQ			2
+#define TRANS_LOAD_RQ			20
+#define CPU_OFF				0
+#define CPU_ON				1
+#define NUM_CPUS			num_possible_cpus()
+#define CPULOAD_TABLE			(NR_CPUS + 1)
+#define DEF_TRANSITION_LATENCY		(60 * 1000)
+#define MIN_TRANSITION_LATENCY		(10 * 1000)
+#define MAX_TRANSITION_LATENCY		(130 * 1000)
+
 /* HOTPLUG FROM STANDALONE */
 static unsigned int min_sampling_rate;
 static void do_nightmare_timer(struct work_struct *work);
@@ -1198,8 +1200,12 @@ standalone_hotplug(struct cpufreq_nightmare_cpuinfo *this_nightmare_cpuinfo)
 	static void __iomem *clk_fimc;
 	unsigned char fimc_stat;
 
-	policy = this_nightmare_cpuinfo->cur_policy;
+	policy = cpufreq_cpu_get(0);
+	if (!policy)
+		return HOTPLUG_NOP;
+
 	cur_freq = policy->cur;
+	cpufreq_cpu_put(policy);
 
 	avg_load = hotplug_histories->usage[num_hist].avg_load;
 	nr_rq_min = hotplug_histories->usage[num_hist].nr_rq_min;

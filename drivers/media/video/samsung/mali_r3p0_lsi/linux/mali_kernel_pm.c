@@ -65,7 +65,6 @@ static const struct dev_pm_ops mali_dev_pm_ops =
 	.suspend = mali_os_suspend,
 	.resume = mali_os_resume,
 #endif
-
 	.freeze = mali_os_suspend,
 	.poweroff = mali_os_suspend,
 	.thaw = mali_os_resume,
@@ -117,7 +116,6 @@ static struct notifier_block mali_pwr_notif_block =
 };
 #endif
 
-/* @@@@ todo: this should go into platform specific Linux code, and has nothing to do in Mali specific code */
 /** This function is called when platform device is unregistered. This function
  * is necessary when the platform device is unregistered.
  */
@@ -134,14 +132,11 @@ struct platform_device mali_gpu_device =
 /** This function is called when the device is probed */
 static int mali_probe(struct platform_device *pdev)
 {
-	/* @@@@ todo: use this to match device with driver */
 	return 0;
 }
 
 static int mali_remove(struct platform_device *pdev)
 {
-	/* @@@@ todo: "remove" driver from device??? */
-
 #ifdef CONFIG_PM_RUNTIME
 	pm_runtime_disable(&pdev->dev);
 #endif
@@ -149,7 +144,6 @@ static int mali_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM_RUNTIME
-/* @@@ why did we use this instead of reguler OS suspend/resume if CONFIG_PM_RUNTIME was set???? */
 static int mali_pwr_suspend_notifier(struct notifier_block *nb,unsigned long event,void* dummy)
 {
 	switch (event)
@@ -185,6 +179,7 @@ static int mali_runtime_resume(struct device *dev)
 	mali_pm_runtime_resume();
 	return 0; /* all ok */
 }
+
 #endif
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,29))
@@ -192,14 +187,14 @@ static int mali_runtime_resume(struct device *dev)
 static int mali_os_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	MALI_DEBUG_PRINT(3, ("mali_os_suspend(old) called\n"));
-	mali_pm_os_suspend(); /* @@@@ todo: add error handling */
+	mali_pm_os_suspend();
 	return 0; /* all ok */
 }
 
 static int mali_os_resume(struct platform_device *pdev)
 {
 	MALI_DEBUG_PRINT(3, ("mali_os_resume(old) called\n"));
-	mali_pm_os_resume(); /* @@@@ todo: add error handling */
+	mali_pm_os_resume();
 	return 0; /* all ok */
 }
 
@@ -208,14 +203,14 @@ static int mali_os_resume(struct platform_device *pdev)
 static int mali_os_suspend(struct device *dev)
 {
 	MALI_DEBUG_PRINT(3, ("mali_os_suspend(new) called\n"));
-	mali_pm_os_suspend(); /* @@@@ todo: add error handling */
+	mali_pm_os_suspend();
 	return 0; /* all ok */
 }
 
 static int mali_os_resume(struct device *dev)
 {
 	MALI_DEBUG_PRINT(3, ("mali_os_resume(new) called\n"));
-	mali_pm_os_resume(); /* @@@@ todo: add error handling */
+	mali_pm_os_resume();
 	return 0; /* all ok */
 }
 
@@ -225,7 +220,6 @@ static int mali_os_resume(struct device *dev)
  */
 int _mali_dev_platform_register(void)
 {
-	/* @@@@ todo: ørjan to fix this the proper Linux way */
 	int err;
 
 #ifdef CONFIG_PM_RUNTIME

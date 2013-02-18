@@ -16,7 +16,12 @@ extern "C"
 {
 #endif
 
+#include <linux/device.h>
+
 #define MALI_PROC_DIR "driver/mali"
+
+extern struct device *mali_device;
+struct mali_dev;
 
 int mali_sysfs_register(struct mali_dev *mali_class, dev_t dev, const char *mali_dev_name);
 

@@ -271,7 +271,7 @@ int late_mali_driver_init(void)
 
 int mali_driver_init(void)
 {
-	return 0;
+    return 0;
 }
 
 void mali_driver_exit(void)

@@ -358,7 +358,7 @@ static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
 		pr_info("%s: fake shut down!!!\n", __func__);
 		fake_shut_down = true;
 		raw_notifier_call_chain(&fsd_notifier_list,
-			FAKE_SHUT_DOWN_CMD_ON, NULL);
+				FAKE_SHUT_DOWN_CMD_ON, NULL);
 		state = PM_SUSPEND_MEM;
 		error = 0;
 	}

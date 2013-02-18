@@ -644,8 +644,14 @@ int akm8975_probe(struct i2c_client *client,
 {
 	struct akm8975_data *akm;
 	int err;
-
+#ifdef CONFIG_TARGET_LOCALE_KOR
+	int probe_retry_max = 3;
+#endif
 	printk(KERN_INFO "%s is called.\n", __func__);
+
+#ifdef CONFIG_TARGET_LOCALE_KOR
+probe_retry:
+#endif
 	if (client->dev.platform_data == NULL && client->irq == 0) {
 		dev_err(&client->dev, "platform data & irq are NULL.\n");
 		err = -ENODEV;
@@ -821,6 +827,14 @@ exit_set_mode_power_down_failed:
 exit_alloc_data_failed:
 exit_check_functionality_failed:
 exit_platform_data_null:
+#ifdef CONFIG_TARGET_LOCALE_KOR
+	if (probe_retry_max > 0) {
+		pr_err("%s: Failed to probe..(%d try left)\n",
+			__func__, probe_retry_max);
+		probe_retry_max--;
+		goto probe_retry;
+	}
+#endif
 	return err;
 }
 

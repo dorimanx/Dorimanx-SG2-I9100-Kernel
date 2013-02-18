@@ -103,7 +103,7 @@ enum dhd_op_flags {
 #define DHD_SCAN_PASSIVE_TIME		130 /* ms: Embedded default Passive setting from DHD */
 
 #ifndef POWERUP_MAX_RETRY
-#define POWERUP_MAX_RETRY	5 /* how many times we retry to power up the chip */
+#define POWERUP_MAX_RETRY	3 /* how many times we retry to power up the chip */
 #endif
 #ifndef POWERUP_WAIT_MS
 #define POWERUP_WAIT_MS		2000	 /* ms: time out in waiting wifi to come up */
@@ -303,11 +303,7 @@ typedef struct dhd_pub {
 				wait_event_interruptible_timeout(a, !dhd_mmc_suspend, 1); \
 			} \
 		} 	while (0)
-#ifdef CUSTOMER_HW4
-	#define DHD_PM_RESUME_WAIT(a)		_DHD_PM_RESUME_WAIT(a, 500)
-#else
 	#define DHD_PM_RESUME_WAIT(a) 		_DHD_PM_RESUME_WAIT(a, 200)
-#endif /* CUSTOMER_HW4 */
 	#define DHD_PM_RESUME_WAIT_FOREVER(a) 	_DHD_PM_RESUME_WAIT(a, ~0)
 #ifdef CUSTOMER_HW4
 	#define DHD_PM_RESUME_RETURN_ERROR(a)   do { \

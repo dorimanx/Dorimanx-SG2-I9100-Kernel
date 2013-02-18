@@ -215,7 +215,8 @@ static int mfc_open(struct inode *inode, struct file *file)
 
 #ifdef CONFIG_USE_MFC_CMA
 	if (atomic_read(&mfcdev->inst_cnt) == 0) {
-#if defined(CONFIG_MACH_M0) || defined(CONFIG_MACH_GC1)
+#if defined(CONFIG_MACH_M0) || defined(CONFIG_MACH_GC1) \
+	|| defined(CONFIG_MACH_Q1_BD)
 		size_t size = 0x02800000;
 		mfcdev->cma_vaddr = dma_alloc_coherent(mfcdev->device, size,
 						&mfcdev->cma_dma_addr, 0);
@@ -416,7 +417,8 @@ err_inst_cnt:
 err_start_hw:
 	if (atomic_read(&mfcdev->inst_cnt) == 0) {
 #ifdef CONFIG_USE_MFC_CMA
-#if defined(CONFIG_MACH_M0) || defined(CONFIG_MACH_GC1)
+#if defined(CONFIG_MACH_M0) || defined(CONFIG_MACH_GC1) \
+	|| defined(CONFIG_MACH_Q1_BD)
 		size_t size = 0x02800000;
 		dma_free_coherent(mfcdev->device, size, mfcdev->cma_vaddr,
 							mfcdev->cma_dma_addr);
@@ -485,6 +487,19 @@ static int mfc_release(struct inode *inode, struct file *file)
 			/* release Freq lock back to normal */
 			exynos4_busfreq_lock_free(DVFS_LOCK_ID_MFC);
 			mfc_dbg("[%s] Bus Freq lock Released Normal!\n", __func__);
+		}
+	}
+#endif
+
+#if defined(CONFIG_MACH_GC1) && defined(CONFIG_EXYNOS4_CPUFREQ)
+	/* Release MFC & CPU Frequency lock for High resolution */
+	if (mfc_ctx->cpufreq_flag == true) {
+		atomic_dec(&dev->cpufreq_lock_cnt);
+		mfc_ctx->cpufreq_flag = false;
+		if (atomic_read(&dev->cpufreq_lock_cnt) == 0) {
+			/* release Freq lock back to normal */
+			exynos_cpufreq_lock_free(DVFS_LOCK_ID_MFC);
+			mfc_dbg("[%s] CPU Freq lock Released Normal!\n", __func__);
 		}
 	}
 #endif
@@ -580,7 +595,8 @@ err_pwr_disable:
 
 #ifdef CONFIG_USE_MFC_CMA
 	if (atomic_read(&mfcdev->inst_cnt) == 0) {
-#if defined(CONFIG_MACH_M0) || defined(CONFIG_MACH_GC1)
+#if defined(CONFIG_MACH_M0) || defined(CONFIG_MACH_GC1) \
+	|| defined(CONFIG_MACH_Q1_BD)
 		size_t size = 0x02800000;
 		dma_free_coherent(mfcdev->device, size, mfcdev->cma_vaddr,
 					mfcdev->cma_dma_addr);
@@ -1353,7 +1369,7 @@ static int mfc_open_with_retry(struct inode *inode, struct file *file)
 
 	ret = mfc_open(inode, file);
 
-	while (ret == -ENOMEM && i++ < 3) {
+	while (ret == -ENOMEM && i++ < 5) {
 		msleep(1000);
 		ret = mfc_open(inode, file);
 	}

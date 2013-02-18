@@ -4181,7 +4181,8 @@ dhd_bus_stop(struct dhd_bus *bus, bool enforce_mutex)
 						 (saveclk | SBSDIO_FORCE_HT), &err);
 			}
 			if (err) {
-				DHD_ERROR(("%s: Failed to force clock for F2: err %d\n", __FUNCTION__, err));
+			DHD_ERROR(("%s: Failed to force clock for F2: err %d\n",
+			            __FUNCTION__, err));
 			}
 
 			/* Turn off the bus (F2), free any pending packets */

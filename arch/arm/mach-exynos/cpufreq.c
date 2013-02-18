@@ -91,8 +91,6 @@ static unsigned int exynos_get_safe_armvolt(unsigned int old_index, unsigned int
 	return safe_arm_volt;
 }
 
-unsigned int smooth_level = L4;
-
 static int exynos_target(struct cpufreq_policy *policy,
 			  unsigned int target_freq,
 			  unsigned int relation)
@@ -140,8 +138,8 @@ static int exynos_target(struct cpufreq_policy *policy,
 
 #if defined(CONFIG_CPU_EXYNOS4210)
 	/* Do NOT step up max arm clock directly to reduce power consumption */
-	if (index <= 12 && old_index > smooth_level && smooth_level >= L12)
-		index = smooth_level;
+	if (index == exynos_info->max_support_idx && old_index > 12)
+		index = 12; /* L12 = 800Mhz SAMMY Defaults */
 #endif
 
 	freqs.new = freq_table[index].frequency;
@@ -740,11 +738,8 @@ static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 	cpufreq_frequency_table_cpuinfo(policy, exynos_info->freq_table);
 
 	/* Safe default startup limits */
-#ifdef CONFIG_CPU_EXYNOS4210
-	policy->max = 1200000;
-#else
-	policy->max = 1400000;
-#endif
+
+	policy->max = 1000000;
 	policy->min = 200000;
 
 	return 0;

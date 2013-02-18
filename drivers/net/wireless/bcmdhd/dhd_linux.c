@@ -5272,7 +5272,6 @@ int dhd_os_enable_packet_filter(dhd_pub_t *dhdp, int val)
 		}
 	}
 	return ret;
-
 }
 
 /* function to enable/disable packet for Network device */

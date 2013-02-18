@@ -7,7 +7,6 @@
  * A copy of the licence is included with the program, and can also be obtained from Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
 #include "mali_kernel_common.h"
 #include "mali_osk.h"
 
@@ -195,44 +194,60 @@ u32 mali_l2_cache_get_id(struct mali_l2_cache_core *cache)
 mali_bool mali_l2_cache_core_set_counter_src0(struct mali_l2_cache_core *cache, u32 counter)
 {
 	u32 value = 0; /* disabled src */
+	mali_bool core_is_on;
 
 	MALI_DEBUG_ASSERT_POINTER(cache);
-	MALI_DEBUG_ASSERT(counter < (1 << 7)); /* the possible values are 0-127 */
+
+	core_is_on = mali_l2_cache_lock_power_state(cache);
 
 	_mali_osk_lock_wait(cache->counter_lock, _MALI_OSK_LOCKMODE_RW);
 
 	cache->counter_src0 = counter;
 
-	if (counter != MALI_HW_CORE_NO_COUNTER)
+	if (MALI_HW_CORE_NO_COUNTER != counter)
 	{
 		value = counter;
 	}
 
-	mali_hw_core_register_write(&cache->hw_core, MALI400_L2_CACHE_REGISTER_PERFCNT_SRC0, value);
+	if (MALI_TRUE == core_is_on)
+	{
+		mali_hw_core_register_write(&cache->hw_core, MALI400_L2_CACHE_REGISTER_PERFCNT_SRC0, value);
+	}
 
 	_mali_osk_lock_signal(cache->counter_lock, _MALI_OSK_LOCKMODE_RW);
+
+	mali_l2_cache_unlock_power_state(cache);
+
 	return MALI_TRUE;
 }
 
 mali_bool mali_l2_cache_core_set_counter_src1(struct mali_l2_cache_core *cache, u32 counter)
 {
 	u32 value = 0; /* disabled src */
+	mali_bool core_is_on;
 
 	MALI_DEBUG_ASSERT_POINTER(cache);
-	MALI_DEBUG_ASSERT(counter < (1 << 7)); /* the possible values are 0-127 */
+
+	core_is_on = mali_l2_cache_lock_power_state(cache);
 
 	_mali_osk_lock_wait(cache->counter_lock, _MALI_OSK_LOCKMODE_RW);
 
 	cache->counter_src1 = counter;
 
-	if (counter != MALI_HW_CORE_NO_COUNTER)
+	if (MALI_HW_CORE_NO_COUNTER != counter)
 	{
 		value = counter;
 	}
 
-	mali_hw_core_register_write(&cache->hw_core, MALI400_L2_CACHE_REGISTER_PERFCNT_SRC1, value);
+	if (MALI_TRUE == core_is_on)
+	{
+		mali_hw_core_register_write(&cache->hw_core, MALI400_L2_CACHE_REGISTER_PERFCNT_SRC1, value);
+	}
 
 	_mali_osk_lock_signal(cache->counter_lock, _MALI_OSK_LOCKMODE_RW);
+
+	mali_l2_cache_unlock_power_state(cache);
+
 	return MALI_TRUE;
 }
 

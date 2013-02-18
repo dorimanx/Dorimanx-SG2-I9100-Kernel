@@ -70,8 +70,4 @@
 #define C2C_GENIO_OPP_MODE1	(29)
 #define C2C_GENIO_LATENCY0	(30)
 #define C2C_GENIO_LATENCY1	(31)
-
-#define C2C_GENIO_MBOX_INT	7	/* Mailbox interrupt for C2C IPC */
-#define C2C_GENIO_MBOX_EXT_INT	15	/* Mailbox ext. interrupt for C2C IPC */
-
 #endif /* __ASM_ARM_REGS_S5P_C2C_H */

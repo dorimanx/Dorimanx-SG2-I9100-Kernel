@@ -186,7 +186,11 @@ _mali_osk_errcode_t _mali_osk_lock_wait( _mali_osk_lock_t *lock, _mali_osk_lock_
 		spin_lock(&lock->obj.spinlock);
 		break;
 	case _MALI_OSK_INTERNAL_LOCKTYPE_SPIN_IRQ:
-		spin_lock_irqsave(&lock->obj.spinlock, lock->flags);
+		{
+			unsigned long tmp_flags;
+			spin_lock_irqsave(&lock->obj.spinlock, tmp_flags);
+			lock->flags = tmp_flags;
+		}
 		break;
 
 	case _MALI_OSK_INTERNAL_LOCKTYPE_MUTEX:

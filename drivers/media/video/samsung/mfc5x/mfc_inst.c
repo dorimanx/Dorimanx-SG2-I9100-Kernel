@@ -55,6 +55,9 @@ struct mfc_inst_ctx *mfc_create_inst(void)
 #ifdef CONFIG_BUSFREQ
 	ctx->busfreq_flag = false;
 #endif
+#if defined(CONFIG_MACH_GC1) && defined(CONFIG_EXYNOS4_CPUFREQ)
+	ctx->cpufreq_flag = false;
+#endif
 #if defined(CONFIG_CPU_EXYNOS4210) && defined(CONFIG_EXYNOS4_CPUFREQ)
 	ctx->cpufreq_flag = false;
 #endif
