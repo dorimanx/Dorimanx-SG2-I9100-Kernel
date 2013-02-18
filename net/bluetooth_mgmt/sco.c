@@ -50,7 +50,7 @@
 #include <net/bluetooth/hci_core.h>
 #include <net/bluetooth/sco.h>
 
-static bool disable_esco;
+static int disable_esco;
 
 static const struct proto_ops sco_sock_ops;
 
@@ -159,8 +159,7 @@ static int sco_conn_del(struct hci_conn *hcon, int err)
 	return 0;
 }
 
-static inline int sco_chan_add(struct sco_conn *conn, struct sock *sk,
-			struct sock *parent)
+static inline int sco_chan_add(struct sco_conn *conn, struct sock *sk, struct sock *parent)
 {
 	int err = 0;
 
@@ -805,7 +804,7 @@ static int sco_sock_shutdown(struct socket *sock, int how)
 
 		if (sock_flag(sk, SOCK_LINGER) && sk->sk_lingertime)
 			err = bt_sock_wait_state(sk, BT_CLOSED,
-						 sk->sk_lingertime);
+							sk->sk_lingertime);
 	}
 	release_sock(sk);
 	return err;
@@ -895,7 +894,7 @@ static void sco_conn_ready(struct sco_conn *conn)
 		bh_lock_sock(parent);
 
 		sk = sco_sock_alloc(sock_net(parent), NULL,
-				    BTPROTO_SCO, GFP_ATOMIC);
+				BTPROTO_SCO, GFP_ATOMIC);
 		if (!sk) {
 			bh_unlock_sock(parent);
 			goto done;
@@ -1093,8 +1092,8 @@ int __init sco_init(void)
 	}
 
 	if (bt_debugfs) {
-		sco_debugfs = debugfs_create_file("sco", 0444, bt_debugfs,
-						  NULL, &sco_debugfs_fops);
+		sco_debugfs = debugfs_create_file("sco", 0444,
+					bt_debugfs, NULL, &sco_debugfs_fops);
 		if (!sco_debugfs)
 			BT_ERR("Failed to create SCO debug file");
 	}

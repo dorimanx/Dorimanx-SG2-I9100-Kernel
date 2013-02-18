@@ -260,13 +260,10 @@ static void rfcomm_sock_init(struct sock *sk, struct sock *parent)
 
 	if (parent) {
 		sk->sk_type = parent->sk_type;
-		pi->dlc->defer_setup = test_bit(BT_SK_DEFER_SETUP,
-						&bt_sk(parent)->flags);
+		pi->dlc->defer_setup = bt_sk(parent)->defer_setup;
 
 		pi->sec_level = rfcomm_pi(parent)->sec_level;
 		pi->role_switch = rfcomm_pi(parent)->role_switch;
-
-		security_sk_clone(parent, sk);
 	} else {
 		pi->dlc->defer_setup = 0;
 
@@ -486,7 +483,7 @@ static int rfcomm_sock_accept(struct socket *sock, struct socket *newsock, int f
 	long timeo;
 	int err = 0;
 
-	lock_sock_nested(sk, SINGLE_DEPTH_NESTING);
+	lock_sock(sk);
 
 	if (sk->sk_type != SOCK_STREAM) {
 		err = -EINVAL;
@@ -523,7 +520,7 @@ static int rfcomm_sock_accept(struct socket *sock, struct socket *newsock, int f
 
 		release_sock(sk);
 		timeo = schedule_timeout(timeo);
-		lock_sock_nested(sk, SINGLE_DEPTH_NESTING);
+		lock_sock(sk);
 	}
 	__set_current_state(TASK_RUNNING);
 	remove_wait_queue(sk_sleep(sk), &wait);
@@ -547,7 +544,6 @@ static int rfcomm_sock_getname(struct socket *sock, struct sockaddr *addr, int *
 
 	BT_DBG("sock %p, sk %p", sock, sk);
 
-	memset(sa, 0, sizeof(*sa));
 	sa->rc_family  = AF_BLUETOOTH;
 	sa->rc_channel = rfcomm_pi(sk)->channel;
 	if (peer)
@@ -600,8 +596,6 @@ static int rfcomm_sock_sendmsg(struct kiocb *iocb, struct socket *sock,
 				sent = err;
 			break;
 		}
-
-		skb->priority = sk->sk_priority;
 
 		err = rfcomm_dlc_send(d, skb);
 		if (err < 0) {
@@ -733,11 +727,7 @@ static int rfcomm_sock_setsockopt(struct socket *sock, int level, int optname, c
 			break;
 		}
 
-		if (opt)
-			set_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags);
-		else
-			clear_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags);
-
+		bt_sk(sk)->defer_setup = opt;
 		break;
 
 	default:
@@ -796,6 +786,7 @@ static int rfcomm_sock_getsockopt_old(struct socket *sock, int optname, char __u
 			break;
 		}
 
+
 		memset(&cinfo, 0, sizeof(cinfo));
 		cinfo.hci_handle = conn->hcon->handle;
 		memcpy(cinfo.dev_class, conn->hcon->dev_class, 3);
@@ -842,7 +833,6 @@ static int rfcomm_sock_getsockopt(struct socket *sock, int level, int optname, c
 		}
 
 		sec.level = rfcomm_pi(sk)->sec_level;
-		sec.key_size = 0;
 
 		len = min_t(unsigned int, len, sizeof(sec));
 		if (copy_to_user(optval, (char *) &sec, len))
@@ -856,8 +846,7 @@ static int rfcomm_sock_getsockopt(struct socket *sock, int level, int optname, c
 			break;
 		}
 
-		if (put_user(test_bit(BT_SK_DEFER_SETUP, &bt_sk(sk)->flags),
-			     (u32 __user *) optval))
+		if (put_user(bt_sk(sk)->defer_setup, (u32 __user *) optval))
 			err = -EFAULT;
 
 		break;
@@ -963,8 +952,6 @@ int rfcomm_connect_ind(struct rfcomm_session *s, u8 channel, struct rfcomm_dlc *
 	if (!sk)
 		goto done;
 
-	bt_sock_reclassify_lock(sk, BTPROTO_RFCOMM);
-
 	rfcomm_sock_init(sk, parent);
 	bacpy(&bt_sk(sk)->src, &src);
 	bacpy(&bt_sk(sk)->dst, &dst);
@@ -980,7 +967,7 @@ int rfcomm_connect_ind(struct rfcomm_session *s, u8 channel, struct rfcomm_dlc *
 done:
 	bh_unlock_sock(parent);
 
-	if (test_bit(BT_SK_DEFER_SETUP, &bt_sk(parent)->flags))
+	if (bt_sk(parent)->defer_setup)
 		parent->sk_state_change(parent);
 
 	return result;
@@ -1054,17 +1041,8 @@ int __init rfcomm_init_sockets(void)
 		return err;
 
 	err = bt_sock_register(BTPROTO_RFCOMM, &rfcomm_sock_family_ops);
-	if (err < 0) {
-		BT_ERR("RFCOMM socket layer registration failed");
+	if (err < 0)
 		goto error;
-	}
-
-	err = bt_procfs_init(THIS_MODULE, &init_net, "rfcomm", &rfcomm_sk_list, NULL);
-	if (err < 0) {
-		BT_ERR("Failed to create RFCOMM proc file");
-		bt_sock_unregister(BTPROTO_RFCOMM);
-		goto error;
-	}
 
 	if (bt_debugfs) {
 		rfcomm_sock_debugfs = debugfs_create_file("rfcomm", 0444,
@@ -1078,14 +1056,13 @@ int __init rfcomm_init_sockets(void)
 	return 0;
 
 error:
+	BT_ERR("RFCOMM socket layer registration failed");
 	proto_unregister(&rfcomm_proto);
 	return err;
 }
 
 void __exit rfcomm_cleanup_sockets(void)
 {
-	bt_procfs_cleanup(&init_net, "rfcomm");
-
 	debugfs_remove(rfcomm_sock_debugfs);
 
 	if (bt_sock_unregister(BTPROTO_RFCOMM) < 0)

@@ -535,7 +535,7 @@ static int hci_uart_tty_ioctl(struct tty_struct *tty, struct file * file,
 	default:
 		err = n_tty_ioctl_helper(tty, file, cmd, arg);
 		break;
-	}
+	};
 
 	return err;
 }

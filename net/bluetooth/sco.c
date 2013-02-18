@@ -913,7 +913,7 @@ done:
 /* ----- SCO interface with lower layer (HCI) ----- */
 static int sco_connect_ind(struct hci_dev *hdev, bdaddr_t *bdaddr, __u8 type)
 {
-	struct sock *sk;
+	register struct sock *sk;
 	struct hlist_node *node;
 	int lm = 0;
 

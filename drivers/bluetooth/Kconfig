@@ -1,6 +1,6 @@
 
 menu "Bluetooth device drivers"
-	depends on BT || BT_ANDROID || BT_SG3
+	depends on BT
 
 config BT_HCIBTUSB
 	tristate "HCI USB driver"

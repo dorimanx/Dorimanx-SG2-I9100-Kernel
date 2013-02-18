@@ -109,24 +109,19 @@ struct l2cap_conninfo {
 #define L2CAP_FCS_NONE		0x00
 #define L2CAP_FCS_CRC16		0x01
 
-/* L2CAP fixed channels */
-#define L2CAP_FC_L2CAP		0x02
-#define L2CAP_FC_A2MP		0x08
-
 /* L2CAP Control Field bit masks */
-#define L2CAP_CTRL_SAR			0xC000
-#define L2CAP_CTRL_REQSEQ		0x3F00
-#define L2CAP_CTRL_TXSEQ		0x007E
-#define L2CAP_CTRL_SUPERVISE		0x000C
+#define L2CAP_CTRL_SAR               0xC000
+#define L2CAP_CTRL_REQSEQ            0x3F00
+#define L2CAP_CTRL_TXSEQ             0x007E
+#define L2CAP_CTRL_RETRANS           0x0080
+#define L2CAP_CTRL_FINAL             0x0080
+#define L2CAP_CTRL_POLL              0x0010
+#define L2CAP_CTRL_SUPERVISE         0x000C
+#define L2CAP_CTRL_FRAME_TYPE        0x0001 /* I- or S-Frame */
 
-#define L2CAP_CTRL_RETRANS		0x0080
-#define L2CAP_CTRL_FINAL		0x0080
-#define L2CAP_CTRL_POLL			0x0010
-#define L2CAP_CTRL_FRAME_TYPE		0x0001 /* I- or S-Frame */
-
-#define L2CAP_CTRL_TXSEQ_SHIFT		1
-#define L2CAP_CTRL_REQSEQ_SHIFT		8
-#define L2CAP_CTRL_SAR_SHIFT		14
+#define L2CAP_CTRL_TXSEQ_SHIFT      1
+#define L2CAP_CTRL_REQSEQ_SHIFT     8
+#define L2CAP_CTRL_SAR_SHIFT       14
 
 /* L2CAP Supervisory Function */
 #define L2CAP_SUPER_RCV_READY           0x0000
@@ -140,16 +135,12 @@ struct l2cap_conninfo {
 #define L2CAP_SDU_END               0x8000
 #define L2CAP_SDU_CONTINUE          0xC000
 
-/* L2CAP Command rej. reasons */
-#define L2CAP_REJ_NOT_UNDERSTOOD	0x0000
 /* L2CAP structures */
 struct l2cap_hdr {
 	__le16     len;
 	__le16     cid;
 } __packed;
 #define L2CAP_HDR_SIZE		4
-#define L2CAP_FCS_SIZE		2
-#define L2CAP_SDULEN_SIZE	2
 
 struct l2cap_cmd_hdr {
 	__u8       code;
@@ -173,10 +164,6 @@ struct l2cap_conn_rsp {
 	__le16     result;
 	__le16     status;
 } __packed;
-
-/* protocol/service multiplexer (PSM) */
-#define L2CAP_PSM_SDP		0x0001
-#define L2CAP_PSM_RFCOMM	0x0003
 
 /* channel indentifier */
 #define L2CAP_CID_SIGNALING	0x0001
@@ -271,13 +258,13 @@ struct l2cap_info_rsp {
 } __packed;
 
 /* info type */
-#define L2CAP_IT_CL_MTU		0x0001
-#define L2CAP_IT_FEAT_MASK	0x0002
-#define L2CAP_IT_FIXED_CHAN	0x0003
+#define L2CAP_IT_CL_MTU     0x0001
+#define L2CAP_IT_FEAT_MASK  0x0002
+#define L2CAP_IT_FIXED_CHAN 0x0003
 
 /* info result */
-#define L2CAP_IR_SUCCESS	0x0000
-#define L2CAP_IR_NOTSUPP	0x0001
+#define L2CAP_IR_SUCCESS    0x0000
+#define L2CAP_IR_NOTSUPP    0x0001
 
 struct l2cap_conn_param_update_req {
 	__le16      min;
@@ -344,7 +331,6 @@ struct l2cap_chan {
 
 	unsigned long	conf_state;
 	unsigned long	conn_state;
-	unsigned long	flags;
 
 	__u8		next_tx_seq;
 	__u8		expected_ack_seq;
@@ -373,15 +359,15 @@ struct l2cap_chan {
 	struct sk_buff_head	srej_q;
 	struct list_head	srej_l;
 
-	struct list_head	list;
-	struct list_head	global_l;
+	struct list_head list;
+	struct list_head global_l;
 
-	void			*data;
-	struct l2cap_ops	*ops;
+	void		*data;
+	struct l2cap_ops *ops;
 };
 
 struct l2cap_ops {
-	char			*name;
+	char		*name;
 
 	struct l2cap_chan	*(*new_connection) (void *data);
 	int			(*recv) (void *data, struct sk_buff *skb);
@@ -390,27 +376,27 @@ struct l2cap_ops {
 };
 
 struct l2cap_conn {
-	struct hci_conn		*hcon;
+	struct hci_conn	*hcon;
 
-	bdaddr_t		*dst;
-	bdaddr_t		*src;
+	bdaddr_t	*dst;
+	bdaddr_t	*src;
 
-	unsigned int		mtu;
+	unsigned int	mtu;
 
-	__u32			feat_mask;
+	__u32		feat_mask;
 
-	__u8			info_state;
-	__u8			info_ident;
+	__u8		info_state;
+	__u8		info_ident;
 
 	struct timer_list info_timer;
 
-	spinlock_t		lock;
+	spinlock_t	lock;
 
-	struct sk_buff		*rx_skb;
-	__u32			rx_len;
-	__u8			tx_ident;
+	struct sk_buff *rx_skb;
+	__u32		rx_len;
+	__u8		tx_ident;
 
-	__u8			disc_reason;
+	__u8		disc_reason;
 
 	__u8		preq[7]; /* SMP Pairing Request */
 	__u8		prsp[7]; /* SMP Pairing Response */
@@ -421,9 +407,9 @@ struct l2cap_conn {
 
 	struct timer_list security_timer;
 
-	struct smp_chan		*smp_chan;
+	struct smp_chan *smp_chan;
 
-	struct list_head	chan_l;
+	struct list_head chan_l;
 	rwlock_t	chan_lock;
 };
 
@@ -439,9 +425,9 @@ struct l2cap_conn {
 #define l2cap_pi(sk) ((struct l2cap_pinfo *) sk)
 
 struct l2cap_pinfo {
-	struct bt_sock		bt;
+	struct bt_sock	bt;
 	struct l2cap_chan	*chan;
-	struct sk_buff		*rx_busy_skb;
+	struct sk_buff	*rx_busy_skb;
 };
 
 enum {
@@ -469,16 +455,6 @@ enum {
 	CONN_REJ_ACT,
 	CONN_SEND_FBIT,
 	CONN_RNR_SENT,
-};
-
-/* Definitions for flags in l2cap_chan */
-enum {
-	FLAG_ROLE_SWITCH,
-	FLAG_FORCE_ACTIVE,
-	FLAG_FORCE_RELIABLE,
-	FLAG_FLUSHABLE,
-	FLAG_EXT_CTRL,
-	FLAG_EFS_ENABLE,
 };
 
 #define __set_chan_timer(c, t) l2cap_set_timer(c, &c->chan_timer, (t))

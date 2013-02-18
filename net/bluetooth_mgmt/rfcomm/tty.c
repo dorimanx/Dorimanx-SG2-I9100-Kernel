@@ -47,7 +47,6 @@
 static struct tty_driver *rfcomm_tty_driver;
 
 struct rfcomm_dev {
-	struct tty_port		port;
 	struct list_head	list;
 	atomic_t		refcnt;
 
@@ -134,10 +133,13 @@ static inline void rfcomm_dev_put(struct rfcomm_dev *dev)
 static struct rfcomm_dev *__rfcomm_dev_get(int id)
 {
 	struct rfcomm_dev *dev;
+	struct list_head  *p;
 
-	list_for_each_entry(dev, &rfcomm_dev_list, list)
+	list_for_each(p, &rfcomm_dev_list) {
+		dev = list_entry(p, struct rfcomm_dev, list);
 		if (dev->id == id)
 			return dev;
+	}
 
 	return NULL;
 }
@@ -195,8 +197,8 @@ static DEVICE_ATTR(channel, S_IRUGO, show_channel, NULL);
 
 static int rfcomm_dev_add(struct rfcomm_dev_req *req, struct rfcomm_dlc *dlc)
 {
-	struct rfcomm_dev *dev, *entry;
-	struct list_head *head = &rfcomm_dev_list;
+	struct rfcomm_dev *dev;
+	struct list_head *head = &rfcomm_dev_list, *p;
 	int err = 0;
 
 	BT_DBG("id %d channel %d", req->dev_id, req->channel);
@@ -210,17 +212,19 @@ static int rfcomm_dev_add(struct rfcomm_dev_req *req, struct rfcomm_dlc *dlc)
 	if (req->dev_id < 0) {
 		dev->id = 0;
 
-		list_for_each_entry(entry, &rfcomm_dev_list, list) {
-			if (entry->id != dev->id)
+		list_for_each(p, &rfcomm_dev_list) {
+			if (list_entry(p, struct rfcomm_dev, list)->id != dev->id)
 				break;
 
 			dev->id++;
-			head = &entry->list;
+			head = p;
 		}
 	} else {
 		dev->id = req->dev_id;
 
-		list_for_each_entry(entry, &rfcomm_dev_list, list) {
+		list_for_each(p, &rfcomm_dev_list) {
+			struct rfcomm_dev *entry = list_entry(p, struct rfcomm_dev, list);
+
 			if (entry->id == dev->id) {
 				err = -EADDRINUSE;
 				goto out;
@@ -229,7 +233,7 @@ static int rfcomm_dev_add(struct rfcomm_dev_req *req, struct rfcomm_dlc *dlc)
 			if (entry->id > dev->id - 1)
 				break;
 
-			head = &entry->list;
+			head = p;
 		}
 	}
 
@@ -451,9 +455,9 @@ static int rfcomm_release_dev(void __user *arg)
 
 static int rfcomm_get_dev_list(void __user *arg)
 {
-	struct rfcomm_dev *dev;
 	struct rfcomm_dev_list_req *dl;
 	struct rfcomm_dev_info *di;
+	struct list_head *p;
 	int n = 0, size, err;
 	u16 dev_num;
 
@@ -467,7 +471,7 @@ static int rfcomm_get_dev_list(void __user *arg)
 
 	size = sizeof(*dl) + dev_num * sizeof(*di);
 
-	dl = kzalloc(size, GFP_KERNEL);
+	dl = kmalloc(size, GFP_KERNEL);
 	if (!dl)
 		return -ENOMEM;
 
@@ -475,7 +479,8 @@ static int rfcomm_get_dev_list(void __user *arg)
 
 	read_lock_bh(&rfcomm_dev_lock);
 
-	list_for_each_entry(dev, &rfcomm_dev_list, list) {
+	list_for_each(p, &rfcomm_dev_list) {
+		struct rfcomm_dev *dev = list_entry(p, struct rfcomm_dev, list);
 		if (test_bit(RFCOMM_TTY_RELEASED, &dev->flags))
 			continue;
 		(di + n)->id      = dev->id;
@@ -1150,11 +1155,9 @@ static const struct tty_operations rfcomm_ops = {
 
 int __init rfcomm_init_ttys(void)
 {
-	int error;
-
 	rfcomm_tty_driver = alloc_tty_driver(RFCOMM_TTY_PORTS);
 	if (!rfcomm_tty_driver)
-		return -ENOMEM;
+		return -1;
 
 	rfcomm_tty_driver->owner	= THIS_MODULE;
 	rfcomm_tty_driver->driver_name	= "rfcomm";
@@ -1169,11 +1172,10 @@ int __init rfcomm_init_ttys(void)
 	rfcomm_tty_driver->init_termios.c_lflag &= ~ICANON;
 	tty_set_operations(rfcomm_tty_driver, &rfcomm_ops);
 
-	error = tty_register_driver(rfcomm_tty_driver);
-	if (error) {
+	if (tty_register_driver(rfcomm_tty_driver)) {
 		BT_ERR("Can't register RFCOMM TTY driver");
 		put_tty_driver(rfcomm_tty_driver);
-		return error;
+		return -1;
 	}
 
 	BT_INFO("RFCOMM TTY layer initialized");

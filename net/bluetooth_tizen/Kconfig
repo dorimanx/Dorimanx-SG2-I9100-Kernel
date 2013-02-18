@@ -2,7 +2,7 @@
 # Bluetooth subsystem configuration
 #
 
-menuconfig BT_SG3
+menuconfig BT
 	tristate "Bluetooth subsystem support(Tizen)"
 	depends on NET && !S390
 	depends on RFKILL || !RFKILL

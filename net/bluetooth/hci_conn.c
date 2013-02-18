@@ -927,7 +927,7 @@ int hci_get_conn_list(void __user *arg)
 
 	hci_dev_lock_bh(hdev);
 	list_for_each(p, &hdev->conn_hash.list) {
-		struct hci_conn *c;
+		register struct hci_conn *c;
 		c = list_entry(p, struct hci_conn, list);
 
 		bacpy(&(ci + n)->bdaddr, &c->dst);

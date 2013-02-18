@@ -107,8 +107,8 @@ typedef struct {
 	__u8 b[6];
 } __packed bdaddr_t;
 
-#define BDADDR_ANY   (&(bdaddr_t) {{0, 0, 0, 0, 0, 0} })
-#define BDADDR_LOCAL (&(bdaddr_t) {{0, 0, 0, 0xff, 0xff, 0xff} })
+#define BDADDR_ANY   (&(bdaddr_t) {{0, 0, 0, 0, 0, 0}})
+#define BDADDR_LOCAL (&(bdaddr_t) {{0, 0, 0, 0xff, 0xff, 0xff}})
 
 /* Copy, swap, convert BD Address */
 static inline int bacmp(bdaddr_t *ba1, bdaddr_t *ba2)
@@ -134,21 +134,12 @@ struct bt_sock {
 	bdaddr_t    dst;
 	struct list_head accept_q;
 	struct sock *parent;
-	unsigned long flags;
-};
-
-enum {
-	BT_SK_DEFER_SETUP,
-	BT_SK_SUSPEND,
+	u32 defer_setup;
 };
 
 struct bt_sock_list {
 	struct hlist_head head;
 	rwlock_t          lock;
-#ifdef CONFIG_PROC_FS
-        struct file_operations   fops;
-        int (* custom_seq_show)(struct seq_file *, void *);
-#endif
 };
 
 int  bt_sock_register(int proto, const struct net_proto_family *ops);
@@ -230,11 +221,6 @@ extern void hci_sock_cleanup(void);
 extern int bt_sysfs_init(void);
 extern void bt_sysfs_cleanup(void);
 
-extern int  bt_procfs_init(struct module* module, struct net *net, const char *name,
-			   struct bt_sock_list* sk_list,
-			   int (* seq_show)(struct seq_file *, void *));
-extern void bt_procfs_cleanup(struct net *net, const char *name);
-
 extern struct dentry *bt_debugfs;
 
 #ifdef CONFIG_BT_L2CAP
@@ -264,7 +250,5 @@ static inline void sco_exit(void)
 {
 }
 #endif
-
-void bt_sock_reclassify_lock(struct sock *sk, int proto);
 
 #endif /* __BLUETOOTH_H */
