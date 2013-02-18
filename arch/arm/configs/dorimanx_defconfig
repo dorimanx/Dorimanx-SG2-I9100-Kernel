@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 3.1.0-R64 Kernel Configuration
+# Linux/arm 3.1.0-R65 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -192,12 +192,12 @@ CONFIG_CGROUP_BFQIO=y
 # CONFIG_DEFAULT_DEADLINE is not set
 # CONFIG_DEFAULT_CFQ is not set
 # CONFIG_DEFAULT_SIO is not set
-CONFIG_DEFAULT_ROW=y
+# CONFIG_DEFAULT_ROW is not set
 # CONFIG_DEFAULT_VR is not set
 # CONFIG_DEFAULT_BFQ is not set
-# CONFIG_DEFAULT_ZEN is not set
+CONFIG_DEFAULT_ZEN=y
 # CONFIG_DEFAULT_NOOP is not set
-CONFIG_DEFAULT_IOSCHED="row"
+CONFIG_DEFAULT_IOSCHED="zen"
 # CONFIG_INLINE_SPIN_TRYLOCK is not set
 # CONFIG_INLINE_SPIN_TRYLOCK_BH is not set
 # CONFIG_INLINE_SPIN_LOCK is not set

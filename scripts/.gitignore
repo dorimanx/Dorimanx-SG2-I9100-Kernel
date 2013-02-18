@@ -9,5 +9,5 @@ unifdef
 ihex2fw
 recordmcount
 docproc
-sortextable
-asn1_compiler
+zconf.hash.c
+zconf.tab.c

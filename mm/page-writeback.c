@@ -95,7 +95,7 @@ unsigned long vm_dirty_bytes;
 /*
  * The interval between `kupdate'-style writebacks
  */
-unsigned int dirty_writeback_interval = 0; /* centiseconds */
+unsigned int dirty_writeback_interval = 5 * 100; /* centiseconds */
 
 EXPORT_SYMBOL_GPL(dirty_writeback_interval);
 
@@ -1638,12 +1638,12 @@ static struct notifier_block __cpuinitdata ratelimit_nb = {
 
 static void dirty_early_suspend(struct early_suspend *handler)
 {
-	dirty_writeback_interval = 5 * 1000;
+	dirty_writeback_interval = 15 * 100;
 }
 
 static void dirty_late_resume(struct early_suspend *handler)
 {
-	dirty_writeback_interval = 10 * 100;
+	dirty_writeback_interval = 5 * 100;
 }
 
 static struct early_suspend dirty_suspend = {
