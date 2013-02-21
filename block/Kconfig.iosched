@@ -94,6 +94,13 @@ config IOSCHED_BFQ
 	  applications.  If compiled built-in (saying Y here), BFQ can
 	  be configured to support hierarchical scheduling.
 
+config IOSCHED_FIFO
+	bool
+	default y
+	---help---
+	  Fifo is similar to no-op I/O scheduler and it's a minimal scheduler that does basic merging
+	  and sorting. Ported from: https://github.com/AndroidDeveloperAlliance/ZenKernel_TUNA/blob/master/block/fifo-iosched.c
+
 config CGROUP_BFQIO
 	bool "BFQ hierarchical scheduling support"
 	depends on CGROUPS && IOSCHED_BFQ=y
@@ -144,6 +151,9 @@ choice
 	config DEFAULT_NOOP
 		bool "No-op"
 
+	config DEFAULT_FIFO
+		bool "fifo"
+
 endchoice
 
 config DEFAULT_IOSCHED
@@ -157,6 +167,7 @@ config DEFAULT_IOSCHED
 	default "bfq" if DEFAULT_BFQ
 	default "zen" if DEFAULT_ZEN
 	default "noop" if DEFAULT_NOOP
+	default "fifo" if DEFAULT_FIFO
 
 endmenu
 
