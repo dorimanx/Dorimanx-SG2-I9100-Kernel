@@ -163,7 +163,7 @@ void account_user_time(struct task_struct *p, cputime_t cputime,
 	task_group_account_field(p, index, (__force u64) cputime);
 
 	/* Account for user time used */
-	acct_update_integrals(p);
+	acct_account_cputime(p);
 }
 
 /*
@@ -213,7 +213,7 @@ void __account_system_time(struct task_struct *p, cputime_t cputime,
 	task_group_account_field(p, index, (__force u64) cputime);
 
 	/* Account for system time used */
-	acct_update_integrals(p);
+	acct_account_cputime(p);
 }
 
 /*
@@ -295,6 +295,7 @@ static __always_inline bool steal_account_process_tick(void)
 void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times)
 {
 	struct signal_struct *sig = tsk->signal;
+	cputime_t utime, stime;
 	struct task_struct *t;
 
 	times->utime = sig->utime;
@@ -308,8 +309,9 @@ void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times)
 
 	t = tsk;
 	do {
-		times->utime += t->utime;
-		times->stime += t->stime;
+		task_cputime(tsk, &utime, &stime);
+		times->utime += utime;
+		times->stime += stime;
 		times->sum_exec_runtime += task_sched_runtime(t);
 	} while_each_thread(tsk, t);
 out:
@@ -461,33 +463,20 @@ void thread_group_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime
 	*st = cputime.stime;
 }
 
-void vtime_account_system_irqsafe(struct task_struct *tsk)
+void vtime_account_system(struct task_struct *tsk)
 {
 	unsigned long flags;
 
 	local_irq_save(flags);
-	vtime_account_system(tsk);
+	__vtime_account_system(tsk);
 	local_irq_restore(flags);
 }
-EXPORT_SYMBOL_GPL(vtime_account_system_irqsafe);
-
-#ifndef __ARCH_HAS_VTIME_TASK_SWITCH
-void vtime_task_switch(struct task_struct *prev)
-{
-	if (is_idle_task(prev))
-		vtime_account_idle(prev);
-	else
-		vtime_account_system(prev);
-
-	vtime_account_user(prev);
-	arch_vtime_task_switch(prev);
-}
-#endif
+EXPORT_SYMBOL_GPL(vtime_account_system);
 
 /*
  * Archs that account the whole time spent in the idle task
  * (outside irq) as idle time can rely on this and just implement
- * vtime_account_system() and vtime_account_idle(). Archs that
+ * __vtime_account_system() and __vtime_account_idle(). Archs that
  * have other meaning of the idle time (s390 only includes the
  * time spent by the CPU when it's in low power mode) must override
  * vtime_account().
@@ -495,19 +484,21 @@ void vtime_task_switch(struct task_struct *prev)
 #ifndef __ARCH_HAS_VTIME_ACCOUNT
 void vtime_account(struct task_struct *tsk)
 {
+	unsigned long flags;
+
+	local_irq_save(flags);
+
 	if (in_interrupt() || !is_idle_task(tsk))
-		vtime_account_system(tsk);
+		__vtime_account_system(tsk);
 	else
-		vtime_account_idle(tsk);
+		__vtime_account_idle(tsk);
+
+	local_irq_restore(flags);
 }
 EXPORT_SYMBOL_GPL(vtime_account);
 #endif /* __ARCH_HAS_VTIME_ACCOUNT */
 
 #else
-
-#ifndef nsecs_to_cputime
-# define nsecs_to_cputime(__nsecs)	nsecs_to_jiffies(__nsecs)
-#endif
 
 static cputime_t scale_utime(cputime_t utime, cputime_t rtime, cputime_t total)
 {
@@ -568,11 +559,10 @@ static void cputime_adjust(struct task_cputime *curr,
 void task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *st)
 {
 	struct task_cputime cputime = {
-		.utime = p->utime,
-		.stime = p->stime,
 		.sum_exec_runtime = p->se.sum_exec_runtime,
 	};
 
+	task_cputime(p, &cputime.utime, &cputime.stime);
 	cputime_adjust(&cputime, &p->prev_cputime, ut, st);
 }
 

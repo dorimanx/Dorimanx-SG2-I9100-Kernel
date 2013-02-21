@@ -5,6 +5,8 @@
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/sched.h>
+#include <linux/sched/sysctl.h>
+#include <linux/sched/rt.h>
 #include <linux/init.h>
 #include <linux/init_task.h>
 #include <linux/mqueue.h>

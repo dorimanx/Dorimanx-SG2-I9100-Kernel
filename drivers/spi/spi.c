@@ -29,6 +29,11 @@
 #include <linux/spi/spi.h>
 #include <linux/of_spi.h>
 #include <linux/pm_runtime.h>
+#include <linux/sched.h>
+#include <linux/delay.h>
+#include <linux/kthread.h>
+#include <linux/ioport.h>
+#include <linux/acpi.h>
 
 static void spidev_release(struct device *dev)
 {

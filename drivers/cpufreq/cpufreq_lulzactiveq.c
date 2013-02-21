@@ -27,6 +27,7 @@
 #include <linux/kernel_stat.h>
 #include <linux/mutex.h>
 #include <linux/sched.h>
+#include <linux/sched/rt.h>
 #include <linux/tick.h>
 #include <linux/timer.h>
 #include <linux/workqueue.h>
@@ -442,9 +443,10 @@ static void cpufreq_lulzactive_timer(unsigned long data)
 	if (!idle_exit_time)
 		goto exit;
 
-	delta_idle = (unsigned int) cputime64_sub(now_idle, time_in_idle);
-	delta_time = (unsigned int) cputime64_sub(pcpu->timer_run_time,
-						  idle_exit_time);
+	delta_idle = (unsigned int)
+			(now_idle - time_in_idle);
+	delta_time = (unsigned int)
+			(pcpu->timer_run_time - idle_exit_time);
 
 	/*
 	 * If timer ran less than 1ms after short-term sample started, retry.
@@ -472,10 +474,10 @@ static void cpufreq_lulzactive_timer(unsigned long data)
 	else
 		cpu_load = 100 * (delta_time - delta_idle) / delta_time;
 
-	delta_idle = (unsigned int) cputime64_sub(now_idle,
-						pcpu->freq_change_time_in_idle);
-	delta_time = (unsigned int) cputime64_sub(pcpu->timer_run_time,
-						  pcpu->freq_change_time);
+	delta_idle = (unsigned int)
+			(now_idle - pcpu->freq_change_time_in_idle);
+	delta_time = (unsigned int)
+			(pcpu->timer_run_time - pcpu->freq_change_time);
 
 	if (dbs_tuners_ins.ignore_nice) {
 
@@ -595,12 +597,12 @@ static void cpufreq_lulzactive_timer(unsigned long data)
 	 * minimum sample time.
 	 */
 	if (new_freq < pcpu->target_freq) {
-		if (cputime64_sub(pcpu->timer_run_time, pcpu->freq_change_down_time)
+		if ((pcpu->timer_run_time - pcpu->freq_change_down_time)
 		    < down_sample_time) {
 			goto rearm;
 		}
 	} else {
-		if (cputime64_sub(pcpu->timer_run_time, pcpu->freq_change_up_time) <
+		if ((pcpu->timer_run_time - pcpu->freq_change_up_time) <
 		    up_sample_time) {
 			/* don't reset timer */
 			goto rearm;

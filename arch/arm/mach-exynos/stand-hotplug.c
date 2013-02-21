@@ -300,12 +300,12 @@ static void hotplug_timer(struct work_struct *work)
 
 		cur_idle_time = get_cpu_idle_time_us(i, &cur_wall_time);
 
-		idle_time = (unsigned int)cputime64_sub(cur_idle_time,
-							tmp_info->prev_cpu_idle);
+		idle_time = (unsigned int)
+				(cur_idle_time - tmp_info->prev_cpu_idle);
 		tmp_info->prev_cpu_idle = cur_idle_time;
 
-		wall_time = (unsigned int)cputime64_sub(cur_wall_time,
-							tmp_info->prev_cpu_wall);
+		wall_time = (unsigned int)
+				(cur_wall_time - tmp_info->prev_cpu_wall);
 		tmp_info->prev_cpu_wall = cur_wall_time;
 
 		if (wall_time < idle_time)

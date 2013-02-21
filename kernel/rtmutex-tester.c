@@ -10,6 +10,7 @@
 #include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/sched.h>
+#include <linux/sched/rt.h>
 #include <linux/spinlock.h>
 #include <linux/timer.h>
 #include <linux/freezer.h>
