@@ -49,7 +49,6 @@
 
 #define POWER_BUFFER_SIZE 3
 
-struct device *mali_device;
 static struct dentry *mali_debugfs_dir = NULL;
 
 typedef enum
@@ -684,7 +683,7 @@ static const struct file_operations l2_all_counter_src1_fops = {
 static ssize_t power_events_write(struct file *filp, const char __user *ubuf, size_t cnt, loff_t *ppos)
 {
 
-	memset(pwr_buf, 0, POWER_BUFFER_SIZE);
+	memset(pwr_buf,0,POWER_BUFFER_SIZE);
 	virtual_power_status_register = 0;
 	if (!strncmp(ubuf,mali_power_events[_MALI_DEVICE_SUSPEND],strlen(mali_power_events[_MALI_DEVICE_SUSPEND])))
 	{
@@ -1043,6 +1042,7 @@ static int mali_sysfs_user_settings_register(void)
 int mali_sysfs_register(struct mali_dev *device, dev_t dev, const char *mali_dev_name)
 {
 	int err = 0;
+	struct device * mdev;
 
 	device->mali_class = class_create(THIS_MODULE, mali_dev_name);
 	if (IS_ERR(device->mali_class))
@@ -1050,10 +1050,10 @@ int mali_sysfs_register(struct mali_dev *device, dev_t dev, const char *mali_dev
 		err = PTR_ERR(device->mali_class);
 		goto init_class_err;
 	}
-	mali_device = device_create(device->mali_class, NULL, dev, NULL, mali_dev_name);
-	if (IS_ERR(mali_device))
+	mdev = device_create(device->mali_class, NULL, dev, NULL, mali_dev_name);
+	if (IS_ERR(mdev))
 	{
-		err = PTR_ERR(mali_device);
+		err = PTR_ERR(mdev);
 		goto init_mdev_err;
 	}
 
