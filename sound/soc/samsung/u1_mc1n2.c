@@ -190,35 +190,6 @@ static struct snd_soc_ops u1_hifi_ops = {
 };
 
 static struct snd_soc_dai_link u1_dai[] = {
-#if defined(CONFIG_SND_SAMSUNG_LP) || defined(CONFIG_SND_SAMSUNG_ALP)
-	{ /* Sec_Fifo DAI i/f */
-		.name = "MC1N2 Sec_FIFO TX",
-		.stream_name = "Sec_Dai",
-		.cpu_dai_name = "samsung-i2s.4",
-		.codec_dai_name = "mc1n2-da0i",
-#ifndef CONFIG_SND_SOC_SAMSUNG_USE_DMA_WRAPPER
-		.platform_name = "samsung-audio-idma",
-#else
-		.platform_name = "samsung-audio",
-#endif
-		.codec_name = "mc1n2.6-003a",
-		.init = u1_hifiaudio_init,
-		.ops = &u1_hifi_ops,
-	},
-#endif
-	{ /* Primary DAI i/f */
-		.name = "MC1N2 AIF1",
-		.stream_name = "hifiaudio",
-		.cpu_dai_name = "samsung-i2s.0",
-		.codec_dai_name = "mc1n2-da0i",
-		.platform_name = "samsung-audio",
-		.codec_name = "mc1n2.6-003a",
-		.init = u1_hifiaudio_init,
-		.ops = &u1_hifi_ops,
-	}
-};
-
-static struct snd_soc_dai_link u1_dai_jbsammy[] = {
 	{ /* Sec_Fifo DAI i/f */
 		.name = "MC1N2 Sec_FIFO TX",
 		.stream_name = "Sec_Dai",
@@ -260,14 +231,6 @@ static struct snd_soc_card u1_snd_card = {
 	.suspend_post = u1_card_suspend,
 };
 
-static struct snd_soc_card u1_snd_card_jbsammy = {
-	.name = "U1-YMU823",
-	.dai_link = u1_dai_jbsammy,
-	.num_links = ARRAY_SIZE(u1_dai_jbsammy),
-
-	.suspend_post = u1_card_suspend,
-};
-
 /* setup codec data from mc1n2 codec driver */
 extern void set_mc1n2_codec_data(struct mc1n2_setup *setup);
 
@@ -283,6 +246,12 @@ int u1_audio_init(void)
 	if (!u1_snd_device)
 		return -ENOMEM;
 
+AOSPROM
+{
+	u1_snd_card.dai_link += 1;
+	u1_snd_card.num_links -= 1;
+}
+
 	platform_set_drvdata(u1_snd_device, &u1_snd_card);
 
 	ret = platform_device_add(u1_snd_device);
@@ -293,38 +262,11 @@ int u1_audio_init(void)
 	return ret;
 }
 
-int u1_audio_init_jbsammy(void)
-{
-	int ret;
-
-	mc1n2_set_mclk_source(1);
-
-	u1_snd_device = platform_device_alloc("soc-audio", -1);
-	if (!u1_snd_device)
-		return -ENOMEM;
-
-	platform_set_drvdata(u1_snd_device, &u1_snd_card_jbsammy);
-
-	ret = platform_device_add(u1_snd_device);
-	if (ret) {
-		platform_device_put(u1_snd_device);
-	}
-
-	return ret;
-}
-
-int u1_audio_init_dummy(void)
-{
-	return 0;
-}
-
 static void __exit u1_audio_exit(void)
 {
-        platform_device_unregister(u1_snd_device);
+	platform_device_unregister(u1_snd_device);
 }
 
-module_init(u1_audio_init_dummy);
-module_exit(u1_audio_exit);
 
 MODULE_AUTHOR("aitdark, aitdark.park@samsung.com");
 MODULE_DESCRIPTION("ALSA SoC U1 MC1N2");

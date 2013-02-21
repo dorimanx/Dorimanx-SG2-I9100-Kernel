@@ -4,9 +4,9 @@
 ;;; Don't parse this file wihout knowing GCC gengtype internals.
 ;;; This file should be parsed by the same gengtype which wrote it.
 
-(!version  "4.7.3 20121205 (prerelease)")
+(!version  "4.7.3 20130102 (prerelease)")
 
-(!srcdir  "/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc")
+(!srcdir  "/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc")
 
 (!languages 9 ada cp fortran go java lto objc objcp c)
 
@@ -8099,7 +8099,7 @@ nil )
 (!srcfileloc  "gimple.h" 407)
 nil )
 (!pair  "u"
-(!type union 348 nil  gc_used "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/gimple.h:410"
+(!type union 348 nil  gc_used "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/gimple.h:410"
 (!srcfileloc  "gimple.h" 413)
 
 (!fields 2 
@@ -8370,7 +8370,7 @@ nil )
 )
 )
 (!pair  "loc"
-(!type union 361 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree.h:2015"
+(!type union 361 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/tree.h:2015"
 (!srcfileloc  "tree.h" 2015)
 
 (!fields 2 
@@ -11453,124 +11453,124 @@ nil )
 (!type struct 485 
 (!type already_seen 484)
  gc_maybe_pointed_to "machine_function"
-(!srcfileloc  "config/arm/arm.h" 1417)
+(!srcfileloc  "config/arm/arm.h" 1423)
 
 (!fields 15 
 (!pair  "eh_epilogue_sp_ofs"
 (!type already_seen 156)
 
-(!srcfileloc  "config/arm/arm.h" 1385)
+(!srcfileloc  "config/arm/arm.h" 1391)
 nil )
 (!pair  "far_jump_used"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1387)
+(!srcfileloc  "config/arm/arm.h" 1393)
 nil )
 (!pair  "arg_pointer_live"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1389)
+(!srcfileloc  "config/arm/arm.h" 1395)
 nil )
 (!pair  "lr_save_eliminated"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1391)
+(!srcfileloc  "config/arm/arm.h" 1397)
 nil )
 (!pair  "stack_offsets"
 (!type struct 486 nil  gc_used "arm_stack_offsets"
-(!srcfileloc  "config/arm/arm.h" 1376)
+(!srcfileloc  "config/arm/arm.h" 1382)
 
 (!fields 7 
 (!pair  "saved_args"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1369)
+(!srcfileloc  "config/arm/arm.h" 1375)
 nil )
 (!pair  "frame"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1370)
+(!srcfileloc  "config/arm/arm.h" 1376)
 nil )
 (!pair  "saved_regs"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1371)
+(!srcfileloc  "config/arm/arm.h" 1377)
 nil )
 (!pair  "soft_frame"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1372)
+(!srcfileloc  "config/arm/arm.h" 1378)
 nil )
 (!pair  "locals_base"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1373)
+(!srcfileloc  "config/arm/arm.h" 1379)
 nil )
 (!pair  "outgoing_args"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1374)
+(!srcfileloc  "config/arm/arm.h" 1380)
 nil )
 (!pair  "saved_regs_mask"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1375)
+(!srcfileloc  "config/arm/arm.h" 1381)
 nil ))
 nil 511 nil )
 
-(!srcfileloc  "config/arm/arm.h" 1393)
+(!srcfileloc  "config/arm/arm.h" 1399)
 nil )
 (!pair  "func_type"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1395)
+(!srcfileloc  "config/arm/arm.h" 1401)
 nil )
 (!pair  "uses_anonymous_args"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1397)
+(!srcfileloc  "config/arm/arm.h" 1403)
 nil )
 (!pair  "sibcall_blocked"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1400)
+(!srcfileloc  "config/arm/arm.h" 1406)
 nil )
 (!pair  "pic_reg"
 (!type already_seen 156)
 
-(!srcfileloc  "config/arm/arm.h" 1402)
+(!srcfileloc  "config/arm/arm.h" 1408)
 nil )
 (!pair  "call_via"
 (!type array 487 nil  gc_used "14" 
 (!type already_seen 156)
 )
 
-(!srcfileloc  "config/arm/arm.h" 1406)
+(!srcfileloc  "config/arm/arm.h" 1412)
 nil )
 (!pair  "return_used_this_function"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1409)
+(!srcfileloc  "config/arm/arm.h" 1415)
 nil )
 (!pair  "thumb1_cc_insn"
 (!type already_seen 156)
 
-(!srcfileloc  "config/arm/arm.h" 1412)
+(!srcfileloc  "config/arm/arm.h" 1418)
 nil )
 (!pair  "thumb1_cc_op0"
 (!type already_seen 156)
 
-(!srcfileloc  "config/arm/arm.h" 1413)
+(!srcfileloc  "config/arm/arm.h" 1419)
 nil )
 (!pair  "thumb1_cc_op1"
 (!type already_seen 156)
 
-(!srcfileloc  "config/arm/arm.h" 1414)
+(!srcfileloc  "config/arm/arm.h" 1420)
 nil )
 (!pair  "thumb1_cc_mode"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 1416)
+(!srcfileloc  "config/arm/arm.h" 1422)
 nil ))
 nil 511 nil )
 )
@@ -14664,903 +14664,908 @@ nil 511 nil )
 nil )
 (!pair  "opts"
 (!type struct 603 nil  gc_used "cl_optimization"
-(!fileloc  "options.h" 3566)
+(!fileloc  "options.h" 3573)
 
-(!fields 179 
+(!fields 180 
 (!pair  "x_align_functions"
-(!type already_seen 11)
-
-(!fileloc  "options.h" 3387)
-nil )
-(!pair  "x_align_jumps"
-(!type already_seen 11)
-
-(!fileloc  "options.h" 3388)
-nil )
-(!pair  "x_align_labels"
-(!type already_seen 11)
-
-(!fileloc  "options.h" 3389)
-nil )
-(!pair  "x_align_loops"
-(!type already_seen 11)
-
-(!fileloc  "options.h" 3390)
-nil )
-(!pair  "x_flag_sched_stalled_insns"
-(!type already_seen 11)
-
-(!fileloc  "options.h" 3391)
-nil )
-(!pair  "x_flag_sched_stalled_insns_dep"
-(!type already_seen 11)
-
-(!fileloc  "options.h" 3392)
-nil )
-(!pair  "x_flag_fp_contract_mode"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3393)
 nil )
-(!pair  "x_optimize"
-(!type already_seen 14)
+(!pair  "x_align_jumps"
+(!type already_seen 11)
 
 (!fileloc  "options.h" 3394)
 nil )
-(!pair  "x_optimize_size"
-(!type already_seen 14)
+(!pair  "x_align_labels"
+(!type already_seen 11)
 
 (!fileloc  "options.h" 3395)
 nil )
-(!pair  "x_flag_asynchronous_unwind_tables"
+(!pair  "x_align_loops"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3396)
 nil )
-(!pair  "x_flag_branch_on_count_reg"
+(!pair  "x_flag_sched_stalled_insns"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3397)
 nil )
-(!pair  "x_flag_branch_probabilities"
+(!pair  "x_flag_sched_stalled_insns_dep"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3398)
 nil )
-(!pair  "x_flag_branch_target_load_optimize"
+(!pair  "x_flag_fp_contract_mode"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3399)
 nil )
-(!pair  "x_flag_branch_target_load_optimize2"
-(!type already_seen 11)
+(!pair  "x_optimize"
+(!type already_seen 14)
 
 (!fileloc  "options.h" 3400)
 nil )
-(!pair  "x_flag_btr_bb_exclusive"
-(!type already_seen 11)
+(!pair  "x_optimize_size"
+(!type already_seen 14)
 
 (!fileloc  "options.h" 3401)
 nil )
-(!pair  "x_flag_caller_saves"
+(!pair  "x_flag_asynchronous_unwind_tables"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3402)
 nil )
-(!pair  "x_flag_combine_stack_adjustments"
+(!pair  "x_flag_branch_on_count_reg"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3403)
 nil )
-(!pair  "x_flag_no_common"
+(!pair  "x_flag_branch_probabilities"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3404)
 nil )
-(!pair  "x_flag_compare_elim_after_reload"
+(!pair  "x_flag_branch_target_load_optimize"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3405)
 nil )
-(!pair  "x_flag_conserve_stack"
+(!pair  "x_flag_branch_target_load_optimize2"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3406)
 nil )
-(!pair  "x_flag_cprop_registers"
+(!pair  "x_flag_btr_bb_exclusive"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3407)
 nil )
-(!pair  "x_flag_crossjumping"
+(!pair  "x_flag_caller_saves"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3408)
 nil )
-(!pair  "x_flag_cse_follow_jumps"
+(!pair  "x_flag_combine_stack_adjustments"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3409)
 nil )
-(!pair  "x_flag_cx_fortran_rules"
+(!pair  "x_flag_no_common"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3410)
 nil )
-(!pair  "x_flag_cx_limited_range"
+(!pair  "x_flag_compare_elim_after_reload"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3411)
 nil )
-(!pair  "x_flag_data_sections"
+(!pair  "x_flag_conserve_stack"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3412)
 nil )
-(!pair  "x_flag_dce"
+(!pair  "x_flag_cprop_registers"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3413)
 nil )
-(!pair  "x_flag_defer_pop"
+(!pair  "x_flag_crossjumping"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3414)
 nil )
-(!pair  "x_flag_delayed_branch"
+(!pair  "x_flag_cse_follow_jumps"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3415)
 nil )
-(!pair  "x_flag_delete_null_pointer_checks"
+(!pair  "x_flag_cx_fortran_rules"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3416)
 nil )
-(!pair  "x_flag_devirtualize"
+(!pair  "x_flag_cx_limited_range"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3417)
 nil )
-(!pair  "x_flag_dse"
+(!pair  "x_flag_data_sections"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3418)
 nil )
-(!pair  "x_flag_early_inlining"
+(!pair  "x_flag_dce"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3419)
 nil )
-(!pair  "x_flag_exceptions"
+(!pair  "x_flag_defer_pop"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3420)
 nil )
-(!pair  "x_flag_expensive_optimizations"
+(!pair  "x_flag_delayed_branch"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3421)
 nil )
-(!pair  "x_flag_finite_math_only"
+(!pair  "x_flag_delete_null_pointer_checks"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3422)
 nil )
-(!pair  "x_flag_float_store"
+(!pair  "x_flag_devirtualize"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3423)
 nil )
-(!pair  "x_flag_forward_propagate"
+(!pair  "x_flag_dse"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3424)
 nil )
-(!pair  "x_flag_gcse"
+(!pair  "x_flag_early_inlining"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3425)
 nil )
-(!pair  "x_flag_gcse_after_reload"
+(!pair  "x_flag_exceptions"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3426)
 nil )
-(!pair  "x_flag_gcse_las"
+(!pair  "x_flag_expensive_optimizations"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3427)
 nil )
-(!pair  "x_flag_gcse_lm"
+(!pair  "x_flag_finite_math_only"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3428)
 nil )
-(!pair  "x_flag_gcse_sm"
+(!pair  "x_flag_float_store"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3429)
 nil )
-(!pair  "x_flag_graphite_identity"
+(!pair  "x_flag_forward_propagate"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3430)
 nil )
-(!pair  "x_flag_guess_branch_prob"
+(!pair  "x_flag_gcse"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3431)
 nil )
-(!pair  "x_flag_if_conversion"
+(!pair  "x_flag_gcse_after_reload"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3432)
 nil )
-(!pair  "x_flag_if_conversion2"
+(!pair  "x_flag_gcse_las"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3433)
 nil )
-(!pair  "x_flag_inline_atomics"
+(!pair  "x_flag_gcse_lm"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3434)
 nil )
-(!pair  "x_flag_inline_functions"
+(!pair  "x_flag_gcse_sm"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3435)
 nil )
-(!pair  "x_flag_inline_functions_called_once"
+(!pair  "x_flag_graphite_identity"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3436)
 nil )
-(!pair  "x_flag_inline_small_functions"
+(!pair  "x_flag_guess_branch_prob"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3437)
 nil )
-(!pair  "x_flag_ipa_cp"
+(!pair  "x_flag_if_conversion"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3438)
 nil )
-(!pair  "x_flag_ipa_cp_clone"
+(!pair  "x_flag_if_conversion2"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3439)
 nil )
-(!pair  "x_flag_ipa_matrix_reorg"
+(!pair  "x_flag_inline_atomics"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3440)
 nil )
-(!pair  "x_flag_ipa_profile"
+(!pair  "x_flag_inline_functions"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3441)
 nil )
-(!pair  "x_flag_ipa_pta"
+(!pair  "x_flag_inline_functions_called_once"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3442)
 nil )
-(!pair  "x_flag_ipa_pure_const"
+(!pair  "x_flag_inline_small_functions"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3443)
 nil )
-(!pair  "x_flag_ipa_reference"
+(!pair  "x_flag_ipa_cp"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3444)
 nil )
-(!pair  "x_flag_ipa_sra"
+(!pair  "x_flag_ipa_cp_clone"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3445)
 nil )
-(!pair  "x_flag_ivopts"
+(!pair  "x_flag_ipa_matrix_reorg"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3446)
 nil )
-(!pair  "x_flag_jump_tables"
+(!pair  "x_flag_ipa_profile"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3447)
 nil )
-(!pair  "x_flag_loop_block"
+(!pair  "x_flag_ipa_pta"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3448)
 nil )
-(!pair  "x_flag_loop_flatten"
+(!pair  "x_flag_ipa_pure_const"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3449)
 nil )
-(!pair  "x_flag_loop_interchange"
+(!pair  "x_flag_ipa_reference"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3450)
 nil )
-(!pair  "x_flag_loop_parallelize_all"
+(!pair  "x_flag_ipa_sra"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3451)
 nil )
-(!pair  "x_flag_loop_strip_mine"
+(!pair  "x_flag_ivopts"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3452)
 nil )
-(!pair  "x_flag_errno_math"
+(!pair  "x_flag_jump_tables"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3453)
 nil )
-(!pair  "x_flag_merge_constants"
+(!pair  "x_flag_loop_block"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3454)
 nil )
-(!pair  "x_flag_modulo_sched"
+(!pair  "x_flag_loop_flatten"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3455)
 nil )
-(!pair  "x_flag_move_loop_invariants"
+(!pair  "x_flag_loop_interchange"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3456)
 nil )
-(!pair  "x_flag_non_call_exceptions"
+(!pair  "x_flag_loop_parallelize_all"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3457)
 nil )
-(!pair  "x_flag_nothrow_opt"
+(!pair  "x_flag_loop_strip_mine"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3458)
 nil )
-(!pair  "x_flag_omit_frame_pointer"
+(!pair  "x_flag_errno_math"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3459)
 nil )
-(!pair  "x_flag_regmove"
+(!pair  "x_flag_merge_constants"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3460)
 nil )
-(!pair  "x_flag_optimize_sibling_calls"
+(!pair  "x_flag_modulo_sched"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3461)
 nil )
-(!pair  "x_flag_optimize_strlen"
+(!pair  "x_flag_move_loop_invariants"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3462)
 nil )
-(!pair  "x_flag_pack_struct"
+(!pair  "x_flag_non_call_exceptions"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3463)
 nil )
-(!pair  "x_flag_peel_loops"
+(!pair  "x_flag_nothrow_opt"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3464)
 nil )
-(!pair  "x_flag_no_peephole"
+(!pair  "x_flag_omit_frame_pointer"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3465)
 nil )
-(!pair  "x_flag_peephole2"
+(!pair  "x_flag_regmove"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3466)
 nil )
-(!pair  "x_flag_predictive_commoning"
+(!pair  "x_flag_optimize_sibling_calls"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3467)
 nil )
-(!pair  "x_flag_prefetch_loop_arrays"
+(!pair  "x_flag_optimize_strlen"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3468)
 nil )
-(!pair  "x_flag_pcc_struct_return"
+(!pair  "x_flag_pack_struct"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3469)
 nil )
-(!pair  "x_flag_rename_registers"
+(!pair  "x_flag_peel_loops"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3470)
 nil )
-(!pair  "x_flag_reorder_blocks"
+(!pair  "x_flag_no_peephole"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3471)
 nil )
-(!pair  "x_flag_reorder_blocks_and_partition"
+(!pair  "x_flag_peephole2"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3472)
 nil )
-(!pair  "x_flag_reorder_functions"
+(!pair  "x_flag_predictive_commoning"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3473)
 nil )
-(!pair  "x_flag_rerun_cse_after_loop"
+(!pair  "x_flag_prefetch_loop_arrays"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3474)
 nil )
-(!pair  "x_flag_resched_modulo_sched"
+(!pair  "x_flag_pcc_struct_return"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3475)
 nil )
-(!pair  "x_flag_rounding_math"
+(!pair  "x_flag_rename_registers"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3476)
 nil )
-(!pair  "x_flag_rtti"
+(!pair  "x_flag_reorder_blocks"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3477)
 nil )
-(!pair  "x_flag_sched_critical_path_heuristic"
+(!pair  "x_flag_reorder_blocks_and_partition"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3478)
 nil )
-(!pair  "x_flag_sched_dep_count_heuristic"
+(!pair  "x_flag_reorder_functions"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3479)
 nil )
-(!pair  "x_flag_sched_group_heuristic"
+(!pair  "x_flag_rerun_cse_after_loop"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3480)
 nil )
-(!pair  "x_flag_schedule_interblock"
+(!pair  "x_flag_resched_modulo_sched"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3481)
 nil )
-(!pair  "x_flag_sched_last_insn_heuristic"
+(!pair  "x_flag_rounding_math"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3482)
 nil )
-(!pair  "x_flag_sched_pressure"
+(!pair  "x_flag_rtti"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3483)
 nil )
-(!pair  "x_flag_sched_rank_heuristic"
+(!pair  "x_flag_sched_critical_path_heuristic"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3484)
 nil )
-(!pair  "x_flag_schedule_speculative"
+(!pair  "x_flag_sched_dep_count_heuristic"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3485)
 nil )
-(!pair  "x_flag_sched_spec_insn_heuristic"
+(!pair  "x_flag_sched_group_heuristic"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3486)
 nil )
-(!pair  "x_flag_schedule_speculative_load"
+(!pair  "x_flag_schedule_interblock"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3487)
 nil )
-(!pair  "x_flag_schedule_speculative_load_dangerous"
+(!pair  "x_flag_sched_last_insn_heuristic"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3488)
 nil )
-(!pair  "x_flag_sched2_use_superblocks"
+(!pair  "x_flag_sched_pressure"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3489)
 nil )
-(!pair  "x_flag_schedule_insns"
+(!pair  "x_flag_sched_rank_heuristic"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3490)
 nil )
-(!pair  "x_flag_schedule_insns_after_reload"
+(!pair  "x_flag_schedule_speculative"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3491)
 nil )
-(!pair  "x_flag_section_anchors"
+(!pair  "x_flag_sched_spec_insn_heuristic"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3492)
 nil )
-(!pair  "x_flag_sel_sched_pipelining"
+(!pair  "x_flag_schedule_speculative_load"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3493)
 nil )
-(!pair  "x_flag_sel_sched_pipelining_outer_loops"
+(!pair  "x_flag_schedule_speculative_load_dangerous"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3494)
 nil )
-(!pair  "x_flag_sel_sched_reschedule_pipelined"
+(!pair  "x_flag_sched2_use_superblocks"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3495)
 nil )
-(!pair  "x_flag_selective_scheduling"
+(!pair  "x_flag_schedule_insns"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3496)
 nil )
-(!pair  "x_flag_selective_scheduling2"
+(!pair  "x_flag_schedule_insns_after_reload"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3497)
 nil )
-(!pair  "x_flag_short_double"
+(!pair  "x_flag_section_anchors"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3498)
 nil )
-(!pair  "x_flag_short_enums"
+(!pair  "x_flag_sel_sched_pipelining"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3499)
 nil )
-(!pair  "x_flag_short_wchar"
+(!pair  "x_flag_sel_sched_pipelining_outer_loops"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3500)
 nil )
-(!pair  "x_flag_shrink_wrap"
+(!pair  "x_flag_sel_sched_reschedule_pipelined"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3501)
 nil )
-(!pair  "x_flag_signaling_nans"
+(!pair  "x_flag_selective_scheduling"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3502)
 nil )
-(!pair  "x_flag_signed_zeros"
+(!pair  "x_flag_selective_scheduling2"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3503)
 nil )
-(!pair  "x_flag_single_precision_constant"
+(!pair  "x_flag_short_double"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3504)
 nil )
-(!pair  "x_flag_split_ivs_in_unroller"
+(!pair  "x_flag_short_enums"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3505)
 nil )
-(!pair  "x_flag_split_wide_types"
+(!pair  "x_flag_short_wchar"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3506)
 nil )
-(!pair  "x_flag_strict_aliasing"
+(!pair  "x_flag_shrink_wrap"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3507)
 nil )
-(!pair  "x_flag_strict_enums"
+(!pair  "x_flag_signaling_nans"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3508)
 nil )
-(!pair  "x_flag_thread_jumps"
+(!pair  "x_flag_signed_zeros"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3509)
 nil )
-(!pair  "x_flag_threadsafe_statics"
+(!pair  "x_flag_single_precision_constant"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3510)
 nil )
-(!pair  "x_flag_toplevel_reorder"
+(!pair  "x_flag_split_ivs_in_unroller"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3511)
 nil )
-(!pair  "x_flag_trapping_math"
+(!pair  "x_flag_split_wide_types"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3512)
 nil )
-(!pair  "x_flag_trapv"
+(!pair  "x_flag_strict_aliasing"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3513)
 nil )
-(!pair  "x_flag_tree_bit_ccp"
+(!pair  "x_flag_strict_enums"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3514)
 nil )
-(!pair  "x_flag_tree_builtin_call_dce"
+(!pair  "x_flag_thread_jumps"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3515)
 nil )
-(!pair  "x_flag_tree_ccp"
+(!pair  "x_flag_threadsafe_statics"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3516)
 nil )
-(!pair  "x_flag_tree_ch"
+(!pair  "x_flag_toplevel_reorder"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3517)
 nil )
-(!pair  "x_flag_tree_copy_prop"
+(!pair  "x_flag_trapping_math"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3518)
 nil )
-(!pair  "x_flag_tree_copyrename"
+(!pair  "x_flag_trapv"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3519)
 nil )
-(!pair  "x_flag_tree_cselim"
+(!pair  "x_flag_tree_bit_ccp"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3520)
 nil )
-(!pair  "x_flag_tree_dce"
+(!pair  "x_flag_tree_builtin_call_dce"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3521)
 nil )
-(!pair  "x_flag_tree_dom"
+(!pair  "x_flag_tree_ccp"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3522)
 nil )
-(!pair  "x_flag_tree_dse"
+(!pair  "x_flag_tree_ch"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3523)
 nil )
-(!pair  "x_flag_tree_forwprop"
+(!pair  "x_flag_ssa_coalesce_vars"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3524)
 nil )
-(!pair  "x_flag_tree_fre"
+(!pair  "x_flag_tree_copy_prop"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3525)
 nil )
-(!pair  "x_flag_tree_loop_distribute_patterns"
+(!pair  "x_flag_tree_copyrename"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3526)
 nil )
-(!pair  "x_flag_tree_loop_distribution"
+(!pair  "x_flag_tree_cselim"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3527)
 nil )
-(!pair  "x_flag_tree_loop_if_convert"
+(!pair  "x_flag_tree_dce"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3528)
 nil )
-(!pair  "x_flag_tree_loop_if_convert_stores"
+(!pair  "x_flag_tree_dom"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3529)
 nil )
-(!pair  "x_flag_tree_loop_im"
+(!pair  "x_flag_tree_dse"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3530)
 nil )
-(!pair  "x_flag_tree_loop_ivcanon"
+(!pair  "x_flag_tree_forwprop"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3531)
 nil )
-(!pair  "x_flag_tree_loop_optimize"
+(!pair  "x_flag_tree_fre"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3532)
 nil )
-(!pair  "x_flag_tree_live_range_split"
+(!pair  "x_flag_tree_loop_distribute_patterns"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3533)
 nil )
-(!pair  "x_flag_tree_partial_pre"
+(!pair  "x_flag_tree_loop_distribution"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3534)
 nil )
-(!pair  "x_flag_tree_phiprop"
+(!pair  "x_flag_tree_loop_if_convert"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3535)
 nil )
-(!pair  "x_flag_tree_pre"
+(!pair  "x_flag_tree_loop_if_convert_stores"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3536)
 nil )
-(!pair  "x_flag_tree_pta"
+(!pair  "x_flag_tree_loop_im"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3537)
 nil )
-(!pair  "x_flag_tree_reassoc"
+(!pair  "x_flag_tree_loop_ivcanon"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3538)
 nil )
-(!pair  "x_flag_tree_scev_cprop"
+(!pair  "x_flag_tree_loop_optimize"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3539)
 nil )
-(!pair  "x_flag_tree_sink"
+(!pair  "x_flag_tree_live_range_split"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3540)
 nil )
-(!pair  "x_flag_tree_slp_vectorize"
+(!pair  "x_flag_tree_partial_pre"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3541)
 nil )
-(!pair  "x_flag_tree_sra"
+(!pair  "x_flag_tree_phiprop"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3542)
 nil )
-(!pair  "x_flag_tree_switch_conversion"
+(!pair  "x_flag_tree_pre"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3543)
 nil )
-(!pair  "x_flag_tree_tail_merge"
+(!pair  "x_flag_tree_pta"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3544)
 nil )
-(!pair  "x_flag_tree_ter"
+(!pair  "x_flag_tree_reassoc"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3545)
 nil )
-(!pair  "x_flag_tree_vect_loop_version"
+(!pair  "x_flag_tree_scev_cprop"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3546)
 nil )
-(!pair  "x_flag_tree_vectorize"
+(!pair  "x_flag_tree_sink"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3547)
 nil )
-(!pair  "x_flag_tree_vrp"
+(!pair  "x_flag_tree_slp_vectorize"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3548)
 nil )
-(!pair  "x_flag_unit_at_a_time"
+(!pair  "x_flag_tree_sra"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3549)
 nil )
-(!pair  "x_flag_unroll_all_loops"
+(!pair  "x_flag_tree_switch_conversion"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3550)
 nil )
-(!pair  "x_flag_unroll_loops"
+(!pair  "x_flag_tree_tail_merge"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3551)
 nil )
-(!pair  "x_flag_unsafe_loop_optimizations"
+(!pair  "x_flag_tree_ter"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3552)
 nil )
-(!pair  "x_flag_unsafe_math_optimizations"
+(!pair  "x_flag_tree_vect_loop_version"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3553)
 nil )
-(!pair  "x_flag_unswitch_loops"
+(!pair  "x_flag_tree_vectorize"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3554)
 nil )
-(!pair  "x_flag_unwind_tables"
+(!pair  "x_flag_tree_vrp"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3555)
 nil )
-(!pair  "x_flag_var_tracking"
+(!pair  "x_flag_unit_at_a_time"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3556)
 nil )
-(!pair  "x_flag_var_tracking_assignments"
+(!pair  "x_flag_unroll_all_loops"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3557)
 nil )
-(!pair  "x_flag_var_tracking_assignments_toggle"
+(!pair  "x_flag_unroll_loops"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3558)
 nil )
-(!pair  "x_flag_var_tracking_uninit"
+(!pair  "x_flag_unsafe_loop_optimizations"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3559)
 nil )
-(!pair  "x_flag_variable_expansion_in_unroller"
+(!pair  "x_flag_unsafe_math_optimizations"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3560)
 nil )
-(!pair  "x_flag_vect_cost_model"
+(!pair  "x_flag_unswitch_loops"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3561)
 nil )
-(!pair  "x_flag_value_profile_transformations"
+(!pair  "x_flag_unwind_tables"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3562)
 nil )
-(!pair  "x_flag_web"
+(!pair  "x_flag_var_tracking"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3563)
 nil )
-(!pair  "x_flag_whole_program"
+(!pair  "x_flag_var_tracking_assignments"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3564)
 nil )
-(!pair  "x_flag_wrapv"
+(!pair  "x_flag_var_tracking_assignments_toggle"
 (!type already_seen 11)
 
 (!fileloc  "options.h" 3565)
+nil )
+(!pair  "x_flag_var_tracking_uninit"
+(!type already_seen 11)
+
+(!fileloc  "options.h" 3566)
+nil )
+(!pair  "x_flag_variable_expansion_in_unroller"
+(!type already_seen 11)
+
+(!fileloc  "options.h" 3567)
+nil )
+(!pair  "x_flag_vect_cost_model"
+(!type already_seen 11)
+
+(!fileloc  "options.h" 3568)
+nil )
+(!pair  "x_flag_value_profile_transformations"
+(!type already_seen 11)
+
+(!fileloc  "options.h" 3569)
+nil )
+(!pair  "x_flag_web"
+(!type already_seen 11)
+
+(!fileloc  "options.h" 3570)
+nil )
+(!pair  "x_flag_whole_program"
+(!type already_seen 11)
+
+(!fileloc  "options.h" 3571)
+nil )
+(!pair  "x_flag_wrapv"
+(!type already_seen 11)
+
+(!fileloc  "options.h" 3572)
 nil ))
 nil 511 nil )
 
@@ -15586,13 +15591,13 @@ nil 511 nil )
 nil )
 (!pair  "opts"
 (!type struct 605 nil  gc_used "cl_target_option"
-(!fileloc  "options.h" 3572)
+(!fileloc  "options.h" 3579)
 
 (!fields 1 
 (!pair  "x_target_flags"
 (!type already_seen 11)
 
-(!fileloc  "options.h" 3571)
+(!fileloc  "options.h" 3578)
 nil ))
 nil 511 nil )
 
@@ -15679,7 +15684,7 @@ nil )
 
 (!fields 11 
 (!pair  "u"
-(!type union 613 nil  gc_used "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/c-decl.c:187"
+(!type union 613 nil  gc_used "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/c-decl.c:187"
 (!srcfileloc  "c-decl.c" 190)
 
 (!fields 2 
@@ -17179,7 +17184,7 @@ nil 320 nil )
 
 (!type already_seen 670)
 
-(!type struct 675 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/c-parser.c:5589"nil 
+(!type struct 675 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/c-parser.c:5589"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -17813,7 +17818,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 733 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/java/expr.c:2059"nil 
+(!type struct 733 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/java/expr.c:2059"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -17995,11 +18000,11 @@ nil )
 nil ))
 nil 4 nil )
 
-(!type struct 746 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/fortran/trans.h:334"nil 
+(!type struct 746 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/fortran/trans.h:334"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 747 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/fortran/trans.h:322"nil 
+(!type struct 747 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/fortran/trans.h:322"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -18023,7 +18028,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 753 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/fortran/trans.h:33"nil 
+(!type struct 753 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/fortran/trans.h:33"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -18325,7 +18330,7 @@ nil 0 nil )
 nil )
 (!pair  "vec"
 (!type array 775 nil  gc_unused "1" 
-(!type struct 776 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/c-family/c-pragma.c:1175"nil 
+(!type struct 776 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/c-family/c-pragma.c:1175"nil 
 (!fields 0 )
 nil 0 nil )
 )
@@ -20511,7 +20516,7 @@ nil 1 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 956 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/ada/gcc-interface/decl.c:193"nil 
+(!type struct 956 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/ada/gcc-interface/decl.c:193"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23367,7 +23372,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1203 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.c:24692"nil 
+(!type struct 1203 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/config/arm/arm.c:24694"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23375,15 +23380,15 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1205 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.c:19328"nil 
+(!type struct 1205 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/config/arm/arm.c:19328"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1206 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.c:2052"nil 
+(!type struct 1206 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/config/arm/arm.c:2052"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1207 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.c:1079"nil 
+(!type struct 1207 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/config/arm/arm.c:1079"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23667,7 +23672,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type union 1253 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree-eh.c:44"nil 
+(!type union 1253 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/tree-eh.c:44"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23683,7 +23688,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1257 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree-flow.h:627"nil 
+(!type struct 1257 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/tree-flow.h:627"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23743,7 +23748,7 @@ nil 511 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1265 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree-flow.h:315"nil 
+(!type struct 1265 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/tree-flow.h:315"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23755,7 +23760,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1268 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree-flow.h:106"nil 
+(!type struct 1268 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/tree-flow.h:106"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -23927,7 +23932,7 @@ nil 0 nil )
 
 (!type already_seen 335)
 
-(!type struct 1284 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/gimple.h:263"nil 
+(!type struct 1284 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/gimple.h:263"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -24038,11 +24043,11 @@ nil 511 nil )
 
 (!type already_seen 1294)
 
-(!type struct 1296 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/varasm.c:4724"nil 
+(!type struct 1296 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/varasm.c:4724"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1297 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/varasm.c:4473"nil 
+(!type struct 1297 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/varasm.c:4473"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -24175,7 +24180,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type union 1314 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/mcf.c:351"nil 
+(!type union 1314 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/mcf.c:351"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -25506,7 +25511,7 @@ nil 0 nil )
 nil )
 (!pair  "vec"
 (!type array 1454 nil  gc_unused "1" 
-(!type struct 1455 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/dwarf2cfi.c:200"nil 
+(!type struct 1455 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/dwarf2cfi.c:200"nil 
 (!fields 0 )
 nil 0 nil )
 )
@@ -25557,7 +25562,7 @@ nil )
 (!type pointer 1460 nil  gc_unused
 (!type struct 1461 
 (!type already_seen 1460)
- gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/dwarf2cfi.c:102"nil 
+ gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/dwarf2cfi.c:102"nil 
 (!fields 0 )
 nil 0 nil )
 )
@@ -25839,7 +25844,7 @@ nil 511 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1483 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/matrix-reorg.c:1382"nil 
+(!type struct 1483 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/matrix-reorg.c:1382"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -26359,11 +26364,11 @@ nil 511 nil )
 
 (!type already_seen 1096)
 
-(!type struct 1546 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/cgraph.h:307"nil 
+(!type struct 1546 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/cgraph.h:307"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1547 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/cgraph.h:300"nil 
+(!type struct 1547 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/cgraph.h:300"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -26674,7 +26679,7 @@ nil 511 nil )
 
 (!type already_seen 1092)
 
-(!type struct 1575 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/basic-block.h:607"nil 
+(!type struct 1575 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/basic-block.h:607"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -26762,7 +26767,7 @@ nil 0 nil )
 
 (!type already_seen 1037)
 
-(!type struct 1585 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/cfgloop.h:523"nil 
+(!type struct 1585 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/cfgloop.h:523"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -27617,7 +27622,7 @@ nil 0 nil )
 (!type already_seen 1035)
 
 (!type struct 1627 nil  gc_used "builtin_info_type_d"
-(!srcfileloc  "tree.h" 6031)
+(!srcfileloc  "tree.h" 6033)
 
 (!fields 2 
 (!pair  "decl"
@@ -27625,14 +27630,14 @@ nil 0 nil )
 (!type already_seen 26)
 )
 
-(!srcfileloc  "tree.h" 6029)
+(!srcfileloc  "tree.h" 6031)
 nil )
 (!pair  "implicit_p"
 (!type array 1629 nil  gc_used "(int)END_BUILTINS" 
 (!type already_seen 11)
 )
 
-(!srcfileloc  "tree.h" 6030)
+(!srcfileloc  "tree.h" 6032)
 nil ))
 nil 511 nil )
 
@@ -27649,27 +27654,27 @@ nil 0 nil )
 (!type already_seen 1632)
 )
  gc_pointed_to "tree_vec_map"
-(!srcfileloc  "tree.h" 5852)
+(!srcfileloc  "tree.h" 5854)
 
 (!fields 2 
 (!pair  "base"
 (!type struct 1634 nil  gc_used "tree_map_base"
-(!srcfileloc  "tree.h" 5794)
+(!srcfileloc  "tree.h" 5796)
 
 (!fields 1 
 (!pair  "from"
 (!type already_seen 26)
 
-(!srcfileloc  "tree.h" 5793)
+(!srcfileloc  "tree.h" 5795)
 nil ))
 nil 511 nil )
 
-(!srcfileloc  "tree.h" 5850)
+(!srcfileloc  "tree.h" 5852)
 nil )
 (!pair  "to"
 (!type already_seen 53)
 
-(!srcfileloc  "tree.h" 5851)
+(!srcfileloc  "tree.h" 5853)
 nil ))
 nil 511 nil )
 
@@ -27678,23 +27683,23 @@ nil 511 nil )
 (!type already_seen 1635)
 )
  gc_pointed_to "tree_priority_map"
-(!srcfileloc  "tree.h" 5841)
+(!srcfileloc  "tree.h" 5843)
 
 (!fields 3 
 (!pair  "base"
 (!type already_seen 1634)
 
-(!srcfileloc  "tree.h" 5838)
+(!srcfileloc  "tree.h" 5840)
 nil )
 (!pair  "init"
 (!type already_seen 11)
 
-(!srcfileloc  "tree.h" 5839)
+(!srcfileloc  "tree.h" 5841)
 nil )
 (!pair  "fini"
 (!type already_seen 11)
 
-(!srcfileloc  "tree.h" 5840)
+(!srcfileloc  "tree.h" 5842)
 nil ))
 nil 511 nil )
 
@@ -27703,18 +27708,18 @@ nil 511 nil )
 (!type already_seen 1637)
 )
  gc_pointed_to "tree_int_map"
-(!srcfileloc  "tree.h" 5829)
+(!srcfileloc  "tree.h" 5831)
 
 (!fields 2 
 (!pair  "base"
 (!type already_seen 1634)
 
-(!srcfileloc  "tree.h" 5827)
+(!srcfileloc  "tree.h" 5829)
 nil )
 (!pair  "to"
 (!type already_seen 11)
 
-(!srcfileloc  "tree.h" 5828)
+(!srcfileloc  "tree.h" 5830)
 nil ))
 nil 511 nil )
 
@@ -27723,18 +27728,18 @@ nil 511 nil )
 (!type already_seen 1639)
 )
  gc_pointed_to "tree_decl_map"
-(!srcfileloc  "tree.h" 5818)
+(!srcfileloc  "tree.h" 5820)
 
 (!fields 2 
 (!pair  "base"
 (!type already_seen 1634)
 
-(!srcfileloc  "tree.h" 5816)
+(!srcfileloc  "tree.h" 5818)
 nil )
 (!pair  "to"
 (!type already_seen 26)
 
-(!srcfileloc  "tree.h" 5817)
+(!srcfileloc  "tree.h" 5819)
 nil ))
 nil 511 nil )
 
@@ -27743,23 +27748,23 @@ nil 511 nil )
 (!type already_seen 1641)
 )
  gc_pointed_to "tree_map"
-(!srcfileloc  "tree.h" 5807)
+(!srcfileloc  "tree.h" 5809)
 
 (!fields 3 
 (!pair  "base"
 (!type already_seen 1634)
 
-(!srcfileloc  "tree.h" 5804)
+(!srcfileloc  "tree.h" 5806)
 nil )
 (!pair  "hash"
 (!type already_seen 11)
 
-(!srcfileloc  "tree.h" 5805)
+(!srcfileloc  "tree.h" 5807)
 nil )
 (!pair  "to"
 (!type already_seen 26)
 
-(!srcfileloc  "tree.h" 5806)
+(!srcfileloc  "tree.h" 5808)
 nil ))
 nil 511 nil )
 
@@ -27769,7 +27774,7 @@ nil 511 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1644 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/tree.h:5109"nil 
+(!type struct 1644 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/tree.h:5111"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28380,7 +28385,7 @@ nil 511 nil )
 
 (!type already_seen 281)
 
-(!type struct 1671 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/rtl.h:118"nil 
+(!type struct 1671 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/rtl.h:118"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28438,7 +28443,7 @@ nil ))
 )
 511 nil )
 
-(!type struct 1677 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/bitmap.h:204"nil 
+(!type struct 1677 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/bitmap.h:204"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28456,7 +28461,7 @@ nil 0 nil )
 
 (!type already_seen 60)
 
-(!type struct 1678 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/config/arm/arm.h:1448"nil 
+(!type struct 1678 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/config/arm/arm.h:1454"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28837,11 +28842,11 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1717 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/../libcpp/include/cpplib.h:972"nil 
+(!type struct 1717 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/../libcpp/include/cpplib.h:972"nil 
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1718 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/../libcpp/include/cpplib.h:961"nil 
+(!type struct 1718 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/../libcpp/include/cpplib.h:961"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -28895,7 +28900,7 @@ nil 0 nil )
 (!fields 0 )
 nil 0 nil )
 
-(!type struct 1727 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2012.12/build/objdir/temp-src/gcc-linaro-4.7-2012.12/gcc/../libcpp/include/line-map.h:588"nil 
+(!type struct 1727 nil  gc_unused "anonymous:/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/../libcpp/include/line-map.h:588"nil 
 (!fields 0 )
 nil 0 nil )
 
@@ -30991,12 +30996,12 @@ nil )
 (!pair  "arm_mangle_map_entry"
 (!type already_seen 1203)
 
-(!srcfileloc  "config/arm/arm.c" 24696)
+(!srcfileloc  "config/arm/arm.c" 24698)
 nil )
 (!pair  "builtin_arg"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.c" 20870)
+(!srcfileloc  "config/arm/arm.c" 20872)
 nil )
 (!pair  "neon_builtin_datum"
 (!type already_seen 1205)
@@ -32436,52 +32441,52 @@ nil )
 (!pair  "builtin_info_type"
 (!type already_seen 1627)
 
-(!srcfileloc  "tree.h" 6031)
+(!srcfileloc  "tree.h" 6033)
 nil )
 (!pair  "const_call_expr_arg_iterator"
 (!type already_seen 1630)
 
-(!srcfileloc  "tree.h" 5925)
+(!srcfileloc  "tree.h" 5927)
 nil )
 (!pair  "call_expr_arg_iterator"
 (!type already_seen 1631)
 
-(!srcfileloc  "tree.h" 5919)
+(!srcfileloc  "tree.h" 5921)
 nil )
 (!pair  "tree_node_kind"
 (!type already_seen 11)
 
-(!srcfileloc  "tree.h" 5776)
+(!srcfileloc  "tree.h" 5778)
 nil )
 (!pair  "walk_tree_lh"
 (!type already_seen 11)
 
-(!srcfileloc  "tree.h" 5738)
+(!srcfileloc  "tree.h" 5740)
 nil )
 (!pair  "walk_tree_fn"
 (!type already_seen 11)
 
-(!srcfileloc  "tree.h" 5733)
+(!srcfileloc  "tree.h" 5735)
 nil )
 (!pair  "symbol_alias_set_t"
 (!type already_seen 1643)
 
-(!srcfileloc  "tree.h" 5699)
+(!srcfileloc  "tree.h" 5701)
 nil )
 (!pair  "function_args_iterator"
 (!type already_seen 1644)
 
-(!srcfileloc  "tree.h" 5111)
+(!srcfileloc  "tree.h" 5113)
 nil )
 (!pair  "record_layout_info"
 (!type already_seen 1646)
 
-(!srcfileloc  "tree.h" 4722)
+(!srcfileloc  "tree.h" 4724)
 nil )
 (!pair  "integer_type_kind"
 (!type already_seen 11)
 
-(!srcfileloc  "tree.h" 4090)
+(!srcfileloc  "tree.h" 4092)
 nil )
 (!pair  "priority_type"
 (!type already_seen 11)
@@ -32751,17 +32756,17 @@ nil )
 (!pair  "machine_function"
 (!type already_seen 485)
 
-(!srcfileloc  "config/arm/arm.h" 1418)
+(!srcfileloc  "config/arm/arm.h" 1424)
 nil )
 (!pair  "arm_stack_offsets"
 (!type already_seen 486)
 
-(!srcfileloc  "config/arm/arm.h" 1377)
+(!srcfileloc  "config/arm/arm.h" 1383)
 nil )
 (!pair  "arm_cc"
 (!type already_seen 11)
 
-(!srcfileloc  "config/arm/arm.h" 131)
+(!srcfileloc  "config/arm/arm.h" 134)
 nil )
 (!pair  "VEC_rtx_gc"
 (!type already_seen 272)
@@ -34943,7 +34948,7 @@ nil )
 (!pair  "the_parser"
 (!type already_seen 828)
 
-(!srcfileloc  "cp/parser.c" 27212)
+(!srcfileloc  "cp/parser.c" 27215)
 nil )
 (!pair  "lambda_scope_stack"
 (!type already_seen 820)
@@ -35088,22 +35093,22 @@ nil )
 (!pair  "ssdf_decls"
 (!type already_seen 53)
 
-(!srcfileloc  "cp/decl2.c" 2870)
+(!srcfileloc  "cp/decl2.c" 2869)
 nil )
 (!pair  "ssdf_decl"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/decl2.c" 2866)
+(!srcfileloc  "cp/decl2.c" 2865)
 nil )
 (!pair  "priority_decl"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/decl2.c" 2863)
+(!srcfileloc  "cp/decl2.c" 2862)
 nil )
 (!pair  "initialize_p_decl"
 (!type already_seen 26)
 
-(!srcfileloc  "cp/decl2.c" 2860)
+(!srcfileloc  "cp/decl2.c" 2859)
 nil )
 (!pair  "no_linkage_decls"
 (!type already_seen 53)
@@ -35587,7 +35592,7 @@ nil )
 (!type already_seen 26)
 )
 
-(!srcfileloc  "config/arm/arm.c" 19746)
+(!srcfileloc  "config/arm/arm.c" 19748)
 nil )
 (!pair  "tls_get_addr_libfunc"
 (!type already_seen 156)
@@ -36032,7 +36037,7 @@ nil )
 (!pair  "gcc_eh_personality_decl"
 (!type already_seen 26)
 
-(!srcfileloc  "tree.c" 11237)
+(!srcfileloc  "tree.c" 11243)
 nil )
 (!pair  "nonstandard_integer_type_cache"
 (!type array 1848 nil  gc_used "2 * MAX_INT_CACHED_PREC + 2" 
@@ -36215,7 +36220,7 @@ nil )
 (!pair  "libfunc_decls"
 (!type already_seen 64)
 
-(!srcfileloc  "optabs.c" 5939)
+(!srcfileloc  "optabs.c" 5994)
 
 (!options 
 (!option param_is type 
@@ -37195,38 +37200,38 @@ nil )
 (!pair  "builtin_info"
 (!type already_seen 1627)
 
-(!srcfileloc  "tree.h" 6033)
+(!srcfileloc  "tree.h" 6035)
 nil )
 (!pair  "current_function_func_begin_label"
 (!type already_seen 2)
 
-(!srcfileloc  "tree.h" 5106)
+(!srcfileloc  "tree.h" 5108)
 nil )
 (!pair  "current_function_decl"
 (!type already_seen 26)
 
-(!srcfileloc  "tree.h" 5103)
+(!srcfileloc  "tree.h" 5105)
 nil )
 (!pair  "sizetype_tab"
 (!type array 1851 nil  gc_used "(int) TYPE_KIND_LAST" 
 (!type already_seen 26)
 )
 
-(!srcfileloc  "tree.h" 4794)
+(!srcfileloc  "tree.h" 4796)
 nil )
 (!pair  "integer_types"
 (!type array 1852 nil  gc_used "itk_none" 
 (!type already_seen 26)
 )
 
-(!srcfileloc  "tree.h" 4094)
+(!srcfileloc  "tree.h" 4096)
 nil )
 (!pair  "global_trees"
 (!type array 1853 nil  gc_used "TI_MAX" 
 (!type already_seen 26)
 )
 
-(!srcfileloc  "tree.h" 3888)
+(!srcfileloc  "tree.h" 3889)
 nil )
 (!pair  "all_translation_units"
 (!type already_seen 53)
@@ -37301,12 +37306,12 @@ nil )
 (!type already_seen 156)
 )
 
-(!srcfileloc  "config/arm/arm.h" 1423)
+(!srcfileloc  "config/arm/arm.h" 1429)
 nil )
 (!pair  "arm_target_insn"
 (!type already_seen 156)
 
-(!srcfileloc  "config/arm/arm.h" 139)
+(!srcfileloc  "config/arm/arm.h" 142)
 nil )
 (!pair  "line_table"
 (!type already_seen 1729)

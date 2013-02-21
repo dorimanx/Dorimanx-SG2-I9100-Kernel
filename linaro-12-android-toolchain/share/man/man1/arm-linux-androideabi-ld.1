@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "LD 1"
-.TH LD 1 "2012-12-12" "binutils-2.23.51.0.5" "GNU Development Tools"
+.TH LD 1 "2013-01-17" "binutils-2.23.51.0.8" "GNU Development Tools"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -880,6 +880,11 @@ shared libraries are still allowed.
 .IP "\fBexecstack\fR" 4
 .IX Item "execstack"
 Marks the object as requiring executable stack.
+.IP "\fBglobal\fR" 4
+.IX Item "global"
+This option is only meaningful when building a shared object.  It makes
+the symbols defined by this shared object available for symbol resolution
+of subsequently loaded libraries.
 .IP "\fBinitfirst\fR" 4
 .IX Item "initfirst"
 This option is only meaningful when building a shared object.
@@ -1420,7 +1425,7 @@ On some platforms the \fB\-\-relax\fR option performs target specific,
 global optimizations that become possible when the linker resolves
 addressing in the program, such as relaxing address modes,
 synthesizing new instructions, selecting shorter version of current
-instructions, and combinig constant values.
+instructions, and combining constant values.
 .Sp
 On some platforms these link time global optimizations may make symbolic
 debugging of the resulting executable impossible.
@@ -1677,10 +1682,10 @@ symbols marked \fBlocal\fR in the version script will not be exported.
 .IP "\fB\-\-warn\-common\fR" 4
 .IX Item "--warn-common"
 Warn when a common symbol is combined with another common symbol or with
-a symbol definition.  Unix linkers allow this somewhat sloppy practise,
+a symbol definition.  Unix linkers allow this somewhat sloppy practice,
 but linkers on some other operating systems do not.  This option allows
 you to find potential problems from combining global symbols.
-Unfortunately, some C libraries use this practise, so you may get some
+Unfortunately, some C libraries use this practice, so you may get some
 warnings about symbols in the libraries as well as in your programs.
 .Sp
 There are three kinds of global symbols, illustrated here by C examples:
@@ -2219,7 +2224,7 @@ or
 .Sp
 A third method of dealing with this difficulty is to abandon
 \&'auto\-import' for the offending symbol and mark it with
-\&\f(CW\*(C`_\|_declspec(dllimport)\*(C'\fR.  However, in practise that
+\&\f(CW\*(C`_\|_declspec(dllimport)\*(C'\fR.  However, in practice that
 requires using compile-time #defines to indicate whether you are
 building a \s-1DLL\s0, building client code that will link to the \s-1DLL\s0, or
 merely building/linking to a static library.   In making the choice
@@ -2439,7 +2444,7 @@ the Info entries for \fIbinutils\fR and
 .SH "COPYRIGHT"
 .IX Header "COPYRIGHT"
 Copyright (c) 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Free
+1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2012 Free
 Software Foundation, Inc.
 .PP
 Permission is granted to copy, distribute and/or modify this document

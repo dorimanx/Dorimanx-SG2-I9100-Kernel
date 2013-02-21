@@ -79,6 +79,9 @@ extern char arm_arch_name[];
 	if (TARGET_VFP)					\
 	  builtin_define ("__VFP_FP__");		\
 							\
+	if (TARGET_FMA)         \
+		builtin_define ("__ARM_FEATURE_FMA");   \
+							\
 	if (TARGET_NEON)				\
 	  builtin_define ("__ARM_NEON__");		\
 							\
@@ -243,6 +246,9 @@ extern void (*arm_lang_output_object_attributes_hook)(void);
 
 /* FPU supports VFP half-precision floating-point.  */
 #define TARGET_FP16 (TARGET_VFP && arm_fpu_desc->fp16)
+
+/* FPU supports fused-multiply-add operations.  */
+#define TARGET_FMA (TARGET_VFP && arm_fpu_desc->rev >= 4)
 
 /* FPU supports Neon instructions.  The setting of this macro gets
    revealed via __ARM_NEON__ so we add extra guards upon TARGET_32BIT

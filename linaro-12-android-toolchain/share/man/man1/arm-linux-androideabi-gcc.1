@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "GCC 1"
-.TH GCC 1 "2012-12-05" "gcc-4.7.3" "GNU"
+.TH GCC 1 "2013-01-02" "gcc-4.7.3" "GNU"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -419,7 +419,8 @@ in the following sections.
 \&\-fsplit\-ivs\-in\-unroller \-fsplit\-wide\-types \-fstack\-protector 
 \&\-fstack\-protector\-all \-fstrict\-aliasing \-fstrict\-overflow 
 \&\-fthread\-jumps \-ftracer \-ftree\-bit\-ccp 
-\&\-ftree\-builtin\-call\-dce \-ftree\-ccp \-ftree\-ch \-ftree\-copy\-prop 
+\&\-ftree\-builtin\-call\-dce \-ftree\-ccp \-ftree\-ch 
+\&\-ftree\-coalesce\-inline\-vars \-ftree\-coalesce\-vars \-ftree\-copy\-prop 
 \&\-ftree\-copyrename \-ftree\-dce \-ftree\-dominator\-opts \-ftree\-dse 
 \&\-ftree\-forwprop \-ftree\-fre \-ftree\-loop\-if\-convert 
 \&\-ftree\-loop\-if\-convert\-stores \-ftree\-loop\-im 
@@ -6736,6 +6737,24 @@ Perform copy renaming on trees.  This pass attempts to rename compiler
 temporaries to other variables at copy locations, usually resulting in
 variable names which more closely resemble the original variables.  This flag
 is enabled by default at \fB\-O\fR and higher.
+.IP "\fB\-ftree\-coalesce\-inlined\-vars\fR" 4
+.IX Item "-ftree-coalesce-inlined-vars"
+Tell the copyrename pass (see \fB\-ftree\-copyrename\fR) to attempt to
+combine small user-defined variables too, but only if they were inlined
+from other functions.  It is a more limited form of
+\&\fB\-ftree\-coalesce\-vars\fR.  This may harm debug information of such
+inlined variables, but it will keep variables of the inlined-into
+function apart from each other, such that they are more likely to
+contain the expected values in a debugging session.  This was the
+default in \s-1GCC\s0 versions older than 4.7.
+.IP "\fB\-ftree\-coalesce\-vars\fR" 4
+.IX Item "-ftree-coalesce-vars"
+Tell the copyrename pass (see \fB\-ftree\-copyrename\fR) to attempt to
+combine small user-defined variables too, instead of just compiler
+temporaries.  This may severely limit the ability to debug an optimized
+program compiled with \fB\-fno\-var\-tracking\-assignments\fR.  In the
+negated form, this flag prevents \s-1SSA\s0 coalescing of user variables,
+including inlined ones.  This option is enabled by default.
 .IP "\fB\-ftree\-ter\fR" 4
 .IX Item "-ftree-ter"
 Perform temporary expression replacement during the \s-1SSA\-\s0>normal phase.  Single

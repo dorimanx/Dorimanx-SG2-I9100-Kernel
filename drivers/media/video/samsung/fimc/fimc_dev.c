@@ -1771,29 +1771,9 @@ static int fimc_release(struct file *filp)
 	return 0;
 }
 
-#ifdef CONFIG_USE_FIMC_CMA
-static int fimc_open_with_retry(struct file *filp)
-{
-	int ret;
-	int i = 0;
-
-	ret = fimc_open(filp);
-
-	while (ret == -ENOMEM && i++ < 5) {
-		msleep(1000);
-		ret = fimc_open(filp);
-	}
-
-	return ret;
-}
-#define FIMC_OPEN fimc_open_with_retry
-#else
-#define FIMC_OPEN fimc_open
-#endif
-
 static const struct v4l2_file_operations fimc_fops = {
 	.owner		= THIS_MODULE,
-	.open		= FIMC_OPEN,
+	.open		= fimc_open,
 	.release	= fimc_release,
 	.ioctl		= video_ioctl2,
 	.read		= fimc_read,

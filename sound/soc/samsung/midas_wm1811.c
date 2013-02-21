@@ -904,7 +904,7 @@ static int midas_wm1811_aif2_hw_params(struct snd_pcm_substream *substream,
 				| SND_SOC_DAIFMT_IB_NF
 				| SND_SOC_DAIFMT_CBS_CFS);
 	} else
-#if defined(CONFIG_MACH_C1_KOR_LGT) || defined(CONFIG_MACH_BAFFIN_KOR_LGT)
+#if defined(CONFIG_MACH_C1_KOR_LGT)
 		ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_DSP_A
 				| SND_SOC_DAIFMT_IB_NF
 				| SND_SOC_DAIFMT_CBM_CFM);
