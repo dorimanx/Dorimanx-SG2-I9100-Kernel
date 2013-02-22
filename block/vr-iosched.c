@@ -40,8 +40,8 @@ enum vr_head_dir {
 	BACKWARD,
 };
 
-static const int sync_expire = HZ; /* max time before a sync is submitted. */
-static const int async_expire = 6 * HZ; /* ditto for async, these limits are SOFT! */
+static const int sync_expire = HZ / 4; /* max time before a sync is submitted. */
+static const int async_expire = 2 * HZ; /* ditto for async, these limits are SOFT! */
 static const int fifo_batch = 1;
 static const int rev_penalty = 1; /* penalty for reversing head direction */
 
@@ -424,7 +424,9 @@ static struct elevator_type iosched_vr = {
 
 static int __init vr_init(void)
 {
-	return elv_register(&iosched_vr);
+	elv_register(&iosched_vr);
+
+	return 0;
 }
 
 static void __exit vr_exit(void)

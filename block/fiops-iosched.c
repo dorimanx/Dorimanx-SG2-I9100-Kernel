@@ -10,7 +10,6 @@
 #include <linux/jiffies.h>
 #include <linux/rbtree.h>
 #include <linux/ioprio.h>
-#include <linux/blktrace_api.h>
 #include "blk.h"
 
 #define VIOS_SCALE_SHIFT 10
@@ -99,11 +98,6 @@ static inline int fiops_ioc_##name(const struct fiops_ioc *ioc)	\
 FIOPS_IOC_FNS(on_rr);
 FIOPS_IOC_FNS(prio_changed);
 #undef FIOPS_IOC_FNS
-
-#define fiops_log_ioc(fiopsd, ioc, fmt, args...)	\
-	blk_add_trace_msg((fiopsd)->queue, "ioc%d " fmt, (ioc)->pid, ##args)
-#define fiops_log(fiopsd, fmt, args...)	\
-	blk_add_trace_msg((fiopsd)->queue, "fiops " fmt, ##args)
 
 enum wl_prio_t fiops_wl_type(short prio_class)
 {
@@ -205,8 +199,6 @@ static void fiops_service_tree_add(struct fiops_data *fiopsd,
 		fiops_rb_erase(&ioc->rb_node, ioc->service_tree);
 		ioc->service_tree = NULL;
 	}
-
-	fiops_log_ioc(fiopsd, ioc, "service tree add, vios %lld", vios);
 
 	left = 1;
 	parent = NULL;
@@ -401,12 +393,8 @@ static struct fiops_ioc *fiops_select_ioc(struct fiops_data *fiopsd)
 	 * to be starved, don't delay
 	 */
 	if (!rq_is_sync(rq) && fiopsd->in_flight[1] != 0 &&
-			service_tree->count == 1) {
-		fiops_log_ioc(fiopsd, ioc,
-				"postpone async, in_flight async %d sync %d",
-				fiopsd->in_flight[0], fiopsd->in_flight[1]);
+			service_tree->count == 1)
 		return NULL;
-	}
 
 	return ioc;
 }
@@ -416,8 +404,6 @@ static void fiops_charge_vios(struct fiops_data *fiopsd,
 {
 	struct fiops_rb_root *service_tree = ioc->service_tree;
 	ioc->vios += vios;
-
-	fiops_log_ioc(fiopsd, ioc, "charge vios %lld, new vios %lld", vios, ioc->vios);
 
 	if (RB_EMPTY_ROOT(&ioc->sort_list))
 		fiops_del_ioc_rr(fiopsd, ioc);
@@ -511,9 +497,6 @@ static void fiops_completed_request(struct request_queue *q, struct request *rq)
 
 	fiopsd->in_flight[rq_is_sync(rq)]--;
 	ioc->in_flight--;
-
-	fiops_log_ioc(fiopsd, ioc, "in_flight %d, busy queues %d",
-		ioc->in_flight, fiopsd->busy_queues);
 
 	if (fiopsd->in_flight[0] + fiopsd->in_flight[1] == 0)
 		fiops_schedule_dispatch(fiopsd);
