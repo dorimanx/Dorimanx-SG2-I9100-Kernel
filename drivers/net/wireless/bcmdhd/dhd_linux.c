@@ -3990,7 +3990,9 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 #endif /* BLOCK_IPV6_PACKET */
 #if defined(PASS_IPV4_SUSPEND)
 	dhd->pktfilter_count = 5;
+	/* This filter actually permits all multicast. Disable */
 	dhd->pktfilter[4] = "104 0 0 0 0xFFFFFF 0x01005E";
+	dhd->pktfilter[4] = NULL;
 #endif
 #endif /* GAN_LITE_NAT_KEEPALIVE_FILTER */
 #ifdef PASS_ARP_PACKET
