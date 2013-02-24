@@ -49,12 +49,11 @@ static struct dentry *proc_mount(struct file_system_type *fs_type,
 	else
 		ns = current->nsproxy->pid_ns;
 
-	sb = sget(fs_type, proc_test_super, proc_set_super, ns);
+	sb = sget(fs_type, proc_test_super, proc_set_super, flags, ns);
 	if (IS_ERR(sb))
 		return ERR_CAST(sb);
 
 	if (!sb->s_root) {
-		sb->s_flags = flags;
 		err = proc_fill_super(sb);
 		if (err) {
 			deactivate_locked_super(sb);

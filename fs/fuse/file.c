@@ -991,7 +991,9 @@ static ssize_t fuse_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
 	if (err)
 		goto out;
 
-	file_update_time(file);
+	err = file_update_time(file);
+	if (err)
+		goto out;
 
 	iov_iter_init(&i, iov, nr_segs, count, 0);
 	written = fuse_perform_write(file, mapping, &i, pos);

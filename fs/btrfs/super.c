@@ -814,9 +814,12 @@ static struct dentry *btrfs_mount(struct file_system_type *fs_type, int flags,
 	tree_root->fs_info = fs_info;
 
 	bdev = fs_devices->latest_bdev;
-	s = sget(fs_type, btrfs_test_super, btrfs_set_super, tree_root);
-	if (IS_ERR(s))
-		goto error_s;
+	s = sget(fs_type, btrfs_test_super, btrfs_set_super, flags | MS_NOSEC,
+		 fs_info);
+	if (IS_ERR(s)) {
+		error = PTR_ERR(s);
+		goto error_close_devices;
+	}
 
 	if (s->s_root) {
 		if ((flags ^ s->s_flags) & MS_RDONLY) {
@@ -831,7 +834,6 @@ static struct dentry *btrfs_mount(struct file_system_type *fs_type, int flags,
 	} else {
 		char b[BDEVNAME_SIZE];
 
-		s->s_flags = flags | MS_NOSEC;
 		strlcpy(s->s_id, bdevname(bdev, b), sizeof(s->s_id));
 		error = btrfs_fill_super(s, fs_devices, data,
 					 flags & MS_SILENT ? 1 : 0);
