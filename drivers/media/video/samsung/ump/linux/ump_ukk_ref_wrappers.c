@@ -130,7 +130,7 @@ int ump_ion_import_wrapper(u32 __user * argument, struct ump_session_data  * ses
 	sg_ion = ion_map_dma(ion_client_ump,ion_hnd);
 
 	blocks = (ump_dd_physical_block*)_mali_osk_malloc(sizeof(ump_dd_physical_block)*1024);
-	/*here, need to add error handling*/
+
 	if (NULL == blocks) {
 		MSG_ERR(("Failed to allocate blocks in ump_ioctl_allocate()\n"));
 		return -ENOMEM;

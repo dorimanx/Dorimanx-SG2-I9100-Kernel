@@ -114,7 +114,11 @@ extern struct platform_device exynos4_device_pd[];
 #endif
 #endif
 
-mali_io_address clk_register_map=0;
+/*This code for reference value of GPU activation*/
+int activity_index = -1;
+EXPORT_SYMBOL(activity_index);
+
+mali_io_address clk_register_map = 0;
 
 _mali_osk_lock_t *mali_dvfs_lock = 0;
 
@@ -132,35 +136,28 @@ int mali_regulator_get_usecount(void)
 	return rdev->use_count;
 }
 
-static DEFINE_MUTEX(boostpop_mutex);
 void mali_regulator_disable(void)
 {
-	mutex_lock(&boostpop_mutex);
+	bPoweroff = 1;
 	if( IS_ERR_OR_NULL(g3d_regulator) )
 	{
-		mutex_unlock(&boostpop_mutex);
 		MALI_DEBUG_PRINT(1, ("error on mali_regulator_disable : g3d_regulator is null\n"));
 		return;
 	}
 	regulator_disable(g3d_regulator);
 	MALI_DEBUG_PRINT(1, ("regulator_disable -> use cnt: %d \n",mali_regulator_get_usecount()));
-	bPoweroff = 1;
-	mutex_unlock(&boostpop_mutex);
 }
 
 void mali_regulator_enable(void)
 {
-	mutex_lock(&boostpop_mutex);
+	bPoweroff = 0;
 	if( IS_ERR_OR_NULL(g3d_regulator) )
 	{
-		mutex_unlock(&boostpop_mutex);
 		MALI_DEBUG_PRINT(1, ("error on mali_regulator_enable : g3d_regulator is null\n"));
 		return;
 	}
 	regulator_enable(g3d_regulator);
 	MALI_DEBUG_PRINT(1, ("regulator_enable -> use cnt: %d \n",mali_regulator_get_usecount()));
-	bPoweroff = 0;
-	mutex_unlock(&boostpop_mutex);
 }
 
 void mali_regulator_set_voltage(int min_uV, int max_uV)
@@ -170,31 +167,6 @@ void mali_regulator_set_voltage(int min_uV, int max_uV)
 	min_uV = mali_gpu_vol;
 	max_uV = mali_gpu_vol;
 #endif
-/*
-#if MALI_VOLTAGE_LOCK
-	if (mali_vol_lock_flag == MALI_FALSE) {
-		if (min_uV < MALI_BOTTOMLOCK_VOL || max_uV < MALI_BOTTOMLOCK_VOL) {
-			min_uV = MALI_BOTTOMLOCK_VOL;
-			max_uV = MALI_BOTTOMLOCK_VOL;
-		}
-	} else if (_mali_osk_atomic_read(&voltage_lock_status) > 0 ) {
-		if (min_uV < mali_lock_vol || max_uV < mali_lock_vol) {
-#if MALI_DVFS_ENABLED
-			int mali_vol_get;
-			mali_vol_get = mali_vol_get_from_table(mali_lock_vol);
-			if (mali_vol_get) {
-				min_uV = mali_vol_get;
-				max_uV = mali_vol_get;
-			}
-#else
-			min_uV = mali_lock_vol;
-			max_uV = mali_lock_vol;
-#endif
-		}
-	}
-#endif
-*/
-
 	_mali_osk_lock_wait(mali_dvfs_lock, _MALI_OSK_LOCKMODE_RW);
 
 	if( IS_ERR_OR_NULL(g3d_regulator) )
@@ -526,36 +498,6 @@ static mali_bool deinit_mali_clock(void)
 
 	return MALI_TRUE;
 }
-extern int mali_touch_boost_level;
-static int is_gpu_boosted = 0;
-static struct timer_list boostpop_timer;
-static void boostpop(struct work_struct *boostpop_work)
-{
-	mutex_lock(&boostpop_mutex);
-	mali_dvfs_bottom_lock_pop();
-	is_gpu_boosted = 0;
-	mutex_unlock(&boostpop_mutex);
-}
-static DECLARE_WORK(boostpop_work, boostpop);
-
-static void handle_boostpop(unsigned long data)
-{
-	schedule_work(&boostpop_work);
-}
-
-
-void gpu_boost_on_touch(void)
-{
-	if(!mali_touch_boost_level) return;
-	mutex_lock(&boostpop_mutex);
-	if(!is_gpu_boosted && !bPoweroff)
-	{
-		mali_dvfs_bottom_lock_push(mali_touch_boost_level);
-		is_gpu_boosted = 1;
-	}
-	mutex_unlock(&boostpop_mutex);
-	mod_timer(&boostpop_timer, jiffies + msecs_to_jiffies(1000));
-}
 
 static _mali_osk_errcode_t enable_mali_clocks(void)
 {
@@ -575,13 +517,11 @@ static _mali_osk_errcode_t enable_mali_clocks(void)
 	}
 	if (mali_gpu_clk <= mali_runtime_resume.clk)
 		set_mali_dvfs_current_step(MALI_DVFS_STEPS + 1);
-#if CPUFREQ_LOCK_DURING_440
 	/* lock/unlock CPU freq by Mali */
 	if (mali_gpu_clk >= 533)
-		err = cpufreq_lock_by_mali(1200);
+		err = cpufreq_lock_by_mali(1400);
 	else if (mali_gpu_clk == 440)
-		err = cpufreq_lock_by_mali(1000);
-#endif
+		err = cpufreq_lock_by_mali(1200);
 #else
 	mali_regulator_set_voltage(mali_runtime_resume.vol, mali_runtime_resume.vol);
 	mali_clk_set_rate(mali_runtime_resume.clk, GPU_MHZ);
@@ -680,8 +620,6 @@ _mali_osk_errcode_t mali_platform_init()
 	if(!init_mali_dvfs_status(MALI_DVFS_DEFAULT_STEP))
 		MALI_DEBUG_PRINT(1, ("mali_platform_init failed\n"));
 #endif
-	setup_timer(&boostpop_timer, handle_boostpop, 0);
-
 	MALI_SUCCESS;
 }
 
@@ -699,8 +637,6 @@ _mali_osk_errcode_t mali_platform_deinit()
 		clk_register_map=0;
 	}
 #endif
-	del_timer(&boostpop_timer);
-
 	MALI_SUCCESS;
 }
 
@@ -746,11 +682,13 @@ _mali_osk_errcode_t mali_platform_powerup(u32 cores)
 
 	MALI_SUCCESS;
 }
-
+/*This code for reference value of GPU activation*/
 void mali_gpu_utilization_handler(u32 utilization)
 {
-	if (bPoweroff==0)
-	{
+	/*printk("[TEST] GPU_UTILIZATION:%d per 1sec.", utilization);*/
+	activity_index = utilization;
+
+	if (bPoweroff==0) {
 #if MALI_DVFS_ENABLED
 		if(!mali_dvfs_handler(utilization))
 			MALI_DEBUG_PRINT(1,( "error on mali dvfs status in utilization\n"));

@@ -748,7 +748,7 @@ config CPU_UNDERVOLTING
 
 config MALI_CONTROL
 	tristate "mali gpu control interfaces"
-	depends on VIDEO_MALI400MP
+	depends on VIDEO_MALI400MP_UMP
 	default y
 
 config M0_MODS

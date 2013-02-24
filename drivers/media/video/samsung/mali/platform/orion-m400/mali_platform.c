@@ -353,12 +353,10 @@ mali_bool mali_clk_set_rate(unsigned int clk, unsigned int mhz)
 		return MALI_FALSE;
 
 #if MALI_TIMELINE_PROFILING_ENABLED
-	unsigned long previous_rate = 0;
-	previous_rate = clk_get_rate(mali_clock);
 	_mali_osk_profiling_add_event( MALI_PROFILING_EVENT_TYPE_SINGLE |
                                MALI_PROFILING_EVENT_CHANNEL_SOFTWARE |
                                MALI_PROFILING_EVENT_REASON_SINGLE_SW_GPU_FREQ,
-                               previous_rate, 0, 0, 0, 0);
+                               rate, 0, 0, 0, 0);
 #endif
 
 	clk_set_rate(mali_clock, rate);
@@ -389,6 +387,8 @@ mali_bool mali_clk_set_rate(unsigned int clk, unsigned int mhz)
 static mali_bool init_mali_clock(void)
 {
 	mali_bool ret = MALI_TRUE;
+
+	gpu_power_state = 0;
 
 	if (mali_clock != 0)
 		return ret; // already initialized
@@ -433,10 +433,8 @@ static mali_bool init_mali_clock(void)
 
 	mali_clk_put(MALI_FALSE);
 
-	gpu_power_state = 0;
-	bPoweroff = 1;
-
 	return MALI_TRUE;
+
 #ifdef CONFIG_REGULATOR
 err_regulator:
 	regulator_put(g3d_regulator);
@@ -549,7 +547,6 @@ _mali_osk_errcode_t g3d_power_domain_control(int bpower_on)
 			timeout--;
 			_mali_osk_time_ubusydelay(100);
 		}
-		MALI_PRINTF(("MALI Power domain enabled"));
 #endif //MALI_PMM_RUNTIME_JOB_CONTROL_ON
 	} else {
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
@@ -572,7 +569,6 @@ _mali_osk_errcode_t g3d_power_domain_control(int bpower_on)
 			timeout--;
 			_mali_osk_time_ubusydelay( 100);
 		}
-		MALI_PRINTF(("MALI Power domain disabled"));
 #endif //MALI_PMM_RUNTIME_JOB_CONTROL_ON
 	}
 
@@ -668,46 +664,6 @@ u32 pmu_get_power_up_down_info(void)
 
 _mali_osk_errcode_t mali_platform_power_mode_change(mali_power_mode power_mode)
 {
-	switch (power_mode) {
-		case MALI_POWER_MODE_ON:
-			MALI_DEBUG_PRINT(1, ("Mali platform: Got MALI_POWER_MODE_ON event, %s\n", bPoweroff ? "powering on" : "already on"));
-			if (bPoweroff == 1) {
-				/** If run time power management is used, donot call this function */
-#ifndef CONFIG_PM_RUNTIME
-				g3d_power_domain_control(1);
-#endif
-				MALI_DEBUG_PRINT(4,("enable clock \n"));
-				enable_mali_clocks();
-#if MALI_TIMELINE_PROFILING_ENABLED
-				_mali_osk_profiling_add_event(MALI_PROFILING_EVENT_TYPE_SINGLE| MALI_PROFILING_EVENT_CHANNEL_GPU|MALI_PROFILING_EVENT_REASON_SINGLE_GPU_FREQ_VOLT_CHANGE, mali_gpu_clk, mali_gpu_vol/1000, 0, 0, 0);
-#endif
-				//MALI_PRINTF(("Mali Platform powered up"));
-				gpu_power_state = 1;
-				bPoweroff = 0;
-			}
-			break;
-		case MALI_POWER_MODE_LIGHT_SLEEP:
-		case MALI_POWER_MODE_DEEP_SLEEP:
-			MALI_DEBUG_PRINT(1, ("Mali platform: Got %s event, %s\n",
-	                     power_mode == MALI_POWER_MODE_LIGHT_SLEEP ? "MALI_POWER_MODE_LIGHT_SLEEP" : "MALI_POWER_MODE_DEEP_SLEEP",
-	                     bPoweroff ? "already off" : "powering off"));
-			if (bPoweroff == 0) {
-				disable_mali_clocks();
-#if MALI_TIMELINE_PROFILING_ENABLED
-				_mali_osk_profiling_add_event(MALI_PROFILING_EVENT_TYPE_SINGLE| MALI_PROFILING_EVENT_CHANNEL_GPU|MALI_PROFILING_EVENT_REASON_SINGLE_GPU_FREQ_VOLT_CHANGE, 0, 0, 0, 0, 0);
-#endif
-
-#ifndef CONFIG_PM_RUNTIME
-				g3d_power_domain_control(0);
-#endif
-
-				//MALI_PRINTF(("Mali Platform powered down"));
-				gpu_power_state = 0;
-				bPoweroff = 1;
-			}
-
-		break;
-	}
 	MALI_SUCCESS;
 }
 
