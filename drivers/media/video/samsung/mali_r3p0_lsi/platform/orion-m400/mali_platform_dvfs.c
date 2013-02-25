@@ -469,9 +469,21 @@ static mali_bool mali_dvfs_status(u32 utilization)
 	unsigned int nextStatus = 0;
 	unsigned int curStatus = 0;
 	mali_bool boostup = MALI_FALSE;
-	static int stay_count = 0;
+#ifdef EXYNOS4_ASV_ENABLED
+	static mali_bool asv_applied = MALI_FALSE;
+#endif
+	static int stay_count = 0; // to prevent frequent switch
 
 	MALI_DEBUG_PRINT(1, ("> mali_dvfs_status: %d \n",utilization));
+#ifdef EXYNOS4_ASV_ENABLED
+	if (asv_applied == MALI_FALSE) {
+		mali_dvfs_table_update();
+		change_mali_dvfs_status(0,0);
+		asv_applied = MALI_TRUE;
+
+		return MALI_TRUE;
+	}
+#endif
 
 	/*decide next step*/
 	curStatus = get_mali_dvfs_status();
@@ -623,11 +635,12 @@ mali_bool init_mali_dvfs_status(int step)
 
 void deinit_mali_dvfs_status(void)
 {
-	if (mali_dvfs_wq)
-		destroy_workqueue(mali_dvfs_wq);
 
 	_mali_osk_atomic_term(&bottomlock_status);
 
+
+	if (mali_dvfs_wq)
+		destroy_workqueue(mali_dvfs_wq);
 	mali_dvfs_wq = NULL;
 }
 

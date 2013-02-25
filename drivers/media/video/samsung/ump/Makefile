@@ -1,6 +1,6 @@
 #
-# Copyright (C) 2010 ARM Limited. All rights reserved.
-#
+# Copyright (C) 2010-2012 ARM Limited. All rights reserved.
+# 
 # This program is free software and is provided to you under the terms of the GNU General Public License version 2
 # as published by the Free Software Foundation, and any use by you of this program is subject to the terms of such GNU licence.
 #
@@ -17,12 +17,6 @@ ifeq ($(CONFIG_UMP_OSMEM_ONLY),y)
 UMP_MEM_SIZE= $(CONFIG_UMP_MEM_SIZE)
 USING_MEMORY=1
 endif
-
-ifeq ($(CONFIG_UMP_VCM_ONLY),y)
-UMP_MEM_SIZE= $(CONFIG_UMP_MEM_SIZE)
-USING_MEMORY=2
-endif
-
 
 # For UMP Debug
 ifeq ($(CONFIG_VIDEO_MALI400MP_UMP_DEBUG),y)
@@ -77,9 +71,6 @@ ump-y := \
 		$(KBUILDROOT)common/ump_kernel_api.o \
 		$(KBUILDROOT)common/ump_kernel_ref_drv.o\
 		$(OSKFILES)
-
-ump-$(CONFIG_UMP_VCM_ALLOC) += \
-                $(KBUILDROOT)linux/ump_kernel_memory_backend_vcm.o \
 
 EXTRA_CFLAGS += $(INCLUDES) \
 		$(DEFINES)

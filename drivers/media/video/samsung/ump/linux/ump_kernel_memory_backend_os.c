@@ -79,8 +79,6 @@ ump_memory_backend * ump_os_memory_backend_create(const int max_allocation)
 	backend->stat = os_stat;
 	backend->pre_allocate_physical_check = NULL;
 	backend->adjust_to_mali_phys = NULL;
-	backend->get = NULL;
-	backend->set = NULL;
 
 	return backend;
 }
@@ -159,7 +157,6 @@ else
 		}
 		if (NULL == new_page)
 		{
-			MSG_ERR(("UMP memory allocated: Out of Memory !!\n"));
 			break;
 		}
 

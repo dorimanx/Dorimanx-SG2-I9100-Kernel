@@ -259,7 +259,7 @@ static u32 _ump_osk_virt_to_phys_end(ump_dd_mem * mem, u32 start, u32 address, i
 	return _MALI_OSK_ERR_FAULT;
 }
 
-static void _ump_osk_msync_with_virt(ump_dd_mem * mem, ump_uk_msync_op op, u32 start, u32 address, u32 size)
+static void _ump_osk_msync_with_virt_old(ump_dd_mem * mem, ump_uk_msync_op op, u32 start, u32 address, u32 size)
 {
 	int start_index, end_index;
 	u32 start_p, end_p;
@@ -462,40 +462,4 @@ void _ump_osk_msync( ump_dd_mem * mem, void * virt, u32 offset, u32 size, ump_uk
 	}
 
 	return;
-}
-
-void _ump_osk_mem_mapregion_get( ump_dd_mem ** mem, unsigned long vaddr)
-{
-	struct mm_struct *mm = current->mm;
-	struct vm_area_struct *vma;
-	ump_vma_usage_tracker * vma_usage_tracker;
-	ump_memory_allocation *descriptor;
-	ump_dd_handle handle;
-
-	DBG_MSG(3, ("_ump_osk_mem_mapregion_get: vaddr 0x%08lx\n", vaddr));
-
-	down_read(&mm->mmap_sem);
-	vma = find_vma(mm, vaddr);
-	up_read(&mm->mmap_sem);
-	if(!vma)
-	{
-		DBG_MSG(3, ("Not found VMA\n"));
-		*mem = NULL;
-		return;
-	}
-	DBG_MSG(4, ("Get vma: 0x%08lx vma->vm_start: 0x%08lx\n", (unsigned long)vma, vma->vm_start));
-
-	vma_usage_tracker = (struct ump_vma_usage_tracker*)vma->vm_private_data;
-	if(vma_usage_tracker == NULL)
-	{
-		DBG_MSG(3, ("Not found vma_usage_tracker\n"));
-		*mem = NULL;
-		return;
-	}
-
-	descriptor = (struct ump_memory_allocation*)vma_usage_tracker->descriptor;
-	handle = (ump_dd_handle)descriptor->handle;
-
-	DBG_MSG(3, ("Get handle: 0x%08lx\n", handle));
-	*mem = (ump_dd_mem*)handle;
 }
