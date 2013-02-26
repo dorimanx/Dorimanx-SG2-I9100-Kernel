@@ -753,6 +753,6 @@ config MALI_CONTROL
 
 config M0_MODS
 	tristate "i9300 specific modifications"
-	depends on VIDEO_MALI400MP
+	depends on VIDEO_MALI400MP_UMP
 	default m
 endif # MISC_DEVICES
