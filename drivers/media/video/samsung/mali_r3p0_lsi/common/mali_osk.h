@@ -190,7 +190,6 @@
 #define mali_dvfs_late_resume new_mali_dvfs_late_resume
 #define change_dvfs_tableset new_change_dvfs_tableset
 #define maliDvfsStatus new_maliDvfsStatus
-#define gpu_boost_on_touch new_gpu_boost_on_touch
 #define mali_restore_vpll_mode new_mali_restore_vpll_mode
 #define mali_force_mpll new_mali_force_mpll
 
