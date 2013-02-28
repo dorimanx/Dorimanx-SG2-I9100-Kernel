@@ -33,7 +33,13 @@ static inline pte_t *follow_table(struct mm_struct *mm, unsigned long addr)
 	if (pmd_none(*pmd) || unlikely(pmd_bad(*pmd)))
 		return (pte_t *) 0x10;
 
-	return pte_offset_map(pmd, addr);
+	ptep = pte_offset_map(pmd, addr);
+	if (!pte_present(*ptep))
+		return -0x11UL;
+	if (write && (!pte_write(*ptep) || !pte_dirty(*ptep)))
+		return -0x04UL;
+
+	return (pte_val(*ptep) & PAGE_MASK) + (addr & ~PAGE_MASK);
 }
 
 static __always_inline size_t __user_copy_pt(unsigned long uaddr, void *kptr,

@@ -172,8 +172,8 @@ struct file *alloc_file(struct path *path, fmode_t mode,
 	struct file *file;
 
 	file = get_empty_filp();
-	if (!file)
-		return NULL;
+	if (IS_ERR(file))
+		return file;
 
 	file->f_path = *path;
 	file->f_mapping = path->dentry->d_inode->i_mapping;

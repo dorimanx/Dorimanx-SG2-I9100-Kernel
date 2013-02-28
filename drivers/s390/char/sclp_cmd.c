@@ -111,6 +111,8 @@ void __init sclp_facilities_detect(void)
 	sccb = &early_read_info_sccb;
 	sclp_facilities = sccb->facilities;
 	sclp_fac84 = sccb->fac84;
+	if (sccb->fac85 & 0x02)
+		S390_lowcore.machine_flags |= MACHINE_FLAG_ESOP;
 	rnmax = sccb->rnmax ? sccb->rnmax : sccb->rnmax2;
 	rzm = sccb->rnsize ? sccb->rnsize : sccb->rnsize2;
 	rzm <<= 20;

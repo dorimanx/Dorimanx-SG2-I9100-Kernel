@@ -1038,7 +1038,7 @@ struct file *create_write_pipe(int flags)
 
 	err = -ENFILE;
 	f = alloc_file(&path, FMODE_WRITE, &write_pipefifo_fops);
-	if (!f)
+	if (IS_ERR(f))
 		goto err_dentry;
 	f->f_mapping = inode->i_mapping;
 
