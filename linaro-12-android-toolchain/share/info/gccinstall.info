@@ -1,5 +1,5 @@
 This is doc/gccinstall.info, produced by makeinfo version 4.13 from
-/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/temp-src/gcc-linaro-4.7-2013.01/gcc/doc/install.texi.
+/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.02/build/objdir/temp-src/gcc-linaro-4.7-2013.02-01/gcc/doc/install.texi.
 
 Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
@@ -817,10 +817,28 @@ option.
      `gnu2', which select between the original GNU dialect and the GNU
      TLS descriptor-based dialect.
 
+`--enable-multiarch'
+     Specify whether to enable or disable multiarch support.  The
+     default is to check for glibc start files in a multiarch location,
+     and enable it if the files are found.  The auto detection is
+     enabled for native builds, and for cross builds configured with
+     `--with-sysroot', and without `--with-native-system-header-dir'.
+     More documentation about multiarch can be found at
+     `http://wiki.debian.org/Multiarch'.
+
 `--disable-multilib'
      Specify that multiple target libraries to support different target
      variants, calling conventions, etc. should not be built.  The
      default is to build a predefined set of them.
+
+`--enable-multiarch'
+     Specify whether to enable or disable multiarch support.  The
+     default is to check for glibc start files in a multiarch location,
+     and enable it if the files are found.  The auto detection is
+     enabled for native builds, and for cross builds configured with
+     `--with-sysroot', and without `--with-native-system-header-dir'.
+     More documentation about multiarch can be found at
+     `http://wiki.debian.org/Multiarch'.
 
      Some targets provide finer-grained control over which multilibs
      are built (e.g., `--disable-softfloat'):
@@ -1573,6 +1591,16 @@ The following options only apply to building cross compilers.
      Specifies that `newlib' is being used as the target C library.
      This causes `__eprintf' to be omitted from `libgcc.a' on the
      assumption that it will be provided by `newlib'.
+
+`--with-avrlibc'
+     Specifies that `AVR-Libc' is being used as the target C library.
+     This causes float support functions like `__addsf3' to be omitted
+     from `libgcc.a' on the assumption that it will be provided by
+     `libm.a'.  For more technical details, cf. PR54461.  This option
+     is only supported for the AVR target.  It is not supported for
+     RTEMS configurations, which currently use newlib.  The option is
+     supported since version 4.7.2 and is the default in 4.8.0 and
+     newer.
 
 `--with-build-time-tools=DIR'
      Specifies where to find the set of target tools (assembler,
@@ -4580,7 +4608,7 @@ Concept Index
 * Menu:
 
 * Binaries:                              Binaries.           (line    6)
-* build_configargs:                      Configuration.      (line 1439)
+* build_configargs:                      Configuration.      (line 1467)
 * Configuration:                         Configuration.      (line    6)
 * configurations supported by GCC:       Configurations.     (line    6)
 * Downloading GCC:                       Downloading the source.
@@ -4590,7 +4618,7 @@ Concept Index
 * FDL, GNU Free Documentation License:   GNU Free Documentation License.
                                                              (line    6)
 * Host specific installation:            Specific.           (line    6)
-* host_configargs:                       Configuration.      (line 1443)
+* host_configargs:                       Configuration.      (line 1471)
 * Installing GCC: Binaries:              Binaries.           (line    6)
 * Installing GCC: Building:              Building.           (line    6)
 * Installing GCC: Configuration:         Configuration.      (line    6)
@@ -4600,100 +4628,100 @@ Concept Index
 * Specific installation notes:           Specific.           (line    6)
 * Target specific installation:          Specific.           (line    6)
 * Target specific installation notes:    Specific.           (line    6)
-* target_configargs:                     Configuration.      (line 1447)
+* target_configargs:                     Configuration.      (line 1475)
 * Testing:                               Testing.            (line    6)
 * Testsuite:                             Testing.            (line    6)
 
 
 
 Tag Table:
-Node: Top2045
-Node: Installing GCC2603
-Node: Prerequisites4118
-Node: Downloading the source14342
-Node: Configuration16279
-Ref: with-gnu-as31285
-Ref: with-as32183
-Ref: with-gnu-ld33596
-Node: Building79853
-Node: Testing95338
-Node: Final install103187
-Node: Binaries108501
-Node: Specific110102
-Ref: alpha-x-x110608
-Ref: alpha-dec-osf51111097
-Ref: amd64-x-solaris210113633
-Ref: arm-x-eabi113736
-Ref: avr113954
-Ref: bfin114594
-Ref: cr16114836
-Ref: cris115251
-Ref: dos116067
-Ref: epiphany-x-elf116390
-Ref: x-x-freebsd116495
-Ref: h8300-hms118332
-Ref: hppa-hp-hpux118684
-Ref: hppa-hp-hpux10121055
-Ref: hppa-hp-hpux11121468
-Ref: x-x-linux-gnu127127
-Ref: ix86-x-linux127320
-Ref: ix86-x-solaris289127633
-Ref: ix86-x-solaris210128477
-Ref: ia64-x-linux129668
-Ref: ia64-x-hpux130438
-Ref: x-ibm-aix130993
-Ref: iq2000-x-elf137763
-Ref: lm32-x-elf137903
-Ref: lm32-x-uclinux138007
-Ref: m32c-x-elf138135
-Ref: m32r-x-elf138237
-Ref: m68k-x-x138339
-Ref: m68k-x-uclinux139377
-Ref: mep-x-elf139623
-Ref: microblaze-x-elf139733
-Ref: mips-x-x139852
-Ref: mips-sgi-irix5142248
-Ref: mips-sgi-irix6142328
-Ref: moxie-x-elf145552
-Ref: powerpc-x-x145672
-Ref: powerpc-x-darwin145877
-Ref: powerpc-x-elf146371
-Ref: powerpc-x-linux-gnu146456
-Ref: powerpc-x-netbsd146551
-Ref: powerpc-x-eabisim146639
-Ref: powerpc-x-eabi146765
-Ref: powerpcle-x-elf146841
-Ref: powerpcle-x-eabisim146933
-Ref: powerpcle-x-eabi147066
-Ref: rl78-x-elf147149
-Ref: rx-x-elf147255
-Ref: s390-x-linux147454
-Ref: s390x-x-linux147526
-Ref: s390x-ibm-tpf147613
-Ref: x-x-solaris2147744
-Ref: sparc-x-x153311
-Ref: sparc-sun-solaris2153813
-Ref: sparc-sun-solaris210156567
-Ref: sparc-x-linux156943
-Ref: sparc64-x-solaris2157168
-Ref: sparcv9-x-solaris2157821
-Ref: c6x-x-x157908
-Ref: tilegx-*-linux157999
-Ref: tilepro-*-linux158118
-Ref: x-x-vxworks158239
-Ref: x86-64-x-x159761
-Ref: x86-64-x-solaris210160089
-Ref: xtensa-x-elf160751
-Ref: xtensa-x-linux161422
-Ref: windows161763
-Ref: x-x-cygwin163700
-Ref: x-x-interix164253
-Ref: x-x-mingw32164562
-Ref: older164788
-Ref: elf166905
-Node: Old167163
-Node: Configurations170300
-Node: GNU Free Documentation License173841
-Node: Concept Index198988
+Node: Top2048
+Node: Installing GCC2606
+Node: Prerequisites4121
+Node: Downloading the source14345
+Node: Configuration16282
+Ref: with-gnu-as31288
+Ref: with-as32186
+Ref: with-gnu-ld33599
+Node: Building81293
+Node: Testing96778
+Node: Final install104627
+Node: Binaries109941
+Node: Specific111542
+Ref: alpha-x-x112048
+Ref: alpha-dec-osf51112537
+Ref: amd64-x-solaris210115073
+Ref: arm-x-eabi115176
+Ref: avr115394
+Ref: bfin116034
+Ref: cr16116276
+Ref: cris116691
+Ref: dos117507
+Ref: epiphany-x-elf117830
+Ref: x-x-freebsd117935
+Ref: h8300-hms119772
+Ref: hppa-hp-hpux120124
+Ref: hppa-hp-hpux10122495
+Ref: hppa-hp-hpux11122908
+Ref: x-x-linux-gnu128567
+Ref: ix86-x-linux128760
+Ref: ix86-x-solaris289129073
+Ref: ix86-x-solaris210129917
+Ref: ia64-x-linux131108
+Ref: ia64-x-hpux131878
+Ref: x-ibm-aix132433
+Ref: iq2000-x-elf139203
+Ref: lm32-x-elf139343
+Ref: lm32-x-uclinux139447
+Ref: m32c-x-elf139575
+Ref: m32r-x-elf139677
+Ref: m68k-x-x139779
+Ref: m68k-x-uclinux140817
+Ref: mep-x-elf141063
+Ref: microblaze-x-elf141173
+Ref: mips-x-x141292
+Ref: mips-sgi-irix5143688
+Ref: mips-sgi-irix6143768
+Ref: moxie-x-elf146992
+Ref: powerpc-x-x147112
+Ref: powerpc-x-darwin147317
+Ref: powerpc-x-elf147811
+Ref: powerpc-x-linux-gnu147896
+Ref: powerpc-x-netbsd147991
+Ref: powerpc-x-eabisim148079
+Ref: powerpc-x-eabi148205
+Ref: powerpcle-x-elf148281
+Ref: powerpcle-x-eabisim148373
+Ref: powerpcle-x-eabi148506
+Ref: rl78-x-elf148589
+Ref: rx-x-elf148695
+Ref: s390-x-linux148894
+Ref: s390x-x-linux148966
+Ref: s390x-ibm-tpf149053
+Ref: x-x-solaris2149184
+Ref: sparc-x-x154751
+Ref: sparc-sun-solaris2155253
+Ref: sparc-sun-solaris210158007
+Ref: sparc-x-linux158383
+Ref: sparc64-x-solaris2158608
+Ref: sparcv9-x-solaris2159261
+Ref: c6x-x-x159348
+Ref: tilegx-*-linux159439
+Ref: tilepro-*-linux159558
+Ref: x-x-vxworks159679
+Ref: x86-64-x-x161201
+Ref: x86-64-x-solaris210161529
+Ref: xtensa-x-elf162191
+Ref: xtensa-x-linux162862
+Ref: windows163203
+Ref: x-x-cygwin165140
+Ref: x-x-interix165693
+Ref: x-x-mingw32166002
+Ref: older166228
+Ref: elf168345
+Node: Old168603
+Node: Configurations171740
+Node: GNU Free Documentation License175281
+Node: Concept Index200428
 
 End Tag Table

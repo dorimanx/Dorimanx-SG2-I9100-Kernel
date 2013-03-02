@@ -377,25 +377,29 @@ static void __init set_volt_table(void)
 		max_support_idx = L6; /* allow 1000mHz max */
 #endif
 		break;
+	/* some CPU chips are fake, and detected as max 1200Mhz allow them to get 1400Mhz */
 	case SUPPORT_1000MHZ:
 		for_1000 = true;
-		max_support_idx = L6;
+		max_support_idx = L2; /* 1400Mhz max */
 		break;
 	default:
 		for_1000 = true;
-		max_support_idx = L6;
+		max_support_idx = L2; /* 1400Mhz max */
 		break;
 	}
-
-	if (for_1000)
-		printk(KERN_INFO "DVFS : VDD_ARM Voltage table set with %d Group\n", asv_group);
 
 	if (for_1600) {
 		for (i = 0 ; i < CPUFREQ_LEVEL_END ; i++)
 			exynos4210_volt_table[i] =
-					asv_voltage_A[i][asv_group];
-		printk(KERN_INFO "DVFS : VDD_ARM Voltage table set with %d Group\n", asv_group);
+				asv_voltage_A[i][asv_group];
 	}
+
+	if (for_1000) {
+		for (i = 0 ; i < CPUFREQ_LEVEL_END ; i++)
+			exynos4210_volt_table[i] =
+				asv_voltage_A[i][asv_group];
+	}
+	printk(KERN_INFO "DVFS : VDD_ARM Voltage table set with %d Group\n", asv_group);
 }
 
 #if defined(CONFIG_REGULATOR_MAX8997)

@@ -1,9 +1,9 @@
 This is binutils.info, produced by makeinfo version 4.13 from
-/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.01/build/objdir/../build/../binutils/binutils-current/binutils/doc/binutils.texi.
+/mnt/jenkins/workspace/linaro-android_toolchain-4.7-2013.02/build/objdir/../build/../binutils/binutils-current/binutils/doc/binutils.texi.
 
 Copyright (C) 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012 Free Software Foundation, Inc.
+2012, 2013 Free Software Foundation, Inc.
 
    Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3 or
@@ -45,7 +45,7 @@ Introduction
 ************
 
 This brief manual contains documentation for the GNU binary utilities
-(Linux/GNU Binutils) version 2.23.51.0.8:
+(Linux/GNU Binutils) version 2.23.51.0.9:
 
    This document is distributed under the terms of the GNU Free
 Documentation License version 1.3.  A copy of the license is included
@@ -58,18 +58,18 @@ in the section entitled "GNU Free Documentation License".
 * objcopy::			Copy and translate object files
 * objdump::                     Display information from object files
 * ranlib::                      Generate index to archive contents
-* readelf::                     Display the contents of ELF format files
 * size::                        List section sizes and total size
 * strings::                     List printable strings from files
 * strip::                       Discard symbols
-* elfedit::                     Update the ELF header of ELF files
 * c++filt::			Filter to demangle encoded C++ symbols
 * cxxfilt: c++filt.             MS-DOS name for c++filt
 * addr2line::			Convert addresses to file and line
 * nlmconv::                     Converts object code into an NLM
-* windres::			Manipulate Windows resources
 * windmc::			Generator for Windows message resources
+* windres::			Manipulate Windows resources
 * dlltool::			Create files needed to build and use DLLs
+* readelf::                     Display the contents of ELF format files
+* elfedit::                     Update the ELF header of ELF files
 * Common Options::              Command-line options for all utilities
 * Selecting the Target System:: How these utilities determine the target
 * Reporting Bugs::              Reporting Bugs
@@ -842,6 +842,7 @@ File: binutils.info,  Node: objcopy,  Next: objdump,  Prev: nm,  Up: Top
              [`-R' SECTIONNAME|`--remove-section='SECTIONNAME]
              [`-p'|`--preserve-dates']
              [`-D'|`--enable-deterministic-archives']
+             [`-U'|`--disable-deterministic-archives']
              [`--debugging']
              [`--gap-fill='VAL]
              [`--pad-to='ADDRESS]
@@ -1103,6 +1104,20 @@ the `--reverse-bytes' option.)
      Operate in _deterministic_ mode.  When copying archive members and
      writing the archive index, use zero for UIDs, GIDs, timestamps,
      and use consistent file modes for all files.
+
+     If `binutils' was configured with
+     `--enable-deterministic-archives', then this mode is on by default.
+     It can be disabled with the `-U' option, below.
+
+`-U'
+`--disable-deterministic-archives'
+     Do _not_ operate in _deterministic_ mode.  This is the inverse of
+     the `-D' option, above: when copying archive members and writing
+     the archive index, use their actual UID, GID, timestamp, and file
+     mode values.
+
+     This is the default unless `binutils' was configured with
+     `--enable-deterministic-archives'.
 
 `--debugging'
      Convert debugging information, if possible.  This is not the
@@ -2076,7 +2091,7 @@ given.
      like any other data.
 
 
-File: binutils.info,  Node: ranlib,  Next: readelf,  Prev: objdump,  Up: Top
+File: binutils.info,  Node: ranlib,  Next: size,  Prev: objdump,  Up: Top
 
 5 ranlib
 ********
@@ -2126,7 +2141,7 @@ their placement in the archive.
      `--enable-deterministic-archives'.
 
 
-File: binutils.info,  Node: size,  Next: strings,  Prev: readelf,  Up: Top
+File: binutils.info,  Node: size,  Next: strings,  Prev: ranlib,  Up: Top
 
 6 size
 ******
@@ -2293,7 +2308,7 @@ files.
      Print the program version number on the standard output and exit.
 
 
-File: binutils.info,  Node: strip,  Next: elfedit,  Prev: strings,  Up: Top
+File: binutils.info,  Node: strip,  Next: c++filt,  Prev: strings,  Up: Top
 
 8 strip
 *******
@@ -2311,6 +2326,7 @@ File: binutils.info,  Node: strip,  Next: elfedit,  Prev: strings,  Up: Top
            [`-R' SECTIONNAME |`--remove-section='SECTIONNAME]
            [`-o' FILE] [`-p'|`--preserve-dates']
            [`-D'|`--enable-deterministic-archives']
+           [`-U'|`--disable-deterministic-archives']
            [`--keep-file-symbols']
            [`--only-keep-debug']
            [`-v' |`--verbose'] [`-V'|`--version']
@@ -2398,6 +2414,20 @@ writing modified copies under different names.
      writing the archive index, use zero for UIDs, GIDs, timestamps,
      and use consistent file modes for all files.
 
+     If `binutils' was configured with
+     `--enable-deterministic-archives', then this mode is on by default.
+     It can be disabled with the `-U' option, below.
+
+`-U'
+`--disable-deterministic-archives'
+     Do _not_ operate in _deterministic_ mode.  This is the inverse of
+     the `-D' option, above: when copying archive members and writing
+     the archive index, use their actual UID, GID, timestamp, and file
+     mode values.
+
+     This is the default unless `binutils' was configured with
+     `--enable-deterministic-archives'.
+
 `-w'
 `--wildcard'
      Permit regular expressions in SYMBOLNAMEs used in other command
@@ -2484,7 +2514,7 @@ writing modified copies under different names.
      archives, `strip -v' lists all members of the archive.
 
 
-File: binutils.info,  Node: c++filt,  Next: addr2line,  Prev: elfedit,  Up: Top
+File: binutils.info,  Node: c++filt,  Next: addr2line,  Prev: strip,  Up: Top
 
 9 c++filt
 *********
@@ -2749,7 +2779,7 @@ equivalent.
      scopes are prefixed with `(inlined by)'.
 
 
-File: binutils.info,  Node: nlmconv,  Next: windres,  Prev: addr2line,  Up: Top
+File: binutils.info,  Node: nlmconv,  Next: windmc,  Prev: addr2line,  Up: Top
 
 11 nlmconv
 **********
@@ -2822,7 +2852,7 @@ In this case, `nlmconv' calls the linker for you.
      Prints the version number for `nlmconv'.
 
 
-File: binutils.info,  Node: windmc,  Next: dlltool,  Prev: windres,  Up: Top
+File: binutils.info,  Node: windmc,  Next: windres,  Prev: nlmconv,  Up: Top
 
 12 windmc
 *********
@@ -2961,7 +2991,7 @@ Compiler.
      switch.
 
 
-File: binutils.info,  Node: windres,  Next: windmc,  Prev: nlmconv,  Up: Top
+File: binutils.info,  Node: windres,  Next: dlltool,  Prev: windmc,  Up: Top
 
 13 windres
 **********
@@ -3133,7 +3163,7 @@ available to Windows.
      turn on parser debugging.
 
 
-File: binutils.info,  Node: dlltool,  Next: Common Options,  Prev: windmc,  Up: Top
+File: binutils.info,  Node: dlltool,  Next: readelf,  Prev: windres,  Up: Top
 
 14 dlltool
 **********
@@ -3507,7 +3537,7 @@ A `.def' file contains any number of the following commands:
 
 
 
-File: binutils.info,  Node: readelf,  Next: size,  Prev: ranlib,  Up: Top
+File: binutils.info,  Node: readelf,  Next: elfedit,  Prev: dlltool,  Up: Top
 
 15 readelf
 **********
@@ -3727,7 +3757,7 @@ equivalent.  At least one option besides `-v' or `-H' must be given.
 
 
 
-File: binutils.info,  Node: elfedit,  Next: c++filt,  Prev: strip,  Up: Top
+File: binutils.info,  Node: elfedit,  Next: Common Options,  Prev: readelf,  Up: Top
 
 16 elfedit
 **********
@@ -3796,7 +3826,7 @@ equivalent. At least one of the `--output-mach', `--output-type' and
 
 
 
-File: binutils.info,  Node: Common Options,  Next: Selecting the Target System,  Prev: dlltool,  Up: Top
+File: binutils.info,  Node: Common Options,  Next: Selecting the Target System,  Prev: elfedit,  Up: Top
 
 17 Common Options
 *****************
@@ -4645,7 +4675,9 @@ Binutils Index
  [index ]
 * Menu:
 
-* --enable-deterministic-archives <1>:   ranlib.              (line  32)
+* --enable-deterministic-archives <1>:   strip.               (line 103)
+* --enable-deterministic-archives <2>:   ranlib.              (line  32)
+* --enable-deterministic-archives <3>:   objcopy.             (line 289)
 * --enable-deterministic-archives:       ar cmdline.          (line 148)
 * .stab:                                 objdump.             (line 410)
 * Add prefix to absolute paths:          objdump.             (line 353)
@@ -4666,11 +4698,11 @@ Binutils Index
 * bugs:                                  Reporting Bugs.      (line   6)
 * bugs, reporting:                       Bug Reporting.       (line   6)
 * c++filt:                               c++filt.             (line   6)
-* changing object addresses:             objcopy.             (line 319)
-* changing section address:              objcopy.             (line 329)
-* changing section LMA:                  objcopy.             (line 337)
-* changing section VMA:                  objcopy.             (line 350)
-* changing start address:                objcopy.             (line 314)
+* changing object addresses:             objcopy.             (line 334)
+* changing section address:              objcopy.             (line 344)
+* changing section LMA:                  objcopy.             (line 352)
+* changing section VMA:                  objcopy.             (line 365)
+* changing start address:                objcopy.             (line 329)
 * collections of files:                  ar.                  (line   6)
 * compatibility, ar:                     ar.                  (line  50)
 * contents of archive:                   ar cmdline.          (line  94)
@@ -4686,7 +4718,9 @@ Binutils Index
 * demangling in nm:                      nm.                  (line 153)
 * demangling in objdump <1>:             addr2line.           (line  78)
 * demangling in objdump:                 objdump.             (line  95)
-* deterministic archives <1>:            ranlib.              (line  32)
+* deterministic archives <1>:            strip.               (line 103)
+* deterministic archives <2>:            ranlib.              (line  32)
+* deterministic archives <3>:            objcopy.             (line 289)
 * deterministic archives:                ar cmdline.          (line 148)
 * disassembling object code:             objdump.             (line 117)
 * disassembly architecture:              objdump.             (line 197)
@@ -4802,35 +4836,35 @@ Binutils Index
 
 
 Tag Table:
-Node: Top2139
-Node: ar3862
-Node: ar cmdline6688
-Node: ar scripts16903
-Node: nm22591
-Node: objcopy32487
-Node: objdump63194
-Node: ranlib85323
-Node: size86843
-Node: strings89848
-Node: strip92306
-Node: c++filt98798
-Ref: c++filt-Footnote-1103641
-Node: addr2line103747
-Node: nlmconv108084
-Node: windmc110690
-Node: windres114339
-Node: dlltool120700
-Node: def file format133586
-Node: readelf136125
-Node: elfedit143671
-Node: Common Options145916
-Node: Selecting the Target System146956
-Node: Target Selection147888
-Node: Architecture Selection149870
-Node: Reporting Bugs150698
-Node: Bug Criteria151477
-Node: Bug Reporting152030
-Node: GNU Free Documentation License158931
-Node: Binutils Index184110
+Node: Top2145
+Node: ar3868
+Node: ar cmdline6694
+Node: ar scripts16909
+Node: nm22597
+Node: objcopy32493
+Node: objdump63796
+Node: ranlib85925
+Node: size87442
+Node: strings90446
+Node: strip92904
+Node: c++filt99990
+Ref: c++filt-Footnote-1104831
+Node: addr2line104937
+Node: nlmconv109274
+Node: windmc111879
+Node: windres115528
+Node: dlltool121889
+Node: def file format134769
+Node: readelf137308
+Node: elfedit144858
+Node: Common Options147112
+Node: Selecting the Target System148152
+Node: Target Selection149084
+Node: Architecture Selection151066
+Node: Reporting Bugs151894
+Node: Bug Criteria152673
+Node: Bug Reporting153226
+Node: GNU Free Documentation License160127
+Node: Binutils Index185306
 
 End Tag Table
