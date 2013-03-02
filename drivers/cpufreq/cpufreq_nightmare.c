@@ -1213,12 +1213,12 @@ standalone_hotplug(struct cpufreq_nightmare_cpuinfo *this_nightmare_cpuinfo)
 
 	nr_online_cpu = num_online_cpus();
 
-	clk_fimc = ioremap(0x10020000, SZ_4K);
+	/*clk_fimc = ioremap(0x10020000, SZ_4K);
 	fimc_stat = __raw_readl(clk_fimc + 0x0920);
 	iounmap(clk_fimc);
 
 	if ((fimc_stat>>4 & 0x1) == 1)
-		return HOTPLUG_IN;
+		return HOTPLUG_IN;*/
 
 	if (nightmare_hotplug_out_check(nr_online_cpu, (screen_off ? threshold_scroff[nr_online_cpu-1][0] : threshold[nr_online_cpu - 1][0] ),
 			    avg_load, cur_freq)) {
@@ -1507,11 +1507,6 @@ static void nightmare_check_frequency(struct cpufreq_nightmare_cpuinfo *this_nig
 				freq_up = cpu_policy->cur + (inc_load - inc_brake);
 			}			
 
-			#ifdef CONFIG_HAS_EARLYSUSPEND
-				if (screen_off && freq_up > cpu_policy->max_suspend)
-					freq_up = cpu_policy->max_suspend;
-			#endif
-
 			if (freq_up != cpu_policy->cur && freq_up <= cpu_policy->max) {
 				__cpufreq_driver_target(cpu_policy, freq_up, CPUFREQ_RELATION_L);
 			}
@@ -1532,11 +1527,6 @@ static void nightmare_check_frequency(struct cpufreq_nightmare_cpuinfo *this_nig
 			} else {
 				freq_down = cpu_policy->min;
 			}
-
-			#ifdef CONFIG_HAS_EARLYSUSPEND
-				if (screen_off && freq_down < cpu_policy->min_suspend)
-					freq_down = cpu_policy->min_suspend;
-			#endif
 
 			if (freq_down != cpu_policy->cur) {
 				__cpufreq_driver_target(cpu_policy, freq_down, CPUFREQ_RELATION_L);
@@ -1640,9 +1630,6 @@ static void nightmare_suspend(int suspend)
 {        
 	unsigned int i;
 	unsigned int online = num_online_cpus();
-	unsigned int trans_latency_one_core = nightmare_tuners_ins.trans_latency_one_core;
-	unsigned int trans_latency_two_cores = nightmare_tuners_ins.trans_latency_two_cores;
-	unsigned ptransition_latency;
 
     if (nightmare_enable == 0) return;
 
@@ -1660,12 +1647,6 @@ static void nightmare_suspend(int suspend)
 
 				cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
 				cpumask_setall(cpu_policy->cpus);
-
-				ptransition_latency = cpu_policy->cpuinfo.transition_latency;
-				if (online == 1 && ptransition_latency != trans_latency_one_core)
-					cpu_policy->cpuinfo.transition_latency = trans_latency_one_core;
-				else if (online == 2 && ptransition_latency != trans_latency_two_cores)
-					cpu_policy->cpuinfo.transition_latency = trans_latency_two_cores;
 
 				/* to frequency max*/
 					__cpufreq_driver_target(cpu_policy,cpu_policy->max,CPUFREQ_RELATION_L);
@@ -1691,15 +1672,9 @@ static void nightmare_suspend(int suspend)
 				cpu_policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
 				cpumask_setall(cpu_policy->cpus);
 
-				ptransition_latency = cpu_policy->cpuinfo.transition_latency;
-				if (online == 1 && ptransition_latency != trans_latency_one_core)
-					cpu_policy->cpuinfo.transition_latency = trans_latency_one_core;
-				else if (online == 2 && ptransition_latency != trans_latency_two_cores)
-					cpu_policy->cpuinfo.transition_latency = trans_latency_two_cores;
-
 				// let's give it a little breathing room
-				if (cpu_policy->max_suspend <= cpu_policy->max && cpu_policy->max_suspend >= cpu_policy->min)
-					__cpufreq_driver_target(cpu_policy,cpu_policy->max_suspend,CPUFREQ_RELATION_H);
+				if (cpu_policy->max_suspend <= cpu_policy->max && cpu_policy->max_suspend >= cpu_policy->min && cpu_policy->max_suspend != cpu_policy->cur)
+					__cpufreq_driver_target(cpu_policy,cpu_policy->max_suspend,CPUFREQ_RELATION_L);
 
 				cpufreq_cpu_put(cpu_policy);
 
@@ -1752,9 +1727,6 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 	case CPUFREQ_GOV_START:
 		if ((!cpu_online(cpu)) || (!policy->cur))
 			return -EINVAL;
-
-		// FIX HOTPLUG_LOCK AT GOV START
-		atomic_set(&nightmare_tuners_ins.hotplug_lock, 0);
 
 		/* SET POLICY SHARED TYPE AND APPLY MASK TO ALL CPUS */
 		policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
