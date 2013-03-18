@@ -16,8 +16,8 @@
 
 enum zen_data_dir { ASYNC, SYNC };
 
-static const int sync_expire  = HZ / 4;    /* max time before a sync is submitted. */
-static const int async_expire = 2 * HZ;    /* ditto for async, these limits are SOFT! */
+static const int sync_expire  = 1000;    /* max time before a sync is submitted. */
+static const int async_expire = 5000;    /* ditto for async, these limits are SOFT! */
 static const int fifo_batch = 1;
 
 struct zen_data {
@@ -257,9 +257,7 @@ static struct elevator_type iosched_zen = {
 
 static int __init zen_init(void)
 {
-	elv_register(&iosched_zen);
-
-	return 0;
+	return elv_register(&iosched_zen);
 }
 
 static void __exit zen_exit(void)

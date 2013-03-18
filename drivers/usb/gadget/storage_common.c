@@ -703,7 +703,7 @@ static int fsg_lun_open(struct fsg_lun *curlun, const char *filename)
 		ro = 1;
 
 	if (filp->f_path.dentry)
-		inode = filp->f_path.dentry->d_inode;
+		inode = file_inode(filp);
 	if (!inode || (!S_ISREG(inode->i_mode) && !S_ISBLK(inode->i_mode))) {
 		LINFO(curlun, "invalid file type: %s\n", filename);
 		goto out;

@@ -21,7 +21,6 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/init.h>
-#include <linux/module.h>
 #include <linux/ksm.h>
 #include <linux/rmap.h>
 #include <linux/security.h>
@@ -34,6 +33,7 @@
 #include <linux/oom.h>
 #include <linux/frontswap.h>
 #include <linux/swapfile.h>
+#include <linux/module.h>
 
 #include <asm/pgtable.h>
 #include <asm/tlbflush.h>
@@ -293,7 +293,7 @@ checks:
 		scan_base = offset = si->lowest_bit;
 
 	/* reuse swap entry of cache-only swap if not busy. */
-	if (vm_swap_full() && si->swap_map[offset] == SWAP_HAS_CACHE) {
+	if (si->swap_map[offset] == SWAP_HAS_CACHE) {
 		int swap_was_freed;
 		spin_unlock(&si->lock);
 		swap_was_freed = __try_to_reclaim_swap(si, offset);
@@ -382,7 +382,7 @@ scan:
 			spin_lock(&si->lock);
 			goto checks;
 		}
-		if (vm_swap_full() && si->swap_map[offset] == SWAP_HAS_CACHE) {
+		if (si->swap_map[offset] == SWAP_HAS_CACHE) {
 			spin_lock(&si->lock);
 			goto checks;
 		}
@@ -397,7 +397,7 @@ scan:
 			spin_lock(&si->lock);
 			goto checks;
 		}
-		if (vm_swap_full() && si->swap_map[offset] == SWAP_HAS_CACHE) {
+		if (si->swap_map[offset] == SWAP_HAS_CACHE) {
 			spin_lock(&si->lock);
 			goto checks;
 		}
@@ -722,10 +722,10 @@ int try_to_free_swap(struct page *page)
 	 * original page might be freed under memory pressure, then
 	 * later read back in from swap, now with the wrong data.
 	 *
-	 * Hibration suspends storage while it is writing the image 
+	 * Hibration suspends storage while it is writing the image
 	 * to disk so check that here.
 	 */
-	if (pm_suspending())
+	if (pm_suspended_storage())
 		return 0;
 
 	delete_from_swap_cache(page);
@@ -762,8 +762,7 @@ int free_swap_and_cache(swp_entry_t entry)
 		 * Not mapped elsewhere, or swap space full? Free it!
 		 * Also recheck PageSwapCache now page is locked (above).
 		 */
-		if (PageSwapCache(page) && !PageWriteback(page) &&
-				(!page_mapped(page) || vm_swap_full())) {
+		if (PageSwapCache(page) && !PageWriteback(page)) {
 			delete_from_swap_cache(page);
 			SetPageDirty(page);
 		}
@@ -1775,7 +1774,7 @@ static int swap_show(struct seq_file *swap, void *v)
 	len = seq_path(swap, &file->f_path, " \t\n\\");
 	seq_printf(swap, "%*s%s\t%u\t%u\t%d\n",
 			len < 40 ? 40 - len : 1, " ",
-			S_ISBLK(file->f_path.dentry->d_inode->i_mode) ?
+			S_ISBLK(file_inode(file)->i_mode) ?
 				"partition" : "file\t",
 			si->pages << (PAGE_SHIFT - 10),
 			si->inuse_pages << (PAGE_SHIFT - 10),
@@ -2135,9 +2134,9 @@ SYSCALL_DEFINE2(swapon, const char __user *, specialfile, int, swap_flags)
 	enable_swap_info(p, prio, swap_map, frontswap_map);
 
 	printk(KERN_INFO "Adding %uk swap on %s.  "
-	    "Priority:%d extents:%d across:%lluk %s%s%s\n",
+			"Priority:%d extents:%d across:%lluk %s%s%s\n",
 		p->pages << (PAGE_SHIFT - 10), name, p->prio,
-		nr_extents, (unsigned long long)span << (PAGE_SHIFT - 10),
+		nr_extents, (unsigned long long)span<<(PAGE_SHIFT-10),
 		(p->flags & SWP_SOLIDSTATE) ? "SS" : "",
 		(p->flags & SWP_DISCARDABLE) ? "D" : "",
 		(frontswap_map) ? "FS" : "");

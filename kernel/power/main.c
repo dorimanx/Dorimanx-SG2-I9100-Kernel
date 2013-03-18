@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2003 Patrick Mochel
  * Copyright (c) 2003 Open Source Development Lab
- * 
+ *
  * This file is released under the GPLv2
  *
  */
@@ -806,6 +806,30 @@ out:
 power_attr(gpu_lock);
 #endif
 
+#ifdef CONFIG_FREEZER
+static ssize_t pm_freeze_timeout_show(struct kobject *kobj,
+				      struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", freeze_timeout_msecs);
+}
+
+static ssize_t pm_freeze_timeout_store(struct kobject *kobj,
+				       struct kobj_attribute *attr,
+				       const char *buf, size_t n)
+{
+	unsigned long val;
+
+	if (kstrtoul(buf, 10, &val))
+		return -EINVAL;
+
+	freeze_timeout_msecs = val;
+	return n;
+}
+
+power_attr(pm_freeze_timeout);
+
+#endif	/* CONFIG_FREEZER*/
+
 static struct attribute * g[] = {
 	&state_attr.attr,
 #ifdef CONFIG_PM_TRACE
@@ -833,6 +857,9 @@ static struct attribute * g[] = {
 #endif
 #ifdef CONFIG_ROTATION_BOOSTER_SUPPORT
 	&rotation_booster_attr.attr,
+#endif
+#ifdef CONFIG_FREEZER
+	&pm_freeze_timeout_attr.attr,
 #endif
 	NULL,
 };

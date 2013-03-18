@@ -6,6 +6,7 @@
 #include <linux/init.h>
 #include <linux/pm.h>
 #include <linux/mm.h>
+#include <linux/freezer.h>
 #include <asm/errno.h>
 
 #if defined(CONFIG_PM_SLEEP) && defined(CONFIG_VT) && defined(CONFIG_VT_CONSOLE)

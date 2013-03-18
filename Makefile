@@ -1,7 +1,7 @@
 VERSION = 3
 PATCHLEVEL = 1
 SUBLEVEL = 0
-EXTRAVERSION = -R67
+EXTRAVERSION = -R69
 NAME = "Divemaster Edition"
 
 # *DOCUMENTATION*
@@ -243,8 +243,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
-HOSTCC       = gcc
-HOSTCXX      = g++
+HOSTCC       = ccache gcc
+HOSTCXX      = ccache g++
 HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
 HOSTCXXFLAGS = -O2
 
@@ -330,7 +330,7 @@ include $(srctree)/scripts/Kbuild.include
 
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
-REAL_CC		= $(CROSS_COMPILE)gcc
+REAL_CC		= ccache $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -597,10 +597,10 @@ KBUILD_CFLAGS	+= -fdiagnostics-show-option -Werror \
 		   -Wno-error=unused-function \
 		   -Wno-error=unused-variable \
 		   -Wno-error=unused-value \
-		   -Wno-error=unused-label \
-		   -Wno-error=uninitialized \
-		   -Wno-error=address \
-		   -Wno-error=enum-compare
+		   -Wno-error=unused-label
+#		   -Wno-error=uninitialized
+#		   -Wno-error=address \
+#		   -Wno-error=enum-compare
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
@@ -617,7 +617,7 @@ endif
 # This warning generated too much noise in a regular build.
 # Use make W=1 to enable this warning (see scripts/Makefile.build)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-but-set-variable)
-KBUILD_CFLAGS += $(call cc-disable-warning, uninitialized)
+#KBUILD_CFLAGS += $(call cc-disable-warning, uninitialized)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-function)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-variable)
 KBUILD_CFLAGS += $(call cc-disable-warning, unused-value)

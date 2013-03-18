@@ -156,7 +156,7 @@ remove:
 /*
  * called from kernel/cgroup.c with cgroup_lock() held.
  */
-static struct cgroup_subsys_state *devcgroup_create(struct cgroup *cgroup)
+static struct cgroup_subsys_state *devcgroup_css_alloc(struct cgroup *cgroup)
 {
 	struct dev_cgroup *dev_cgroup, *parent_dev_cgroup;
 	struct cgroup *parent_cgroup;
@@ -194,7 +194,7 @@ static struct cgroup_subsys_state *devcgroup_create(struct cgroup *cgroup)
 	return &dev_cgroup->css;
 }
 
-static void devcgroup_destroy(struct cgroup *cgroup)
+static void devcgroup_css_free(struct cgroup *cgroup)
 {
 	struct dev_cgroup *dev_cgroup;
 	struct dev_whitelist_item *wh, *tmp;
@@ -453,10 +453,19 @@ static struct cftype dev_cgroup_files[] = {
 struct cgroup_subsys devices_subsys = {
 	.name = "devices",
 	.can_attach = devcgroup_can_attach,
-	.create = devcgroup_create,
-	.destroy = devcgroup_destroy,
+	.css_alloc = devcgroup_css_alloc,
+	.css_free = devcgroup_css_free,
 	.subsys_id = devices_subsys_id,
 	.base_cftypes = dev_cgroup_files,
+
+	/*
+	 * While devices cgroup has the rudimentary hierarchy support which
+	 * checks the parent's restriction, it doesn't properly propagates
+	 * config changes in ancestors to their descendents.  A child
+	 * should only be allowed to add more restrictions to the parent's
+	 * configuration.  Fix it and remove the following.
+	 */
+	.broken_hierarchy = true,
 };
 
 int __devcgroup_inode_permission(struct inode *inode, int mask)

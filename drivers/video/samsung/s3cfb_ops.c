@@ -409,8 +409,7 @@ int s3cfb_map_default_video_memory(struct s3cfb_global *fbdev,
 			(unsigned int)fix->smem_start,
 			(unsigned int)fb->screen_base, fix->smem_len);
 
-	if (bootloaderfb)
-		memset(fb->screen_base, 0, fix->smem_len);
+	memset(fb->screen_base, 0, fix->smem_len);
 	win->owner = DMA_MEM_FIMD;
 
 #ifdef CONFIG_FB_S5P_SYSMMU

@@ -977,10 +977,10 @@ static int i2s_trigger(struct snd_pcm_substream *substream,
 				goto exit_err;
 		}
 
-		spin_lock_irqsave(&lock, flags);
+		local_irq_save(flags);
 
 		if (config_setup(i2s)) {
-			spin_unlock_irqrestore(&lock, flags);
+			local_irq_restore(flags);
 			return -EINVAL;
 		}
 
@@ -989,12 +989,12 @@ static int i2s_trigger(struct snd_pcm_substream *substream,
 		else
 			i2s_txctrl(i2s, 1, substream->stream);
 
-		spin_unlock_irqrestore(&lock, flags);
+		local_irq_restore(flags);
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-		spin_lock_irqsave(&lock, flags);
+		local_irq_save(flags);
 
 		if (capture)
 			i2s_rxctrl(i2s, 0);
@@ -1007,7 +1007,7 @@ static int i2s_trigger(struct snd_pcm_substream *substream,
 			if (!srp_active(i2s, IS_RUNNING))
 				i2s_fifo(i2s, FIC_TXFLUSH, substream->stream);
 		}
-		spin_unlock_irqrestore(&lock, flags);
+		local_irq_restore(flags);
 		break;
 	}
 

@@ -410,7 +410,7 @@ static loff_t default_file_lseek (struct file *file, loff_t offset, int orig)
 {
 	loff_t retval = -EINVAL;
 
-	mutex_lock(&file->f_path.dentry->d_inode->i_mutex);
+	mutex_lock(&file_inode(file)->i_mutex);
 	switch(orig) {
 	case 0:
 		if (offset > 0) {
@@ -427,7 +427,7 @@ static loff_t default_file_lseek (struct file *file, loff_t offset, int orig)
 	default:
 		break;
 	}
-	mutex_unlock(&file->f_path.dentry->d_inode->i_mutex);
+	mutex_unlock(&file_inode(file)->i_mutex);
 	return retval;
 }
 

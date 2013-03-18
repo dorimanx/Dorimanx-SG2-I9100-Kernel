@@ -15,7 +15,6 @@ extern void huge_pmd_set_accessed(struct mm_struct *mm,
 extern int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
 			       unsigned long address, pmd_t *pmd,
 			       pmd_t orig_pmd);
-extern pgtable_t get_pmd_huge_pte(struct mm_struct *mm);
 extern struct page *follow_trans_huge_pmd(struct vm_area_struct *vma,
 					  unsigned long addr,
 					  pmd_t *pmd,
@@ -173,6 +172,10 @@ static inline struct page *compound_trans_head(struct page *page)
 	}
 	return page;
 }
+
+extern int do_huge_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
+				unsigned long addr, pmd_t pmd, pmd_t *pmdp);
+
 #else /* CONFIG_TRANSPARENT_HUGEPAGE */
 #define HPAGE_PMD_SHIFT ({ BUG(); 0; })
 #define HPAGE_PMD_MASK ({ BUG(); 0; })
@@ -206,6 +209,18 @@ static inline void vma_adjust_trans_huge(struct vm_area_struct *vma,
 					 long adjust_next)
 {
 }
+static inline int pmd_trans_huge_lock(pmd_t *pmd,
+				      struct vm_area_struct *vma)
+{
+	return 0;
+}
+
+static inline int do_huge_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
+					unsigned long addr, pmd_t pmd, pmd_t *pmdp)
+{
+	return 0;
+}
+
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
 #endif /* _LINUX_HUGE_MM_H */

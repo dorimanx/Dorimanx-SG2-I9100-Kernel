@@ -349,8 +349,42 @@ static inline int acpi_table_parse(char *id,
 }
 #endif	/* !CONFIG_ACPI */
 
-#ifdef CONFIG_ACPI_SLEEP
-int suspend_nvs_register(unsigned long start, unsigned long size);
+#ifdef CONFIG_ACPI
+void acpi_os_set_prepare_sleep(int (*func)(u8 sleep_state,
+			       u32 pm1a_ctrl,  u32 pm1b_ctrl));
+
+acpi_status acpi_os_prepare_sleep(u8 sleep_state,
+				  u32 pm1a_control, u32 pm1b_control);
+#ifdef CONFIG_X86
+void arch_reserve_mem_area(acpi_physical_address addr, size_t size);
+#else
+static inline void arch_reserve_mem_area(acpi_physical_address addr,
+					  size_t size)
+{
+}
+#endif /* CONFIG_X86 */
+#else
+#define acpi_os_set_prepare_sleep(func, pm1a_ctrl, pm1b_ctrl) do { } while (0)
+#endif
+
+#if defined(CONFIG_ACPI) && defined(CONFIG_PM_RUNTIME)
+int acpi_dev_runtime_suspend(struct device *dev);
+int acpi_dev_runtime_resume(struct device *dev);
+int acpi_subsys_runtime_suspend(struct device *dev);
+int acpi_subsys_runtime_resume(struct device *dev);
+#else
+static inline int acpi_dev_runtime_suspend(struct device *dev) { return 0; }
+static inline int acpi_dev_runtime_resume(struct device *dev) { return 0; }
+static inline int acpi_subsys_runtime_suspend(struct device *dev) { return 0; }
+static inline int acpi_subsys_runtime_resume(struct device *dev) { return 0; }
+#endif
+
+#if defined(CONFIG_ACPI) && defined(CONFIG_PM_SLEEP)
+int acpi_dev_suspend_late(struct device *dev);
+int acpi_dev_resume_early(struct device *dev);
+int acpi_subsys_prepare(struct device *dev);
+int acpi_subsys_suspend_late(struct device *dev);
+int acpi_subsys_resume_early(struct device *dev);
 #else
 static inline int suspend_nvs_register(unsigned long a, unsigned long b)
 {

@@ -439,7 +439,7 @@ void daemonize(const char *name, ...)
 	 */
 	exit_mm(current);
 	/*
-	 * We don't want to have TIF_FREEZE set if the system-wide hibernation
+	 * We don't want to get frozen, in case system-wide hibernation
 	 * or suspend transition begins right now.
 	 */
 	current->flags |= (PF_NOFREEZE | PF_KTHREAD);
@@ -653,6 +653,7 @@ static void exit_mm(struct task_struct * tsk)
 {
 	struct mm_struct *mm = tsk->mm;
 	struct core_state *core_state;
+	int mm_released;
 
 	mm_release(tsk, mm);
 	if (!mm)
@@ -695,11 +696,12 @@ static void exit_mm(struct task_struct * tsk)
 	tsk->mm = NULL;
 	up_read(&mm->mmap_sem);
 	enter_lazy_tlb(mm, current);
-	/* We don't want this task to be frozen prematurely */
-	clear_freeze_flag(tsk);
 	task_unlock(tsk);
 	mm_update_next_owner(mm);
-	mmput(mm);
+	mm_released = mmput(mm);
+
+	if (mm_released)
+		set_tsk_thread_flag(tsk, TIF_MM_RELEASED);
 }
 
 /*
@@ -1069,6 +1071,7 @@ NORET_TYPE void do_exit(long code)
 
 	/* causes final put_task_struct in finish_task_switch(). */
 	tsk->state = TASK_DEAD;
+	tsk->flags |= PF_NOFREEZE;	/* tell freezer to ignore us */
 	schedule();
 	BUG();
 	/* Avoid "noreturn function does return".  */

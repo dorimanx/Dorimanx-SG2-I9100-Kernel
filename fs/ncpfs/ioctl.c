@@ -808,7 +808,7 @@ outrel:
 
 long ncp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	struct inode *inode = filp->f_dentry->d_inode;
+	struct inode *inode = file_inode(filp);
 	struct ncp_server *server = NCP_SERVER(inode);
 	uid_t uid = current_uid();
 	int need_drop_write = 0;
@@ -819,7 +819,7 @@ long ncp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	case NCP_IOC_CONN_LOGGED_IN:
 	case NCP_IOC_SETROOT:
 		if (!capable(CAP_SYS_ADMIN)) {
-			ret = -EACCES;
+			ret = -EPERM;
 			goto out;
 		}
 		break;

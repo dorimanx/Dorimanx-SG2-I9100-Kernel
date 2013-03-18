@@ -278,6 +278,12 @@ static void row_add_request(struct request_queue *q,
 	rqueue->nr_req++;
 	rq_set_fifo_time(rq, jiffies); /* for statistics*/
 
+	if (rq->cmd_flags & REQ_URGENT) {
+		WARN_ON(1);
+		blk_dump_rq_flags(rq, "");
+		rq->cmd_flags &= ~REQ_URGENT;
+	}
+
 	if (row_queues_def[rqueue->prio].idling_enabled) {
 		if (rd->rd_idle_data.idling_queue_idx == rqueue->prio &&
 		    hrtimer_active(&rd->rd_idle_data.hr_timer)) {
@@ -290,7 +296,8 @@ static void row_add_request(struct request_queue *q,
 		diff_ms = ktime_to_ms(ktime_sub(ktime_get(),
 				rqueue->idle_data.last_insert_time));
 		if (unlikely(diff_ms < 0)) {
-			pr_err("ROW BUG: %s diff_ms < 0", __func__);
+			pr_err("%s(): time delta error: diff_ms < 0",
+				__func__);
 			rqueue->idle_data.begin_idling = false;
 			return;
 		}
@@ -306,20 +313,22 @@ static void row_add_request(struct request_queue *q,
 		rqueue->idle_data.last_insert_time = ktime_get();
 	}
 	if (row_queues_def[rqueue->prio].is_urgent &&
-	    row_rowq_unserved(rd, rqueue->prio)) {
-		if (!rd->pending_urgent_rq && !rd->urgent_in_flight) {
+	    !rd->pending_urgent_rq && !rd->urgent_in_flight) {
+		/* Handle High Priority queues */
+		if (rqueue->prio < ROWQ_REG_PRIO_IDX &&
+		    rd->last_served_ioprio_class != IOPRIO_CLASS_RT) {
 			row_log_rowq(rd, rqueue->prio,
-			    "added urgent request (total on queue=%d)",
-			    rqueue->nr_req);
+				"added (high prio) urgent request");
 			rq->cmd_flags |= REQ_URGENT;
 			rd->pending_urgent_rq = rq;
-			if (rqueue->prio < ROWQ_REG_PRIO_IDX)
-				rd->last_served_ioprio_class = IOPRIO_CLASS_RT;
-			else if (rqueue->prio < ROWQ_LOW_PRIO_IDX)
-				rd->last_served_ioprio_class = IOPRIO_CLASS_BE;
-			else
-				rd->last_served_ioprio_class =
-					IOPRIO_CLASS_IDLE;
+		} else  if (row_rowq_unserved(rd, rqueue->prio)) {
+			/* Handle Regular priotity queues */
+			row_log_rowq(rd, rqueue->prio,
+				"added urgent request (total on queue=%d)",
+				rqueue->nr_req);
+			rq->cmd_flags |= REQ_URGENT;
+			WARN_ON(rqueue->nr_req > 1);
+			rd->pending_urgent_rq = rq;
 		}
 	} else
 		row_log_rowq(rd, rqueue->prio,
@@ -342,29 +351,37 @@ static int row_reinsert_req(struct request_queue *q,
 	struct row_data    *rd = q->elevator->elevator_data;
 	struct row_queue   *rqueue = RQ_ROWQ(rq);
 
-	if (rqueue->prio >= ROWQ_MAX_PRIO) {
-		pr_err("\n\n%s:ROW BUG: row_reinsert_req() rqueue->prio = %d\n",
-			   rq->rq_disk->disk_name, rqueue->prio);
-		blk_dump_rq_flags(rq, "");
+	if (!rqueue || rqueue->prio >= ROWQ_MAX_PRIO)
 		return -EIO;
-	}
 
 	list_add(&rq->queuelist, &rqueue->fifo);
 	rd->nr_reqs[rq_data_dir(rq)]++;
 	rqueue->nr_req++;
 
 	row_log_rowq(rd, rqueue->prio,
-		"request reinserted (total on queue=%d)", rqueue->nr_req);
+		"%s request reinserted (total on queue=%d)",
+		(rq_data_dir(rq) == READ ? "READ" : "write"), rqueue->nr_req);
 
 	if (rq->cmd_flags & REQ_URGENT) {
+		/*
+		 * It's not compliant with the design to re-insert
+		 * urgent requests. We want to be able to track this
+		 * down.
+		 */
+		WARN_ON(1);
 		if (!rd->urgent_in_flight) {
-			pr_err("ROW BUG: %s() nr_urgent_in_flight = F",
-				__func__);
+			pr_err("%s(): no urgent in flight", __func__);
 		} else {
 			rd->urgent_in_flight = false;
-			pr_err("ROW BUG: %s() reinserting URGENT %s req",
+			pr_err("%s(): reinserting URGENT %s req",
 				__func__,
 				(rq_data_dir(rq) == READ ? "READ" : "WRITE"));
+			if (rd->pending_urgent_rq) {
+				pr_err("%s(): urgent rq is pending",
+					__func__);
+				rd->pending_urgent_rq->cmd_flags &= ~REQ_URGENT;
+			}
+			rd->pending_urgent_rq = rq;
 		}
 	}
 	return 0;
@@ -376,12 +393,16 @@ static void row_completed_req(struct request_queue *q, struct request *rq)
 
 	 if (rq->cmd_flags & REQ_URGENT) {
 		if (!rd->urgent_in_flight) {
-			pr_err("ROW BUG: %s() URGENT req but urgent_in_flight = F",
+			WARN_ON(1);
+			pr_err("%s(): URGENT req but urgent_in_flight = F",
 				__func__);
-			return;
 		}
 		rd->urgent_in_flight = false;
+		rq->cmd_flags &= ~REQ_URGENT;
 	}
+	row_log(q, "completed %s %s req.",
+		(rq->cmd_flags & REQ_URGENT ? "URGENT" : "regular"),
+		(rq_data_dir(rq) == READ ? "READ" : "WRITE"));
 }
 
 /**
@@ -404,6 +425,7 @@ static bool row_urgent_pending(struct request_queue *q)
 		return true;
 	}
 
+	row_log(rd->dispatch_queue, "no urgent request pending/in flight");
 	return false;
 }
 
@@ -413,13 +435,16 @@ static bool row_urgent_pending(struct request_queue *q)
  * @rq:	request to remove
  *
  */
-static void row_remove_request(struct request_queue *q,
+static void row_remove_request(struct row_data *rd,
 			       struct request *rq)
 {
-	struct row_data *rd = (struct row_data *)q->elevator->elevator_data;
 	struct row_queue *rqueue = RQ_ROWQ(rq);
 
-	rq_fifo_clear(rq);
+	list_del_init(&(rq)->queuelist);
+	if (rd->pending_urgent_rq == rq)
+		rd->pending_urgent_rq = NULL;
+	else
+		BUG_ON(rq->cmd_flags & REQ_URGENT);
 	rqueue->nr_req--;
 	rd->nr_reqs[rq_data_dir(rq)]--;
 }
@@ -436,12 +461,23 @@ static void row_dispatch_insert(struct row_data *rd, struct request *rq)
 {
 	struct row_queue *rqueue = RQ_ROWQ(rq);
 
-	row_remove_request(rd->dispatch_queue, rq);
-	elv_dispatch_add_tail(rd->dispatch_queue, rq);
+	row_remove_request(rd, rq);
+	elv_dispatch_sort(rd->dispatch_queue, rq);
+	if (rq->cmd_flags & REQ_URGENT) {
+		WARN_ON(rd->urgent_in_flight);
+		rd->urgent_in_flight = true;
+	}
 	rqueue->nr_dispatched++;
 	row_clear_rowq_unserved(rd, rqueue->prio);
-	row_log_rowq(rd, rqueue->prio, " Dispatched request nr_disp = %d",
-		     rqueue->nr_dispatched);
+	row_log_rowq(rd, rqueue->prio,
+		" Dispatched request %p nr_disp = %d", rq,
+		rqueue->nr_dispatched);
+	if (rqueue->prio < ROWQ_REG_PRIO_IDX)
+		rd->last_served_ioprio_class = IOPRIO_CLASS_RT;
+	else if (rqueue->prio < ROWQ_LOW_PRIO_IDX)
+		rd->last_served_ioprio_class = IOPRIO_CLASS_BE;
+	else
+		rd->last_served_ioprio_class = IOPRIO_CLASS_IDLE;
 }
 
 /*
@@ -607,10 +643,8 @@ static int row_dispatch_requests(struct request_queue *q, int force)
 	}
 
 	if (rd->pending_urgent_rq) {
-		row_log(rd->dispatch_queue, "Urgent pending for dispatch");
+		row_log(rd->dispatch_queue, "dispatching urgent request");
 		row_dispatch_insert(rd, rd->pending_urgent_rq);
-		rd->pending_urgent_rq = NULL;
-		rd->urgent_in_flight = true;
 		ret = 1;
 		goto done;
 	}
@@ -621,6 +655,7 @@ static int row_dispatch_requests(struct request_queue *q, int force)
 
 	switch (ioprio_class_to_serve) {
 	case IOPRIO_CLASS_NONE:
+		rd->last_served_ioprio_class = IOPRIO_CLASS_NONE;
 		goto done;
 	case IOPRIO_CLASS_RT:
 		start_idx = ROWQ_HIGH_PRIO_IDX;
@@ -645,7 +680,6 @@ static int row_dispatch_requests(struct request_queue *q, int force)
 	if (currq >= 0) {
 		row_dispatch_insert(rd,
 			rq_entry_fifo(rd->row_queues[currq].fifo.next));
-		rd->last_served_ioprio_class = ioprio_class_to_serve;
 		ret = 1;
 	}
 done:
@@ -714,7 +748,7 @@ static void row_exit_queue(struct elevator_queue *e)
 	for (i = 0; i < ROWQ_MAX_PRIO; i++)
 		BUG_ON(!list_empty(&rd->row_queues[i].fifo));
 	if (hrtimer_cancel(&rd->rd_idle_data.hr_timer))
-		pr_err("ROW BUG: idle timer was active!");
+		pr_err("%s(): idle timer was active!", __func__);
 	rd->rd_idle_data.idling_queue_idx = ROWQ_MAX_PRIO;
 	kfree(rd);
 }
@@ -732,7 +766,13 @@ static void row_merged_requests(struct request_queue *q, struct request *rq,
 
 	list_del_init(&next->queuelist);
 	rqueue->nr_req--;
-
+	if (rqueue->rdata->pending_urgent_rq == next) {
+		pr_err("\n\nROW_WARNING: merging pending urgent!");
+		rqueue->rdata->pending_urgent_rq = rq;
+		rq->cmd_flags |= REQ_URGENT;
+		WARN_ON(!(next->cmd_flags & REQ_URGENT));
+		next->cmd_flags &= ~REQ_URGENT;
+	}
 	rqueue->rdata->nr_reqs[rq_data_dir(rq)]--;
 }
 
@@ -762,15 +802,6 @@ static enum row_queue_prio row_get_queue_prio(struct request *rq,
 			pr_err("%s:%s(): got a simple write from RT_CLASS. How???",
 				rq->rq_disk->disk_name, __func__);
 			q_type = ROWQ_PRIO_REG_WRITE;
-		}
-		if (row_queues_def[q_type].is_urgent &&
-			rd->last_served_ioprio_class != IOPRIO_CLASS_RT &&
-			!rd->pending_urgent_rq && !rd->urgent_in_flight) {
-				row_log_rowq(rd, q_type,
-					"added (high prio) urgent request");
-				rq->cmd_flags |= REQ_URGENT;
-				rd->pending_urgent_rq = rq;
-				rd->last_served_ioprio_class = IOPRIO_CLASS_RT;
 		}
 		break;
 	case IOPRIO_CLASS_IDLE:
@@ -944,8 +975,7 @@ static struct elevator_type iosched_row = {
 
 static int __init row_init(void)
 {
-	elv_register(&iosched_row);
-	return 0;
+	return elv_register(&iosched_row);
 }
 
 static void __exit row_exit(void)

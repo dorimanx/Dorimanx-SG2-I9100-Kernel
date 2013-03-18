@@ -355,7 +355,7 @@ __be16 wanrouter_type_trans(struct sk_buff *skb, struct net_device *dev)
 
 long wanrouter_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	int err = 0;
 	struct proc_dir_entry *dent;
 	struct wan_device *wandev;

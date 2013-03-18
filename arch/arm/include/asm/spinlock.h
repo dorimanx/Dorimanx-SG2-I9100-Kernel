@@ -102,8 +102,7 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
 
 	__asm__ __volatile__(
 "	ldrex	%0, [%2]\n"
-"	cmp	%0, %0, ror #16\n"
-"	movne	%1, #1\n"
+"	subs	%1, %0, %0, ror #16\n"
 "	addeq	%0, %0, %3\n"
 "	strexeq	%1, %0, [%2]"
 	: "=&r" (slock), "=&r" (tmp)

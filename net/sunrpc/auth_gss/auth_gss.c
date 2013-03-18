@@ -631,7 +631,7 @@ gss_pipe_downcall(struct file *filp, const char __user *src, size_t mlen)
 	const void *p, *end;
 	void *buf;
 	struct gss_upcall_msg *gss_msg;
-	struct inode *inode = filp->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(filp);
 	struct gss_cl_ctx *ctx;
 	uid_t uid;
 	ssize_t err = -EFBIG;

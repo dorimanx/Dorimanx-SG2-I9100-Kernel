@@ -40,7 +40,7 @@
 static int bMaliDvfsRun = 0;
 
 static _mali_osk_atomic_t bottomlock_status;
-int bottom_lock_step = 0;
+static int bottom_lock_step = 0;
 
 typedef struct mali_dvfs_tableTag{
 	unsigned int clock;
@@ -69,15 +69,15 @@ typedef struct mali_dvfs_stepTag{
 }mali_dvfs_step;
 
 mali_dvfs_step step[MALI_DVFS_STEPS]={
-	/*step 0 clk*/ {66,   900000},
+	/*step 0 clk*/ {108,   950000},
 #if (MALI_DVFS_STEPS > 1)
-	/*step 1 clk*/ {108,   900000},
+	/*step 1 clk*/ {160,   950000},
 #if (MALI_DVFS_STEPS > 2)
-	/*step 2 clk*/ {160,   950000},
+	/*step 2 clk*/ {200,  1000000},
 #if (MALI_DVFS_STEPS > 3)
-	/*step 3 clk*/ {200,  950000},
+	/*step 3 clk*/ {267,  1050000},
 #if (MALI_DVFS_STEPS > 4)
-	/*step 4 clk*/ {267,  1000000}
+	/*step 4 clk*/ {267,  1050000}
 #endif
 #endif
 #endif
@@ -107,26 +107,26 @@ mali_dvfs_staycount_table mali_dvfs_staycount[MALI_DVFS_STEPS]={
 // L3 = 266Mhz, 0.90V
 // L4 = 160Mhz, 0.875V
 
-int step0_clk = 66;
-int step0_vol = 900000;
+int step0_clk = 108;
+int step0_vol = 950000;
 #if (MALI_DVFS_STEPS > 1)
-int step1_clk = 108;
-int step1_vol = 900000;
+int step1_clk = 160;
+int step1_vol = 950000;
 int step0_up = 60;
 int step1_down = 50;
 #if (MALI_DVFS_STEPS > 2)
-int step2_clk = 160;
-int step2_vol = 950000;
+int step2_clk = 200;
+int step2_vol = 1000000;
 int step1_up = 60;
 int step2_down = 50;;
 #if (MALI_DVFS_STEPS > 3)
-int step3_clk = 200;
-int step3_vol = 950000;
+int step3_clk = 267;
+int step3_vol = 1050000;
 int step2_up = 85;
 int step3_down = 50;
 #if (MALI_DVFS_STEPS > 4)
 int step4_clk = 267;
-int step4_vol = 1000000;
+int step4_vol = 1050000;
 int step3_up = 85;
 int step4_down = 70;
 #endif
@@ -135,22 +135,22 @@ int step4_down = 70;
 #endif
 
 mali_dvfs_table mali_dvfs_all[MAX_MALI_DVFS_STEPS]={
-	{ 66   ,1000000   ,  900000},
-	{108   ,1000000   ,  900000},
+	{108   ,1000000   ,  950000},
 	{160   ,1000000   ,  950000},
-	{200   ,1000000   ,  950000},
-	{267   ,1000000   , 1000000} };
+	{200   ,1000000   , 1000000},
+	{267   ,1000000   , 1050000},
+	{267   ,1000000   , 1050000} };
 
 mali_dvfs_table mali_dvfs[MALI_DVFS_STEPS]={
-	{ 66  ,1000000    , 900000},
+	{108  ,1000000    , 950000},
 #if (MALI_DVFS_STEPS > 1)
-	{108  ,1000000    , 900000},
-#if (MALI_DVFS_STEPS > 2)
 	{160  ,1000000    , 950000},
+#if (MALI_DVFS_STEPS > 2)
+	{200  ,1000000    ,1000000},
 #if (MALI_DVFS_STEPS > 3)
-	{200  ,1000000    , 950000},
+	{267  ,1000000    ,1050000},
 #if (MALI_DVFS_STEPS > 4)
-	{267  ,1000000    ,1000000}
+	{267  ,1000000    ,1050000}
 #endif
 #endif
 #endif
@@ -201,7 +201,7 @@ static unsigned int asv_3d_volt_8_table[ASV_8_LEVEL][MALI_DVFS_STEPS] = {
 
 /*dvfs status*/
 mali_dvfs_currentstatus maliDvfsStatus;
-int mali_dvfs_control=0;
+int mali_dvfs_control = 0;
 
 u32 mali_dvfs_utilization = 255;
 
@@ -377,7 +377,7 @@ static mali_bool mali_dvfs_table_update(void)
 			mali_dvfs[i].vol = asv_3d_volt_5_table[exynos_result_of_asv_group][i];
 			MALI_PRINT(("mali_dvfs[%d].vol = %d\n", i, mali_dvfs[i].vol));
 		}
-	} else if (target_asv == 0x4){ //SUPPORT_1600MHZ
+	} else if (target_asv == 0x4){ //SUPPORT_1200MHZ
 		for (i = 0; i < MALI_DVFS_STEPS; i++) {
 			mali_dvfs[i].vol = asv_3d_volt_8_table[exynos_result_of_asv_group][i];
 			MALI_PRINT(("mali_dvfs[%d].vol = %d\n", i, mali_dvfs[i].vol));
@@ -425,9 +425,9 @@ static unsigned int decideNextStatus(unsigned int utilization)
 		for (i = 0; i < MALI_DVFS_STEPS; i++) {
 			step[i].clk = mali_dvfs_all[i].clock;
 		}
-#ifdef EXYNOS4_ASV_ENABLED
+//#ifdef EXYNOS4_ASV_ENABLED
 //		mali_dvfs_table_update();
-#endif
+//#endif
 		i = 0;
 		for (i = 0; i < MALI_DVFS_STEPS; i++) {
 			mali_dvfs[i].clock = step[i].clk;
@@ -521,7 +521,7 @@ static mali_bool mali_dvfs_status(u32 utilization)
 	unsigned int nextStatus = 0;
 	unsigned int curStatus = 0;
 	mali_bool boostup = MALI_FALSE;
-	static int stay_count = 0;
+	static int stay_count = 0; /* to prevent frequent switch */
 
 	MALI_DEBUG_PRINT(1, ("> mali_dvfs_status: %d \n",utilization));
 
@@ -553,7 +553,6 @@ static mali_bool mali_dvfs_status(u32 utilization)
 int mali_dvfs_is_running(void)
 {
 	return bMaliDvfsRun;
-
 }
 
 void mali_dvfs_late_resume(void)
@@ -640,7 +639,6 @@ static void mali_dvfs_work_handler(struct work_struct *w)
 #endif
 #endif
 
-
 #ifdef DEBUG
 	mali_dvfs[0].vol = step0_vol;
 	mali_dvfs[1].vol = step1_vol;
@@ -676,11 +674,12 @@ mali_bool init_mali_dvfs_status(int step)
 
 void deinit_mali_dvfs_status(void)
 {
-	if (mali_dvfs_wq)
-		destroy_workqueue(mali_dvfs_wq);
 
 	_mali_osk_atomic_term(&bottomlock_status);
 
+
+	if (mali_dvfs_wq)
+		destroy_workqueue(mali_dvfs_wq);
 	mali_dvfs_wq = NULL;
 }
 

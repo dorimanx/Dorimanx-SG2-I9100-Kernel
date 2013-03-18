@@ -104,6 +104,7 @@ void reset_security_ops(void);
 extern unsigned long mmap_min_addr;
 extern unsigned long dac_mmap_min_addr;
 #else
+#define mmap_min_addr		0UL
 #define dac_mmap_min_addr	0UL
 #endif
 
@@ -132,18 +133,6 @@ struct request_sock;
 #define LSM_UNSAFE_PTRACE_CAP	4
 
 #ifdef CONFIG_MMU
-/*
- * If a hint addr is less than mmap_min_addr change hint to be as
- * low as possible but still greater than mmap_min_addr
- */
-static inline unsigned long round_hint_to_min(unsigned long hint)
-{
-	hint &= PAGE_MASK;
-	if (((void *)hint != NULL) &&
-	    (hint < mmap_min_addr))
-		return PAGE_ALIGN(mmap_min_addr);
-	return hint;
-}
 extern int mmap_min_addr_handler(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp, loff_t *ppos);
 #endif
@@ -186,7 +175,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  * Security module identifier.
  *
  * @name:
- *	A string that acts as a unique identifeir for the LSM with max number
+ *	A string that acts as a unique identifier for the LSM with max number
  *	of characters = SECURITY_NAME_MAX.
  *
  * Security hooks for program execution operations.
@@ -275,7 +264,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	@copy copied data which will be passed to the security module.
  *	Returns 0 if the copy was successful.
  * @sb_remount:
- *	Extracts security system specifc mount options and verifys no changes
+ *	Extracts security system specific mount options and verifies no changes
  *	are being made to those options.
  *	@sb superblock being remounted
  *	@data contains the filesystem-specific data.
@@ -380,15 +369,15 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	Return 0 if permission is granted.
  * @inode_mkdir:
  *	Check permissions to create a new directory in the existing directory
- *	associated with inode strcture @dir.
- *	@dir containst the inode structure of parent of the directory to be created.
+ *	associated with inode structure @dir.
+ *	@dir contains the inode structure of parent of the directory to be created.
  *	@dentry contains the dentry structure of new directory.
  *	@mode contains the mode of new directory.
  *	Return 0 if permission is granted.
  * @path_mkdir:
  *	Check permissions to create a new directory in the existing directory
- *	associated with path strcture @path.
- *	@dir containst the path structure of parent of the directory
+ *	associated with path structure @path.
+ *	@dir contains the path structure of parent of the directory
  *	to be created.
  *	@dentry contains the dentry structure of new directory.
  *	@mode contains the mode of new directory.
@@ -578,7 +567,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	@file contains the file structure.
  *	@cmd contains the operation to perform.
  *	@arg contains the operational arguments.
- *	Check permission for an ioctl operation on @file.  Note that @arg can
+ *	Check permission for an ioctl operation on @file.  Note that @arg
  *	sometimes represents a user space pointer; in other cases, it may be a
  *	simple integer value.  When @arg represents a user space pointer, it
  *	should never be used by the security module.
@@ -606,7 +595,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	Return 0 if permission is granted.
  * @file_fcntl:
  *	Check permission before allowing the file operation specified by @cmd
- *	from being performed on the file @file.  Note that @arg can sometimes
+ *	from being performed on the file @file.  Note that @arg sometimes
  *	represents a user space pointer; in other cases, it may be a simple
  *	integer value.  When @arg represents a user space pointer, it should
  *	never be used by the security module.
@@ -793,7 +782,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	information can be saved using the eff_cap field of the
  *	netlink_skb_parms structure.  Also may be used to provide fine
  *	grained control over message transmission.
- *	@sk associated sock of task sending the message.,
+ *	@sk associated sock of task sending the message.
  *	@skb contains the sk_buff structure for the netlink message.
  *	Return 0 if the information was successfully saved and message
  *	is allowed to be transmitted.
@@ -1080,9 +1069,9 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	should free it.
  *	@key points to the key to be queried.
  *	@_buffer points to a pointer that should be set to point to the
- *	 resulting string (if no label or an error occurs).
+ *	resulting string (if no label or an error occurs).
  *	Return the length of the string (including terminating NUL) or -ve if
- *      an error.
+ *	an error.
  *	May also return 0 (and a NULL buffer pointer) if there is no label.
  *
  * Security hooks affecting all System V IPC operations.
@@ -1268,7 +1257,7 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  *	credentials.
  *	@tsk contains the task_struct for the process.
  *	@cred contains the credentials to use.
- *      @ns contains the user namespace we want the capability in
+ *	@ns contains the user namespace we want the capability in
  *	@cap contains the capability <include/linux/capability.h>.
  *	@audit: Whether to write an audit message or not
  *	Return 0 if the capability is granted for @tsk.
@@ -1370,9 +1359,9 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
  * 	@ctxlen contains the length of @ctx.
  *
  * @inode_getsecctx:
- * 	Returns a string containing all relavent security context information
+ *	Returns a string containing all relevant security context information
  *
- * 	@inode we wish to set the security context of.
+ * 	@inode we wish to get the security context of.
  *	@ctx is a pointer in which to place the allocated security context.
  *	@ctxlen points to the place to put the length of @ctx.
  * This is the main security structure.

@@ -105,7 +105,7 @@ extern void prep_compound_page(struct page *page, unsigned long order);
 extern bool is_free_buddy_page(struct page *page);
 #endif
 
-#if defined CONFIG_COMPACTION || defined CONFIG_CMA
+#if defined CONFIG_COMPACTION || defined CONFIG_DMA_CMA
 
 /*
  * in mm/compaction.c
@@ -282,9 +282,6 @@ static inline struct page *mem_map_next(struct page *iter,
 #else
 #define __paginginit __init
 #endif
-
-/* Returns true if the gfp_mask allows use of ALLOC_NO_WATERMARK */
-bool gfp_pfmemalloc_allowed(gfp_t gfp_mask);
 
 /* Memory initialisation debug and verification */
 enum mminit_level {

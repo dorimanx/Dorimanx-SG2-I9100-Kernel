@@ -318,8 +318,6 @@ out:
 	rcu_read_unlock();
 }
 
-#ifndef CONFIG_VIRT_CPU_ACCOUNTING
-
 #ifdef CONFIG_IRQ_TIME_ACCOUNTING
 /*
  * Account a tick to a process and cpustat
@@ -384,11 +382,12 @@ static void irqtime_account_idle_ticks(int ticks)
 		irqtime_account_process_tick(current, 0, rq);
 }
 #else /* CONFIG_IRQ_TIME_ACCOUNTING */
-static void irqtime_account_idle_ticks(int ticks) {}
-static void irqtime_account_process_tick(struct task_struct *p, int user_tick,
+static inline void irqtime_account_idle_ticks(int ticks) {}
+static inline void irqtime_account_process_tick(struct task_struct *p, int user_tick,
 						struct rq *rq) {}
 #endif /* CONFIG_IRQ_TIME_ACCOUNTING */
 
+#ifndef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
 /*
  * Account a single tick of cpu time.
  * @p: the process that the cpu time gets accounted to
@@ -398,6 +397,9 @@ void account_process_tick(struct task_struct *p, int user_tick)
 {
 	cputime_t one_jiffy_scaled = cputime_to_scaled(cputime_one_jiffy);
 	struct rq *rq = this_rq();
+
+//	if (vtime_accounting_enabled()) /* not implemented */
+//		return;
 
 	if (sched_clock_irqtime) {
 		irqtime_account_process_tick(p, user_tick, rq);
@@ -440,8 +442,7 @@ void account_idle_ticks(unsigned long ticks)
 
 	account_idle_time(jiffies_to_cputime(ticks));
 }
-
-#endif
+#endif /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE */
 
 /*
  * Use precise platform statistics if available:

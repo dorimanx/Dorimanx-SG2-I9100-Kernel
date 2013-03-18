@@ -6,6 +6,7 @@ config FRV
 	select HAVE_IRQ_WORK
 	select HAVE_PERF_EVENTS
 	select HAVE_GENERIC_HARDIRQS
+	select VIRT_TO_BUS
 	select GENERIC_IRQ_SHOW
 
 config ZONE_DMA

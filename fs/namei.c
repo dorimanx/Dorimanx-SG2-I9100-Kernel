@@ -317,7 +317,7 @@ int inode_permission(struct inode *inode, int mask)
  */
 int file_permission(struct file *file, int mask)
 {
-	return inode_permission(file->f_path.dentry->d_inode, mask);
+	return inode_permission(file_inode(file), mask);
 }
 
 /*
@@ -353,7 +353,7 @@ int get_write_access(struct inode * inode)
 
 int deny_write_access(struct file * file)
 {
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 
 	spin_lock(&inode->i_lock);
 	if (atomic_read(&inode->i_writecount) > 0) {

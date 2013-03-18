@@ -662,6 +662,10 @@ static enum page_references page_check_references(struct page *page,
 		 */
 		SetPageReferenced(page);
 
+#ifndef CONFIG_DMA_CMA
+		if (referenced_page)
+			return PAGEREF_ACTIVATE;
+#else
 		if (referenced_page || referenced_ptes > 1)
 			return PAGEREF_ACTIVATE;
 
@@ -670,7 +674,7 @@ static enum page_references page_check_references(struct page *page,
 		 */
 		if (vm_flags & VM_EXEC)
 			return PAGEREF_ACTIVATE;
-
+#endif
 		return PAGEREF_KEEP;
 	}
 
@@ -946,7 +950,7 @@ cull_mlocked:
 
 activate_locked:
 		/* Not a candidate for swapping, so reclaim swap space. */
-		if (PageSwapCache(page) && vm_swap_full())
+		if (PageSwapCache(page))
 			try_to_free_swap(page);
 		VM_BUG_ON(PageActive(page));
 		SetPageActive(page);
@@ -2049,6 +2053,8 @@ static inline int effective_sc_prio(struct task_struct *p)
 	if (likely(p->mm)) {
 		if (rt_task(p))
 			return -20;
+		if (p->policy == SCHED_IDLE)
+			return 19;
 		return task_nice(p);
 	}
 	return 0;

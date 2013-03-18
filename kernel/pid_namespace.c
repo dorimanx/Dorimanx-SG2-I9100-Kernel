@@ -191,12 +191,14 @@ void zap_pid_ns_processes(struct pid_namespace *pid_ns)
 	return;
 }
 
+#ifdef CONFIG_CHECKPOINT_RESTORE
 static int pid_ns_ctl_handler(struct ctl_table *table, int write,
 		void __user *buffer, size_t *lenp, loff_t *ppos)
 {
+	struct pid_namespace *pid_ns = task_active_pid_ns(current);
 	struct ctl_table tmp = *table;
 
-	if (write && !capable(CAP_SYS_ADMIN))
+	if (write && !ns_capable(pid_ns->user_ns, CAP_SYS_ADMIN))
 		return -EPERM;
 
 	/*
@@ -205,21 +207,25 @@ static int pid_ns_ctl_handler(struct ctl_table *table, int write,
 	 * it should synchronize its usage with external means.
 	 */
 
-	tmp.data = &current->nsproxy->pid_ns->last_pid;
-	return proc_dointvec(&tmp, write, buffer, lenp, ppos);
+	tmp.data = &pid_ns->last_pid;
+	return proc_dointvec_minmax(&tmp, write, buffer, lenp, ppos);
 }
 
+extern int pid_max;
+static int zero = 0;
 static struct ctl_table pid_ns_ctl_table[] = {
 	{
 		.procname = "ns_last_pid",
 		.maxlen = sizeof(int),
 		.mode = 0666, /* permissions are checked in the handler */
 		.proc_handler = pid_ns_ctl_handler,
+		.extra1 = &zero,
+		.extra2 = &pid_max,
 	},
 	{ }
 };
-
 static struct ctl_path kern_path[] = { { .procname = "kernel", }, { } };
+#endif	/* CONFIG_CHECKPOINT_RESTORE */
 
 static __init int pid_namespaces_init(void)
 {

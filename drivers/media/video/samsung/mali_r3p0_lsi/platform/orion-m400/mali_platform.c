@@ -51,14 +51,14 @@
 #define CLK_DIV_STAT_G3D 	0x1003C62C
 #define CLK_DESC 			"clk-divider-status"
 
-#define MALI_BOTTOMLOCK_VOL	800000
+#define MALI_BOTTOMLOCK_VOL	850000
 
 typedef struct mali_runtime_resumeTag{
 	int clk;
 	int vol;
 }mali_runtime_resume_table;
 
-mali_runtime_resume_table mali_runtime_resume = {108, 900000};
+mali_runtime_resume_table mali_runtime_resume = {108, 950000};
 
 /* lock/unlock CPU freq by Mali */
 extern int cpufreq_lock_by_mali(unsigned int freq);
@@ -174,7 +174,6 @@ void mali_regulator_set_voltage(int min_uV, int max_uV)
 		MALI_DEBUG_PRINT(1, ("error on mali_regulator_set_voltage : g3d_regulator is null\n"));
 		return;
 	}
-
 	MALI_DEBUG_PRINT(2, ("= regulator_set_voltage: %d, %d \n",min_uV, max_uV));
 
 #if MALI_INTERNAL_TIMELINE_PROFILING_ENABLED
@@ -210,7 +209,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 {
 	if (bis_vpll == MALI_TRUE) {
 		if (ext_xtal_clock == NULL) {
-			ext_xtal_clock = clk_get(NULL,EXTXTALCLK_NAME);
+			ext_xtal_clock = clk_get(NULL, EXTXTALCLK_NAME);
 			if (IS_ERR(ext_xtal_clock)) {
 				MALI_PRINT( ("MALI Error : failed to get source ext_xtal_clock\n"));
 				return MALI_FALSE;
@@ -219,7 +218,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 		}
 
 		if (vpll_src_clock == NULL) {
-			vpll_src_clock = clk_get(NULL,VPLLSRCCLK_NAME);
+			vpll_src_clock = clk_get(NULL, VPLLSRCCLK_NAME);
 			if (IS_ERR(vpll_src_clock)) {
 				MALI_PRINT( ("MALI Error : failed to get source vpll_src_clock\n"));
 				return MALI_FALSE;
@@ -228,7 +227,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 		}
 
 		if (fout_vpll_clock == NULL) {
-			fout_vpll_clock = clk_get(NULL,FOUTVPLLCLK_NAME);
+			fout_vpll_clock = clk_get(NULL, FOUTVPLLCLK_NAME);
 			if (IS_ERR(fout_vpll_clock)) {
 				MALI_PRINT( ("MALI Error : failed to get source fout_vpll_clock\n"));
 				return MALI_FALSE;
@@ -237,7 +236,7 @@ mali_bool mali_clk_get(mali_bool bis_vpll)
 		}
 
 		if (sclk_vpll_clock == NULL) {
-			sclk_vpll_clock = clk_get(NULL,SCLVPLLCLK_NAME);
+			sclk_vpll_clock = clk_get(NULL, SCLVPLLCLK_NAME);
 			if (IS_ERR(sclk_vpll_clock)) {
 				MALI_PRINT( ("MALI Error : failed to get source sclk_vpll_clock\n"));
 				return MALI_FALSE;
@@ -324,7 +323,6 @@ void mali_clk_put(mali_bool binc_mali_clock)
 		clk_put(mali_clock);
 		mali_clock = 0;
 	}
-
 }
 
 extern int mali_use_vpll;
@@ -445,6 +443,7 @@ static mali_bool init_mali_clock(void)
 	bPoweroff = 1;
 
 	return MALI_TRUE;
+
 #ifdef CONFIG_REGULATOR
 err_regulator:
 	regulator_put(g3d_regulator);
@@ -528,6 +527,7 @@ void set_mali_parent_power_domain(struct platform_device* dev)
 #else
 	dev->dev.parent = &exynos4_device_pd[PD_G3D].dev;
 #endif
+
 #endif
 }
 
@@ -559,6 +559,7 @@ _mali_osk_errcode_t g3d_power_domain_control(int bpower_on)
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 		MALI_DEBUG_PRINT( 4,("_mali_osk_pmm_dev_idle\n"));
 		_mali_osk_pm_dev_idle();
+
 #else //MALI_PMM_RUNTIME_JOB_CONTROL_ON
 		void __iomem *status;
 		u32 timeout;
@@ -605,7 +606,7 @@ _mali_osk_errcode_t mali_platform_deinit()
 #endif
 #if MALI_DVFS_ENABLED
 	deinit_mali_dvfs_status();
-	if (clk_register_map ) {
+	if (clk_register_map) {
 		_mali_osk_mem_unmapioregion(CLK_DIV_STAT_G3D, 0x20, clk_register_map);
 		clk_register_map = 0;
 	}

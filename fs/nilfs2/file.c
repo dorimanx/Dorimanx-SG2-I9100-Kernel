@@ -55,7 +55,7 @@ int nilfs_sync_file(struct file *file, int datasync)
 static int nilfs_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
 	struct page *page = vmf->page;
-	struct inode *inode = vma->vm_file->f_dentry->d_inode;
+	struct inode *inode = file_inode(vma->vm_file);
 	struct nilfs_transaction_info ti;
 	int ret;
 

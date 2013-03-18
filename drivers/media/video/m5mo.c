@@ -1292,7 +1292,7 @@ retry:
 static int m5mo_set_effect_color(struct v4l2_subdev *sd, int val)
 {
 	u32 int_factor;
-	int on, old_mode, cb, cr;
+	int on, old_mode, cb = 0, cr = 0;
 	int err;
 
 	err = m5mo_readb(sd, M5MO_CATEGORY_PARM, M5MO_PARM_EFFECT, &on);
@@ -1350,7 +1350,7 @@ static int m5mo_set_effect_color(struct v4l2_subdev *sd, int val)
 static int m5mo_set_effect_gamma(struct v4l2_subdev *sd, s32 val)
 {
 	u32 int_factor;
-	int on, effect, old_mode;
+	int on, effect = 0, old_mode;
 	int err;
 
 	err = m5mo_readb(sd, M5MO_CATEGORY_MON, M5MO_MON_COLOR_EFFECT, &on);
