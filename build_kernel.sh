@@ -166,10 +166,10 @@ if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
 	rm ${KERNELDIR}/READY-JB/boot/zImage
 	rm ${KERNELDIR}/READY-JB/Kernel_*
 	stat ${KERNELDIR}/zImage
-	GETVER=`grep 'Siyah-.*-V' arch/arm/configs/${KERNEL_CONFIG} | sed 's/.*".//g' | sed 's/-I.*//g'`
+	GETVER=`grep 'Siyah-.*-V' arch/arm/configs/${KERNEL_CONFIG} | sed 's/.*".//g' | cut -c 1-19`
 	cp ${KERNELDIR}/zImage /${KERNELDIR}/READY-JB/boot/
 	cd ${KERNELDIR}/READY-JB/
-	zip -r Kernel_${GETVER}-`date +"[%H-%M]-[%d-%m]-ICS-JB-SGII-PWR-CORE"`.zip .
+	zip -r Kernel_${GETVER}-`date +"[%H-%M]-[%d-%m]-JB-CM-AOKP-SGII-PWR-CORE"`.zip .
 	STATUS=`adb get-state`;
 	if [ "$STATUS" == "device" ]; then
 		read -p "push kernel to android (y/n)?"
