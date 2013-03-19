@@ -4,14 +4,13 @@
 # Copyright (C) 1995-2000 Russell King
 #
 
-lib-y		:= backtrace.o changebit.o csumipv6.o csumpartial.o   \
-		   csumpartialcopy.o csumpartialcopyuser.o clearbit.o \
-		   delay.o delay-loop.o findbit.o memchr.o memcpy.o   \
-		   memmove.o memset.o memzero.o setbit.o              \
-		   strchr.o strrchr.o                                 \
-		   testchangebit.o testclearbit.o testsetbit.o        \
-		   ashldi3.o ashrdi3.o lshrdi3.o muldi3.o             \
-		   ucmpdi2.o lib1funcs.o div64.o                      \
+lib-y		:= backtrace.o changebit.o csumipv6.o csumpartial.o	\
+		   csumpartialcopy.o csumpartialcopyuser.o clearbit.o	\
+		   delay.o delay-loop.o findbit.o memchr.o		\
+		   memset.o memzero.o setbit.o strchr.o strrchr.o	\
+		   testchangebit.o testclearbit.o testsetbit.o		\
+		   ashldi3.o ashrdi3.o lshrdi3.o muldi3.o		\
+		   ucmpdi2.o lib1funcs.o div64.o			\
 		   io-readsb.o io-writesb.o io-readsl.o io-writesl.o
 
 mmu-y	:= clear_user.o copy_page.o getuser.o putuser.o

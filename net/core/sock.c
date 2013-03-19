@@ -113,6 +113,7 @@
 #include <linux/user_namespace.h>
 #include <linux/static_key.h>
 #include <linux/memcontrol.h>
+#include <linux/prefetch.h>
 
 #include <asm/uaccess.h>
 #include <asm/system.h>
@@ -127,6 +128,7 @@
 #include <net/xfrm.h>
 #include <linux/ipsec.h>
 #include <net/cls_cgroup.h>
+#include <net/netprio_cgroup.h>
 
 #include <linux/filter.h>
 
@@ -263,11 +265,6 @@ __u32 sysctl_rmem_default __read_mostly = SK_RMEM_MAX;
 /* Maximal space eaten by iovec or ancillary data plus some space */
 int sysctl_optmem_max __read_mostly = sizeof(unsigned long)*(2*UIO_MAXIOV+512);
 EXPORT_SYMBOL(sysctl_optmem_max);
-
-#if defined(CONFIG_CGROUPS) && !defined(CONFIG_NET_CLS_CGROUP)
-int net_cls_subsys_id = -1;
-EXPORT_SYMBOL_GPL(net_cls_subsys_id);
-#endif
 
 static int sock_set_timeout(long *timeo_p, char __user *optval, int optlen)
 {
@@ -1146,6 +1143,7 @@ static void sk_prot_free(struct proto *prot, struct sock *sk)
 }
 
 #ifdef CONFIG_CGROUPS
+#if IS_ENABLED(CONFIG_NET_CLS_CGROUP)
 void sock_update_classid(struct sock *sk)
 {
 	u32 classid;
@@ -1157,6 +1155,18 @@ void sock_update_classid(struct sock *sk)
 		sk->sk_classid = classid;
 }
 EXPORT_SYMBOL(sock_update_classid);
+#endif
+
+#if IS_ENABLED(CONFIG_NETPRIO_CGROUP)
+void sock_update_netprioidx(struct sock *sk, struct task_struct *task)
+{
+	if (in_interrupt())
+		return;
+
+	sk->sk_cgrp_prioidx = task_netprioidx(task);
+}
+EXPORT_SYMBOL_GPL(sock_update_netprioidx);
+#endif
 #endif
 
 /**

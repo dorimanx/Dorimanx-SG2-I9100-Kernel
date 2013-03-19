@@ -217,18 +217,11 @@ static void __init setup_node_data(int nid, u64 start, u64 end)
 	 * Allocate node data.  Try remap allocator first, node-local
 	 * memory and then any node.  Never allocate in DMA zone.
 	 */
-	nd = alloc_remap(nid, nd_size);
-	if (nd) {
-		nd_pa = __pa(nd);
-		remapped = true;
-	} else {
-		nd_pa = memblock_alloc_nid(nd_size, SMP_CACHE_BYTES, nid);
-		if (!nd_pa) {
-			pr_err("Cannot find %zu bytes in node %d\n",
-			       nd_size, nid);
-			return;
-		}
-		nd = __va(nd_pa);
+	nd_pa = memblock_alloc_nid(nd_size, SMP_CACHE_BYTES, nid);
+	if (!nd_pa) {
+		pr_err("Cannot find %zu bytes in node %d\n",
+		       nd_size, nid);
+		return;
 	}
 
 	/* report and initialize */
@@ -575,7 +568,7 @@ static int __init numa_init(int (*init_func)(void))
 	nodes_clear(node_possible_map);
 	nodes_clear(node_online_map);
 	memset(&numa_meminfo, 0, sizeof(numa_meminfo));
-	remove_all_active_ranges();
+	WARN_ON(memblock_set_node(0, ULLONG_MAX, MAX_NUMNODES));
 	numa_reset_distance();
 
 	ret = init_func();

@@ -149,9 +149,9 @@ ${CROSS_COMPILE}strip --strip-debug ${INITRAMFS_TMP}/lib/modules/*.ko
 chmod 755 ${INITRAMFS_TMP}/lib/modules/*
 
 if [ $USER != "root" ]; then
-	make -j${NAMBEROFCPUS} zImage CONFIG_INITRAMFS_SOURCE="${INITRAMFS_TMP}"
+	time make -j${NAMBEROFCPUS} zImage CONFIG_INITRAMFS_SOURCE="${INITRAMFS_TMP}"
 else
-	nice -n -15 make -j${NAMBEROFCPUS} zImage CONFIG_INITRAMFS_SOURCE="${INITRAMFS_TMP}"
+	time nice -n -15 make -j${NAMBEROFCPUS} zImage CONFIG_INITRAMFS_SOURCE="${INITRAMFS_TMP}"
 fi;
 
 # restore clean arch/arm/boot/compressed/Makefile_clean till next time

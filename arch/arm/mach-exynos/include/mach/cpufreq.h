@@ -18,9 +18,7 @@ enum cpufreq_level_index {
 	L0, L1, L2, L3, L4,
 	L5, L6, L7, L8, L9,
 	L10, L11, L12, L13, L14,
-	L15, L16, L17, L18, L19,
-	L20, L21, L22, L23, L24,
-	L25,
+	L15, L16,
 };
 
 enum busfreq_level_request {
@@ -121,7 +119,8 @@ struct exynos_dvfs_info {
 
 extern struct exynos_dvfs_info *exynos_info;
 
-#define SUPPORT_1600MHZ	(1<<30)
+#define SUPPORT_1400MHZ	(1<<31)
+#define SUPPORT_1200MHZ	(1<<30)
 #define SUPPORT_1000MHZ	(1<<29)
 #define SUPPORT_FREQ_SHIFT	29
 #define SUPPORT_FREQ_MASK	7

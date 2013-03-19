@@ -521,7 +521,7 @@ static int ncp_fill_super(struct super_block *sb, void *raw_data, int silent)
 	if (!ncp_filp)
 		goto out;
 	error = -ENOTSOCK;
-	sock_inode = ncp_filp->f_path.dentry->d_inode;
+	sock_inode = file_inode(ncp_filp);
 	if (!S_ISSOCK(sock_inode->i_mode))
 		goto out_fput;
 	sock = SOCKET_I(sock_inode);
@@ -560,7 +560,7 @@ static int ncp_fill_super(struct super_block *sb, void *raw_data, int silent)
 		if (!server->info_filp)
 			goto out_fput;
 		error = -ENOTSOCK;
-		sock_inode = server->info_filp->f_path.dentry->d_inode;
+		sock_inode = file_inode(server->info_filp);
 		if (!S_ISSOCK(sock_inode->i_mode))
 			goto out_fput2;
 		info_sock = SOCKET_I(sock_inode);

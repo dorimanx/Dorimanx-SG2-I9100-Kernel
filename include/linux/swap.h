@@ -359,7 +359,7 @@ extern struct page *swapin_readahead(swp_entry_t, gfp_t,
 extern atomic_long_t nr_swap_pages;
 extern long total_swap_pages;
 
-/* Swap 50% full? Release swapcache more aggressively.. */
+/* Swap 50% full? */
 static inline bool vm_swap_full(void)
 {
 	return atomic_long_read(&nr_swap_pages) * 2 < total_swap_pages;

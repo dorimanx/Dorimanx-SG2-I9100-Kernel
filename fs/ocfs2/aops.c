@@ -561,7 +561,7 @@ static void ocfs2_dio_end_io(struct kiocb *iocb,
 			     int ret,
 			     bool is_async)
 {
-	struct inode *inode = iocb->ki_filp->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(iocb->ki_filp);
 	int level;
 
 	/* this io's submitter should not have unlocked this before we could */
@@ -609,7 +609,7 @@ static ssize_t ocfs2_direct_IO(int rw,
 			       unsigned long nr_segs)
 {
 	struct file *file = iocb->ki_filp;
-	struct inode *inode = file->f_path.dentry->d_inode->i_mapping->host;
+	struct inode *inode = file_inode(file)->i_mapping->host;
 
 	/*
 	 * Fallback to buffered I/O if we see an inode without

@@ -697,7 +697,7 @@ static unsigned long bdi_position_ratio(struct backing_dev_info *bdi,
 	 *     => fast response on large errors; small oscillation near setpoint
 	 */
 	setpoint = (freerun + limit) / 2;
-	x = div_s64((setpoint - dirty) << RATELIMIT_CALC_SHIFT,
+	x = div_s64(((s64)setpoint - (s64)dirty) << RATELIMIT_CALC_SHIFT,
 		    limit - setpoint + 1);
 	pos_ratio = x;
 	pos_ratio = pos_ratio * x >> RATELIMIT_CALC_SHIFT;
@@ -2004,6 +2004,8 @@ int __set_page_dirty_no_writeback(struct page *page)
  */
 void account_page_dirtied(struct page *page, struct address_space *mapping)
 {
+	/* trace_writeback_dirty_page(page, mapping); (not implemented) */
+
 	if (mapping_cap_account_dirty(mapping)) {
 		__inc_zone_page_state(page, NR_FILE_DIRTY);
 		__inc_zone_page_state(page, NR_DIRTIED);

@@ -393,7 +393,8 @@ EXPORT_SYMBOL_GPL(mnt_clone_write);
  */
 int mnt_want_write_file(struct file *file)
 {
-	struct inode *inode = file->f_dentry->d_inode;
+	struct inode *inode = file_inode(file);
+
 	if (!(file->f_mode & FMODE_WRITE) || special_file(inode->i_mode))
 		return mnt_want_write(file->f_path.mnt);
 	else

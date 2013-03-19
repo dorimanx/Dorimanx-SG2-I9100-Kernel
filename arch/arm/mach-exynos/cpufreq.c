@@ -45,6 +45,7 @@ static struct cpufreq_freqs freqs;
 static bool exynos_cpufreq_disable;
 static bool exynos_cpufreq_lock_disable;
 static bool exynos_cpufreq_init_done;
+
 static DEFINE_MUTEX(set_freq_lock);
 static DEFINE_MUTEX(set_cpu_freq_lock);
 
@@ -91,7 +92,7 @@ static unsigned int exynos_get_safe_armvolt(unsigned int old_index, unsigned int
 	return safe_arm_volt;
 }
 
-unsigned int smooth_level = L10; /* L10 = 800Mhz */
+unsigned int smooth_level = L8; /* L8 = 800Mhz */
 
 static int exynos_target(struct cpufreq_policy *policy,
 			  unsigned int target_freq,
@@ -741,7 +742,7 @@ static int exynos_cpufreq_cpu_init(struct cpufreq_policy *policy)
 
 	/* Safe default startup limits */
 
-	policy->max = 1000000;
+	policy->max = 1200000;
 	policy->min = 200000;
 
 	return 0;
@@ -799,14 +800,13 @@ static int __init exynos_cpufreq_init(void)
 		goto err_vdd_arm;
 
 	if (exynos_info->set_freq == NULL) {
-		printk(KERN_ERR "%s: No set_freq function (ERR)\n",
-				__func__);
+		pr_err("%s: No set_freq function (ERR)\n", __func__);
 		goto err_vdd_arm;
 	}
 
 	arm_regulator = regulator_get(NULL, "vdd_arm");
 	if (IS_ERR(arm_regulator)) {
-		printk(KERN_ERR "failed to get resource %s\n", "vdd_arm");
+		pr_err("%s: failed to get resource vdd_arm\n", __func__);
 		goto err_vdd_arm;
 	}
 

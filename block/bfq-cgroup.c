@@ -7,6 +7,8 @@
  * Copyright (C) 2008 Fabio Checconi <fabio@gandalf.sssup.it>
  *		      Paolo Valente <paolo.valente@unimore.it>
  *
+ * Copyright (C) 2010 Paolo Valente <paolo.valente@unimore.it>
+ *
  * Licensed under the GPL-2 as detailed in the accompanying COPYING.BFQ file.
  */
 
@@ -276,6 +278,9 @@ static void bfq_bfqq_move(struct bfq_data *bfqd, struct bfq_queue *bfqq,
 
 	if (busy && resume)
 		bfq_activate_bfqq(bfqd, bfqq);
+
+	if (bfqd->active_queue == NULL && !bfqd->rq_in_driver)
+		bfq_schedule_dispatch(bfqd);
 }
 
 /**
@@ -666,15 +671,18 @@ static struct cftype bfqio_files[] = {
 		.read_u64 = bfqio_cgroup_ioprio_class_read,
 		.write_u64 = bfqio_cgroup_ioprio_class_write,
 	},
+	{ }  /* terminate */
 };
 
+#if 0
 static int bfqio_populate(struct cgroup_subsys *subsys, struct cgroup *cgroup)
 {
 	return cgroup_add_files(cgroup, subsys, bfqio_files,
 				ARRAY_SIZE(bfqio_files));
 }
+#endif
 
-static struct cgroup_subsys_state *bfqio_create(struct cgroup *cgroup)
+static struct cgroup_subsys_state *bfqio_css_alloc(struct cgroup *cgroup)
 {
 	struct bfqio_cgroup *bgrp;
 
@@ -694,7 +702,7 @@ static struct cgroup_subsys_state *bfqio_create(struct cgroup *cgroup)
 }
 
 /*
- * We cannot support shared io contexts, as we have no mean to support
+ * We cannot support shared io contexts, as we have no means to support
  * two tasks with the same ioc in two different groups without major rework
  * of the main bic/bfqq data structures.  By now we allow a task to change
  * its cgroup only if it's the only owner of its ioc; the drawback of this
@@ -756,7 +764,7 @@ static void bfqio_attach(struct cgroup *cgroup, struct cgroup_taskset *tset)
 	}
 }
 
-static void bfqio_destroy(struct cgroup *cgroup)
+static void bfqio_css_free(struct cgroup *cgroup)
 {
 	struct bfqio_cgroup *bgrp = cgroup_to_bfqio(cgroup);
 	struct hlist_node *n, *tmp;
@@ -779,12 +787,13 @@ static void bfqio_destroy(struct cgroup *cgroup)
 
 struct cgroup_subsys bfqio_subsys = {
 	.name = "bfqio",
-	.create = bfqio_create,
+	.css_alloc = bfqio_css_alloc, /* was .create = bfqio_create, */
 	.can_attach = bfqio_can_attach,
 	.attach = bfqio_attach,
-	.destroy = bfqio_destroy,
-	.populate = bfqio_populate,
+	.css_free = bfqio_css_free, /* was .destroy = bfqio_destroy, */
+	/* .populate = bfqio_populate, */
 	.subsys_id = bfqio_subsys_id,
+	.base_cftypes = bfqio_files,
 };
 #else
 static inline void bfq_init_entity(struct bfq_entity *entity,

@@ -1177,4 +1177,33 @@ int sysctl_extfrag_handler(struct ctl_table *table, int write,
 	return 0;
 }
 
+#if defined(CONFIG_SYSFS) && defined(CONFIG_NUMA)
+ssize_t sysfs_compact_node(struct device *dev,
+			struct device_attribute *attr,
+			const char *buf, size_t count)
+{
+	int nid = dev->id;
+
+	if (nid >= 0 && nid < nr_node_ids && node_online(nid)) {
+		/* Flush pending updates to the LRU lists */
+		lru_add_drain_all();
+
+		compact_node(nid);
+	}
+
+	return count;
+}
+static DEVICE_ATTR(compact, S_IWUSR, NULL, sysfs_compact_node);
+
+int compaction_register_node(struct node *node)
+{
+	return device_create_file(&node->dev, &dev_attr_compact);
+}
+
+void compaction_unregister_node(struct node *node)
+{
+	return device_remove_file(&node->dev, &dev_attr_compact);
+}
+#endif /* CONFIG_SYSFS && CONFIG_NUMA */
+
 #endif /* CONFIG_COMPACTION */

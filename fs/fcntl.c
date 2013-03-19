@@ -147,7 +147,7 @@ SYSCALL_DEFINE1(dup, unsigned int, fildes)
 
 static int setfl(int fd, struct file * filp, unsigned long arg)
 {
-	struct inode * inode = filp->f_path.dentry->d_inode;
+	struct inode * inode = file_inode(filp);
 	int error = 0;
 
 	/*

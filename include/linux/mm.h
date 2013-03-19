@@ -1415,24 +1415,6 @@ int add_from_early_node_map(struct range *range, int az,
 				   int nr_range, int nid);
 extern void sparse_memory_present_with_active_regions(int nid);
 
-#define MOVABLEMEM_MAP_MAX MAX_NUMNODES
-struct movablemem_entry {
-	unsigned long start_pfn;    /* start pfn of memory segment */
-	unsigned long end_pfn;      /* end pfn of memory segment (exclusive) */
-};
-
-struct movablemem_map {
-	bool acpi;	/* true if using SRAT info */
-	int nr_map;
-	struct movablemem_entry map[MOVABLEMEM_MAP_MAX];
-	nodemask_t numa_nodes_hotplug;	/* on which nodes we specify memory */
-	nodemask_t numa_nodes_kernel;	/* on which nodes kernel resides in */
-};
-
-extern void __init insert_movablemem_map(unsigned long start_pfn,
-					 unsigned long end_pfn);
-extern int __init movablemem_map_overlap(unsigned long start_pfn,
-					 unsigned long end_pfn);
 #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
 
 #if !defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP) && \
@@ -1701,6 +1683,11 @@ static inline pgprot_t vm_get_page_prot(unsigned long vm_flags)
 }
 #endif
 
+#ifdef CONFIG_ARCH_USES_NUMA_PROT_NONE
+unsigned long change_prot_numa(struct vm_area_struct *vma,
+			unsigned long start, unsigned long end);
+#endif
+
 struct vm_area_struct *find_extend_vma(struct mm_struct *, unsigned long addr);
 int remap_pfn_range(struct vm_area_struct *, unsigned long addr,
 			unsigned long pfn, unsigned long size, pgprot_t);
@@ -1771,6 +1758,9 @@ int in_gate_area_no_mm(unsigned long addr);
 #define in_gate_area(mm, addr) ({(void)mm; in_gate_area_no_mm(addr);})
 #endif	/* __HAVE_ARCH_GATE_AREA */
 
+#ifdef CONFIG_DMA_CMA
+void perform_drop_caches(unsigned int mode);
+#endif
 int drop_caches_sysctl_handler(struct ctl_table *, int,
 					void __user *, size_t *, loff_t *);
 unsigned long shrink_slab(struct shrink_control *shrink,
@@ -1804,7 +1794,11 @@ int vmemmap_populate_basepages(struct page *start_page,
 						unsigned long pages, int node);
 int vmemmap_populate(struct page *start_page, unsigned long pages, int node);
 void vmemmap_populate_print_last(void);
-
+#ifdef CONFIG_MEMORY_HOTPLUG
+void vmemmap_free(struct page *memmap, unsigned long nr_pages);
+#endif
+void register_page_bootmem_memmap(unsigned long section_nr, struct page *map,
+				  unsigned long size);
 
 enum mf_flags {
 	MF_COUNT_INCREASED = 1 << 0,

@@ -28,10 +28,12 @@
 
 enum target_asv {
 	EXYNOS4210_1000,
-	EXYNOS4210_1600,
+	EXYNOS4210_1200,
+	EXYNOS4210_1400,
+	EXYNOS4210_SINGLE_1200,
 };
 
-struct asv_judge_table exynos4210_1600_limit[] = {
+struct asv_judge_table exynos4210_1200_limit[] = {
 	/* HPM , IDS */
 	{8 , 4},
 	{11 , 8},
@@ -39,6 +41,22 @@ struct asv_judge_table exynos4210_1600_limit[] = {
 	{18 , 17},
 	{21 , 27},
 	{23 , 45},
+	{25 , 55},
+};
+
+static struct asv_judge_table exynos4210_1400_limit[] = {
+	/* HPM , IDS */
+	{13 , 8},
+	{17 , 12},
+	{22 , 32},
+	{26 , 52},
+};
+
+static struct asv_judge_table exynos4210_single_1200_limit[] = {
+	/* HPM , IDS */
+	{8 , 4},
+	{14 , 12},
+	{21 , 27},
 	{25 , 55},
 };
 
@@ -252,12 +270,32 @@ static int exynos4210_find_group(struct samsung_asv *asv_info,
 	unsigned int ret = 0;
 	unsigned int i;
 
-	if (exynos4_target == EXYNOS4210_1600) {
-		ret = ARRAY_SIZE(exynos4210_1600_limit);
+	if (exynos4_target == EXYNOS4210_1200) {
+		ret = ARRAY_SIZE(exynos4210_1200_limit);
 
-		for (i = 0; i < ARRAY_SIZE(exynos4210_1600_limit); i++) {
-			if (asv_info->hpm_result <= exynos4210_1600_limit[i].hpm_limit ||
-			   asv_info->ids_result <= exynos4210_1600_limit[i].ids_limit) {
+		for (i = 0; i < ARRAY_SIZE(exynos4210_1200_limit); i++) {
+			if (asv_info->hpm_result <= exynos4210_1200_limit[i].hpm_limit ||
+			   asv_info->ids_result <= exynos4210_1200_limit[i].ids_limit) {
+				ret = i;
+				break;
+			}
+		}
+	} else if (exynos4_target == EXYNOS4210_1400) {
+		ret = ARRAY_SIZE(exynos4210_1400_limit);
+
+		for (i = 0; i < ARRAY_SIZE(exynos4210_1400_limit); i++) {
+			if (asv_info->hpm_result <= exynos4210_1400_limit[i].hpm_limit ||
+			   asv_info->ids_result <= exynos4210_1400_limit[i].ids_limit) {
+				ret = i;
+				break;
+			}
+		}
+	} else if (exynos4_target == EXYNOS4210_SINGLE_1200) {
+		ret = ARRAY_SIZE(exynos4210_single_1200_limit);
+
+		for (i = 0; i < ARRAY_SIZE(exynos4210_single_1200_limit); i++) {
+			if (asv_info->hpm_result <= exynos4210_single_1200_limit[i].hpm_limit ||
+			   asv_info->ids_result <= exynos4210_single_1200_limit[i].ids_limit) {
 				ret = i;
 				break;
 			}
@@ -358,17 +396,30 @@ static int exynos4210_asv_store_result(struct samsung_asv *asv_info)
 	unsigned int result_grp;
 	char *support_freq;
 
+	/* Single chip is only support 1.2GHz */
+	if (!((samsung_cpu_id >> PACK_ID) & PACK_MASK)) {
+		result_grp = exynos4210_find_group(asv_info, EXYNOS4210_SINGLE_1200);
+		result_grp |= SUPPORT_1200MHZ;
+		support_freq = "1.2GHz";
+
+		goto set_reg;
+	}
+
 	/* Check support freq */
 	switch (asv_info->pkg_id & 0x7) {
 	/* Support 1.2GHz */
 	case 1:
 	case 7:
-		result_grp = exynos4210_find_group(asv_info, EXYNOS4210_1600);
-		result_grp |= SUPPORT_1600MHZ;
-		support_freq = "1.6GHz";
+		result_grp = exynos4210_find_group(asv_info, EXYNOS4210_1200);
+		result_grp |= SUPPORT_1200MHZ;
+		support_freq = "1.2GHz";
 		break;
 	/* Support 1.4GHz */
 	case 5:
+		result_grp = exynos4210_find_group(asv_info, EXYNOS4210_1400);
+		result_grp |= SUPPORT_1400MHZ;
+		support_freq = "1.4GHz";
+		break;
 	/* Defalut support 1.0GHz */
 	default:
 		result_grp = exynos4210_find_group(asv_info, EXYNOS4210_1000);

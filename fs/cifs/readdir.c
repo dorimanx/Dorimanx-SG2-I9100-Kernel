@@ -78,12 +78,10 @@ cifs_readdir_lookup(struct dentry *parent, struct qstr *name,
 
 	cFYI(1, "For %s", name->name);
 
-	if (parent->d_op && parent->d_op->d_hash)
-		parent->d_op->d_hash(parent, parent->d_inode, name);
-	else
-		name->hash = full_name_hash(name->name, name->len);
+	dentry = d_hash_and_lookup(parent, name);
+	if (unlikely(IS_ERR(dentry)))
+		return NULL;
 
-	dentry = d_lookup(parent, name);
 	if (dentry) {
 		inode = dentry->d_inode;
 		/* update inode in place if i_ino didn't change */
@@ -419,7 +417,7 @@ static int cifs_entry_is_dot(char *current_entry, struct cifsFileInfo *cfile)
    whether we can use the cached search results from the previous search */
 static int is_dir_changed(struct file *file)
 {
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	struct cifsInodeInfo *cifsInfo = CIFS_I(inode);
 
 	if (cifsInfo->time == 0)
@@ -791,7 +789,7 @@ int cifs_readdir(struct file *file, void *direntry, filldir_t filldir)
 	switch ((int) file->f_pos) {
 	case 0:
 		if (filldir(direntry, ".", 1, file->f_pos,
-		     file->f_path.dentry->d_inode->i_ino, DT_DIR) < 0) {
+		     file_inode(file)->i_ino, DT_DIR) < 0) {
 			cERROR(1, "Filldir for current dir failed");
 			rc = -ENOMEM;
 			break;

@@ -480,7 +480,7 @@ int fs_may_remount_ro(struct super_block *sb)
 	/* Check that no files are currently opened for writing. */
 	lg_global_lock(files_lglock);
 	do_file_list_for_each_entry(sb, file) {
-		struct inode *inode = file->f_path.dentry->d_inode;
+		struct inode *inode = file_inode(file);
 
 		/* File with pending delete? */
 		if (inode->i_nlink == 0)
@@ -512,7 +512,7 @@ retry:
 	lg_global_lock(files_lglock);
 	do_file_list_for_each_entry(sb, f) {
 		struct vfsmount *mnt;
-		if (!S_ISREG(f->f_path.dentry->d_inode->i_mode))
+		if (!S_ISREG(file_inode(f)->i_mode))
 		       continue;
 		if (!file_count(f))
 			continue;

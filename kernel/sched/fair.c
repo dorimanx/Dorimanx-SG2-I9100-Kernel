@@ -3253,7 +3253,8 @@ find_idlest_cpu(struct sched_group *group, struct task_struct *p, int this_cpu)
 static int select_idle_sibling(struct task_struct *p, int target)
 {
 	struct sched_domain *sd;
-	int i = task_cpu(p); 
+	struct sched_group *sg;
+	int i = task_cpu(p);
 
 	if (idle_cpu(target))
 		return target;
@@ -3265,16 +3266,29 @@ static int select_idle_sibling(struct task_struct *p, int target)
 		return i;
 
 	/*
-	 * Otherwise, check assigned siblings to find an elegible idle cpu.
+	 * Otherwise, iterate the domains and find an elegible idle cpu.
 	 */
 	sd = rcu_dereference(per_cpu(sd_llc, target));
 	for_each_lower_domain(sd) {
-		if (!cpumask_test_cpu(sd->idle_buddy, tsk_cpus_allowed(p)))
-			continue;
-		if (idle_cpu(sd->idle_buddy))
-			return sd->idle_buddy;
-	}
+		sg = sd->groups;
+		do {
+			if (!cpumask_intersects(sched_group_cpus(sg),
+						tsk_cpus_allowed(p)))
+				goto next;
 
+			for_each_cpu(i, sched_group_cpus(sg)) {
+				if (i == target || !idle_cpu(i))
+					goto next;
+			}
+
+			target = cpumask_first_and(sched_group_cpus(sg),
+					tsk_cpus_allowed(p));
+			goto done;
+next:
+			sg = sg->next;
+		} while (sg != sd->groups);
+	}
+done:
 	return target;
 }
 
@@ -5380,20 +5394,15 @@ static inline void set_cpu_sd_state_busy(void)
 {
 	struct sched_domain *sd;
 	int cpu = smp_processor_id();
-	int clear = 0;
 
 	if (!test_bit(NOHZ_IDLE, nohz_flags(cpu)))
 		return;
+	clear_bit(NOHZ_IDLE, nohz_flags(cpu));
 
 	rcu_read_lock();
-	for_each_domain(cpu, sd) {
+	for_each_domain(cpu, sd)
 		atomic_inc(&sd->groups->sgp->nr_busy_cpus);
-		clear = 1;
-	}
 	rcu_read_unlock();
-
-	if (likely(clear))
-		clear_bit(NOHZ_IDLE, nohz_flags(cpu));
 }
 
 void set_cpu_sd_state_idle(void)
@@ -5677,7 +5686,7 @@ void trigger_load_balance(struct rq *rq, int cpu)
 	    likely(!on_null_domain(cpu)))
 		raise_softirq(SCHED_SOFTIRQ);
 #ifdef CONFIG_NO_HZ
-	if (likely(!on_null_domain(cpu)) && nohz_kick_needed(rq, cpu))
+	if (nohz_kick_needed(rq, cpu) && likely(!on_null_domain(cpu)))
 		nohz_balancer_kick(cpu);
 #endif
 }

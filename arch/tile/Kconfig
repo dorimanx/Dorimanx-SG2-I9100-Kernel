@@ -12,6 +12,7 @@ config TILE
 	select GENERIC_PENDING_IRQ if SMP
 	select GENERIC_IRQ_SHOW
 	select HAVE_SYSCALL_WRAPPERS if TILEGX
+	select VIRT_TO_BUS
 	select SYS_HYPERVISOR
 
 # FIXME: investigate whether we need/want these options.

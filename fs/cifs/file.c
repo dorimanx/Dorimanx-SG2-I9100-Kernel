@@ -1416,7 +1416,7 @@ int cifs_strict_fsync(struct file *file, int datasync)
 	int rc = 0;
 	struct cifs_tcon *tcon;
 	struct cifsFileInfo *smbfile = file->private_data;
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	struct cifs_sb_info *cifs_sb = CIFS_SB(inode->i_sb);
 
 	xid = GetXid();
@@ -1467,7 +1467,7 @@ int cifs_fsync(struct file *file, int datasync)
  */
 int cifs_flush(struct file *file, fl_owner_t id)
 {
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	int rc = 0;
 
 	if (file->f_mode & FMODE_WRITE)
@@ -1578,7 +1578,7 @@ cifs_iovec_write(struct file *file, const struct iovec *iov,
 		pid = current->tgid;
 
 	pTcon = tlink_tcon(open_file->tlink);
-	inode = file->f_path.dentry->d_inode;
+	inode = file_inode(file);
 
 	iov_iter_init(&it, iov, nr_segs, len, 0);
 	npages = num_pages;
@@ -1654,7 +1654,7 @@ ssize_t cifs_user_writev(struct kiocb *iocb, const struct iovec *iov,
 	ssize_t written;
 	struct inode *inode;
 
-	inode = iocb->ki_filp->f_path.dentry->d_inode;
+	inode = file_inode(iocb->ki_filp);
 
 	/*
 	 * BB - optimize the way when signing is disabled. We can drop this
@@ -1676,7 +1676,7 @@ ssize_t cifs_strict_writev(struct kiocb *iocb, const struct iovec *iov,
 {
 	struct inode *inode;
 
-	inode = iocb->ki_filp->f_path.dentry->d_inode;
+	inode = file_inode(iocb->ki_filp);
 
 	if (CIFS_I(inode)->clientCanCacheAll)
 		return generic_file_aio_write(iocb, iov, nr_segs, pos);
@@ -1799,7 +1799,7 @@ ssize_t cifs_strict_readv(struct kiocb *iocb, const struct iovec *iov,
 {
 	struct inode *inode;
 
-	inode = iocb->ki_filp->f_path.dentry->d_inode;
+	inode = file_inode(iocb->ki_filp);
 
 	if (CIFS_I(inode)->clientCanCacheRead)
 		return generic_file_aio_read(iocb, iov, nr_segs, pos);
@@ -1916,7 +1916,7 @@ static struct vm_operations_struct cifs_file_vm_ops = {
 int cifs_file_strict_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	int rc, xid;
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 
 	xid = GetXid();
 
@@ -2164,7 +2164,7 @@ static int cifs_readpage_worker(struct file *file, struct page *page,
 	int rc;
 
 	/* Is the page cached? */
-	rc = cifs_readpage_from_fscache(file->f_path.dentry->d_inode, page);
+	rc = cifs_readpage_from_fscache(file_inode(file), page);
 	if (rc == 0)
 		goto read_complete;
 
@@ -2179,8 +2179,8 @@ static int cifs_readpage_worker(struct file *file, struct page *page,
 	else
 		cFYI(1, "Bytes read %d", rc);
 
-	file->f_path.dentry->d_inode->i_atime =
-		current_fs_time(file->f_path.dentry->d_inode->i_sb);
+	file_inode(file)->i_atime =
+		current_fs_time(file_inode(file)->i_sb);
 
 	if (PAGE_CACHE_SIZE > rc)
 		memset(read_data + rc, 0, PAGE_CACHE_SIZE - rc);
@@ -2189,7 +2189,7 @@ static int cifs_readpage_worker(struct file *file, struct page *page,
 	SetPageUptodate(page);
 
 	/* send this page to the cache */
-	cifs_readpage_to_fscache(file->f_path.dentry->d_inode, page);
+	cifs_readpage_to_fscache(file_inode(file), page);
 
 	rc = 0;
 

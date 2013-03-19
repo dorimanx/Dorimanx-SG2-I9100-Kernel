@@ -571,6 +571,11 @@ cifs_get_root(struct smb_vol *vol, struct super_block *sb)
 			dentry = ERR_PTR(-ENOENT);
 			break;
 		}
+		if (!S_ISDIR(dir->i_mode)) {
+			dput(dentry);
+			dentry = ERR_PTR(-ENOTDIR);
+			break;
+		}
 
 		/* skip separators */
 		while (*s == sep)
@@ -691,7 +696,7 @@ out_nls:
 static ssize_t cifs_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
 				   unsigned long nr_segs, loff_t pos)
 {
-	struct inode *inode = iocb->ki_filp->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(iocb->ki_filp);
 	ssize_t written;
 	int rc;
 
@@ -712,7 +717,7 @@ static loff_t cifs_llseek(struct file *file, loff_t offset, int whence)
 	/* origin == SEEK_END => we must revalidate the cached file length */
 	if (whence == SEEK_END) {
 		int rc;
-		struct inode *inode = file->f_path.dentry->d_inode;
+		struct inode *inode = file_inode(file);
 
 		/*
 		 * We need to be sure that all dirty pages are written and the
@@ -744,7 +749,7 @@ static int cifs_setlease(struct file *file, long arg, struct file_lock **lease)
 {
 	/* note that this is called by vfs setlease with lock_flocks held
 	   to protect *lease from going away */
-	struct inode *inode = file->f_path.dentry->d_inode;
+	struct inode *inode = file_inode(file);
 	struct cifsFileInfo *cfile = file->private_data;
 
 	if (!(S_ISREG(inode->i_mode)))

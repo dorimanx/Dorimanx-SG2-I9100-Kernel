@@ -47,7 +47,7 @@ static struct dentry *proc_mount(struct file_system_type *fs_type,
 	if (flags & MS_KERNMOUNT)
 		ns = (struct pid_namespace *)data;
 	else
-		ns = current->nsproxy->pid_ns;
+		ns = task_active_pid_ns(current);
 
 	sb = sget(fs_type, proc_test_super, proc_set_super, flags, ns);
 	if (IS_ERR(sb))

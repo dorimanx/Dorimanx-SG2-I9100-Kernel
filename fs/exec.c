@@ -134,7 +134,7 @@ SYSCALL_DEFINE1(uselib, const char __user *, library)
 		goto out;
 
 	error = -EINVAL;
-	if (!S_ISREG(file->f_path.dentry->d_inode->i_mode))
+	if (!S_ISREG(file_inode(file)->i_mode))
 		goto exit;
 
 	error = -EACCES;
@@ -777,7 +777,7 @@ struct file *open_exec(const char *name)
 		goto out;
 
 	err = -EACCES;
-	if (!S_ISREG(file->f_path.dentry->d_inode->i_mode))
+	if (!S_ISREG(file_inode(file)->i_mode))
 		goto exit;
 
 	if (file->f_path.mnt->mnt_flags & MNT_NOEXEC)
@@ -1268,7 +1268,7 @@ int check_unsafe_exec(struct linux_binprm *bprm)
 int prepare_binprm(struct linux_binprm *bprm)
 {
 	umode_t mode;
-	struct inode * inode = bprm->file->f_path.dentry->d_inode;
+	struct inode * inode = file_inode(bprm->file);
 	int retval;
 
 	mode = inode->i_mode;
@@ -1996,7 +1996,7 @@ static void wait_for_dump_helpers(struct file *file)
 {
 	struct pipe_inode_info *pipe;
 
-	pipe = file->f_path.dentry->d_inode->i_pipe;
+	pipe = file_inode(file)->i_pipe;
 
 	pipe_lock(pipe);
 	pipe->readers++;
@@ -2188,7 +2188,7 @@ void do_coredump(long signr, int exit_code, struct pt_regs *regs)
 		if (IS_ERR(cprm.file))
 			goto fail_unlock;
 
-		inode = cprm.file->f_path.dentry->d_inode;
+		inode = file_inode(cprm.file);
 		if (inode->i_nlink > 1)
 			goto close_fail;
 		if (d_unhashed(cprm.file->f_path.dentry))

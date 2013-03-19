@@ -2390,9 +2390,9 @@ restart:
 
 				*mpol_new = *n->policy;
 				atomic_set(&mpol_new->refcnt, 1);
-				sp_node_init(n_new, n->end, end, mpol_new);
-				sp_insert(sp, n_new);
+				sp_node_init(n_new, end, n->end, mpol_new);
 				n->end = start;
+				sp_insert(sp, n_new);
 				n_new = NULL;
 				mpol_new = NULL;
 				break;
@@ -2518,50 +2518,6 @@ void mpol_free_shared_policy(struct shared_policy *p)
 	}
 	spin_unlock(&p->lock);
 }
-
-#ifdef CONFIG_NUMA_BALANCING
-static bool __initdata numabalancing_override;
-
-static void __init check_numabalancing_enable(void)
-{
-	bool numabalancing_default = false;
-
-	if (IS_ENABLED(CONFIG_NUMA_BALANCING_DEFAULT_ENABLED))
-		numabalancing_default = true;
-
-	if (nr_node_ids > 1 && !numabalancing_override) {
-		printk(KERN_INFO "Enabling automatic NUMA balancing. "
-			"Configure with numa_balancing= or sysctl");
-		set_numabalancing_state(numabalancing_default);
-	}
-}
-
-static int __init setup_numabalancing(char *str)
-{
-	int ret = 0;
-	if (!str)
-		goto out;
-	numabalancing_override = true;
-
-	if (!strcmp(str, "enable")) {
-		set_numabalancing_state(true);
-		ret = 1;
-	} else if (!strcmp(str, "disable")) {
-		set_numabalancing_state(false);
-		ret = 1;
-	}
-out:
-	if (!ret)
-		printk(KERN_WARNING "Unable to parse numa_balancing=\n");
-
-	return ret;
-}
-__setup("numa_balancing=", setup_numabalancing);
-#else
-static inline void __init check_numabalancing_enable(void)
-{
-}
-#endif /* CONFIG_NUMA_BALANCING */
 
 #ifdef CONFIG_NUMA_BALANCING
 static bool __initdata numabalancing_override;

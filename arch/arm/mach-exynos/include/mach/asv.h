@@ -46,6 +46,7 @@ enum exynos4x12_abb_member {
 	ABB_ARM,
 };
 
+#ifdef CONFIG_CPU_EXYNOS4212
 static inline void exynos4x12_set_abb_member(enum exynos4x12_abb_member abb_target,
 					     unsigned int abb_mode_value)
 {
@@ -100,6 +101,7 @@ static inline int exynos4x12_get_abb_member(enum exynos4x12_abb_member abb_targe
 {
 	return (__raw_readl(S5P_ABB_MEMBER(abb_target)) & 0x1f);
 }
+#endif
 
 struct asv_judge_table {
 	unsigned int hpm_limit; /* HPM value to decide group of target */

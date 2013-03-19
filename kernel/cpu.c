@@ -250,6 +250,8 @@ static int __ref take_cpu_down(void *_param)
 		return err;
 
 	cpu_notify(CPU_DYING | param->mod, param->hcpu);
+	/* Park the stopper thread */
+	kthread_park(current);
 	return 0;
 }
 
@@ -280,12 +282,13 @@ static int __ref _cpu_down(unsigned int cpu, int tasks_frozen)
 				__func__, cpu);
 		goto out_release;
 	}
+	smpboot_park_threads(cpu);
 
 	err = __stop_machine(take_cpu_down, &tcd_param, cpumask_of(cpu));
 	if (err) {
 		/* CPU didn't die: tell everyone.  Can't complain. */
+		smpboot_unpark_threads(cpu);
 		cpu_notify_nofail(CPU_DOWN_FAILED | mod, hcpu);
-
 		goto out_release;
 	}
 	BUG_ON(cpu_online(cpu));
@@ -341,13 +344,20 @@ static int __cpuinit _cpu_up(unsigned int cpu, int tasks_frozen)
 	int ret, nr_calls = 0;
 	void *hcpu = (void *)(long)cpu;
 	unsigned long mod = tasks_frozen ? CPU_TASKS_FROZEN : 0;
+	struct task_struct *idle;
 
 	if (cpu_online(cpu) || !cpu_present(cpu))
 		return -EINVAL;
 
 	cpu_hotplug_begin();
 
-	ret = smpboot_prepare(cpu);
+	idle = idle_thread_get(cpu);
+	if (IS_ERR(idle)) {
+		ret = PTR_ERR(idle);
+		goto out;
+	}
+
+	ret = smpboot_create_threads(cpu);
 	if (ret)
 		goto out;
 
@@ -360,10 +370,13 @@ static int __cpuinit _cpu_up(unsigned int cpu, int tasks_frozen)
 	}
 
 	/* Arch-specific enabling code. */
-	ret = __cpu_up(cpu, idle_thread_get(cpu));
+	ret = __cpu_up(cpu, idle);
 	if (ret != 0)
 		goto out_notify;
 	BUG_ON(!cpu_online(cpu));
+
+	/* Wake the per cpu threads */
+	smpboot_unpark_threads(cpu);
 
 	/* Now call notifier in preparation. */
 	cpu_notify(CPU_ONLINE | mod, hcpu);

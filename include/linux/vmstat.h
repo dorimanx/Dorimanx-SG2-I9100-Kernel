@@ -80,6 +80,14 @@ static inline void vm_events_fold_cpu(int cpu)
 
 #endif /* CONFIG_VM_EVENT_COUNTERS */
 
+#ifdef CONFIG_NUMA_BALANCING
+#define count_vm_numa_event(x)     count_vm_event(x)
+#define count_vm_numa_events(x, y) count_vm_events(x, y)
+#else
+#define count_vm_numa_event(x) do {} while (0)
+#define count_vm_numa_events(x, y) do { (void)(y); } while (0)
+#endif /* CONFIG_NUMA_BALANCING */
+
 #define __count_zone_vm_events(item, zone, delta) \
 		__count_vm_events(item##_NORMAL - ZONE_NORMAL + \
 		zone_idx(zone), delta)
@@ -261,8 +269,10 @@ static inline void __mod_zone_freepage_state(struct zone *zone, int nr_pages,
 					     int migratetype)
 {
 	__mod_zone_page_state(zone, NR_FREE_PAGES, nr_pages);
+#ifdef CONFIG_DMA_CMA
 	if (is_migrate_cma(migratetype))
 		__mod_zone_page_state(zone, NR_FREE_CMA_PAGES, nr_pages);
+#endif
 }
 
 extern const char * const vmstat_text[];

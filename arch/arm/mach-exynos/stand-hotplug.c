@@ -62,10 +62,8 @@
 #define TRANS_LOAD_H1_SCROFF 100
 
 #define BOOT_DELAY	60
-#define CHECK_DELAY_ON	HZ << 1
-#define CHECK_DELAY_OFF	HZ >> 1
-
-#define CPU1_ON_FREQ 800000
+#define CHECK_DELAY_ON	(.5*HZ * 4)
+#define CHECK_DELAY_OFF	(.5*HZ)
 #endif
 
 #if defined(CONFIG_MACH_MIDAS) || defined(CONFIG_MACH_SMDK4X12) \
@@ -116,10 +114,8 @@ static unsigned int check_rate = CHECK_DELAY_OFF;
 module_param_named(rate, check_rate, uint, 0644);
 static unsigned int check_rate_cpuon = CHECK_DELAY_ON;
 module_param_named(rate_cpuon, check_rate_cpuon, uint, 0644);
-static unsigned int check_rate_scroff = CHECK_DELAY_ON << 2;
+static unsigned int check_rate_scroff = CHECK_DELAY_OFF;
 module_param_named(rate_scroff, check_rate_scroff, uint, 0644);
-static unsigned int freq_cpu1on = CPU1_ON_FREQ;
-module_param_named(freq_cpu1on, freq_cpu1on, uint, 0644);
 
 static unsigned int user_lock;
 module_param_named(lock, user_lock, uint, 0644);
@@ -187,11 +183,11 @@ bool hotplug_out_chk(unsigned int nr_online_cpu, unsigned int threshold_up,
 #if defined(CONFIG_MACH_P10)
 	return ((nr_online_cpu > 1) &&
 		(avg_load < threshold_up &&
-		cur_freq < freq_cpu1on));
+		cur_freq <= freq_min));
 #else
 	return ((nr_online_cpu > 1) &&
 		(avg_load < threshold_up ||
-		cur_freq < freq_cpu1on));
+		cur_freq <= freq_min));
 #endif
 }
 
@@ -238,23 +234,23 @@ standalone_hotplug(unsigned int load, unsigned long nr_rq_min, unsigned int cpu_
 	if ((fimc_stat>>4 & 0x1) == 1)
 		return HOTPLUG_IN;
 
-	if (hotplug_out_chk(nr_online_cpu, (screen_off ? threshold_scroff[nr_online_cpu-1][0] : threshold[nr_online_cpu - 1][0] ),
+	if (hotplug_out_chk(nr_online_cpu, (screen_off ? threshold_scroff[nr_online_cpu - 1][0] : threshold[nr_online_cpu - 1][0] ),
 			    avg_load, cur_freq)) {
 		return HOTPLUG_OUT;
-		/* If total nr_running is less than cpu(on-state) number, hotplug do not hotplug-in */
-	} else if (nr_running() > nr_online_cpu &&
-		   avg_load > (screen_off ? threshold_scroff[nr_online_cpu-1][1] : threshold[nr_online_cpu - 1][1] )
-		   && cur_freq >= freq_cpu1on) {
-
+	}
+	/* If total nr_running is less than cpu(on-state) number, hotplug do not hotplug-in */
+	else if (nr_running() > nr_online_cpu &&
+		   avg_load > (screen_off ? threshold_scroff[nr_online_cpu - 1][1] : threshold[nr_online_cpu - 1][1] ) && 
+		   cur_freq >= freq_min) 
+	{
 		return HOTPLUG_IN;
-#if defined(CONFIG_MACH_P10)
-#else
+#if !defined(CONFIG_MACH_P10)
 	} else if (nr_online_cpu > 1 && nr_rq_min < trans_rq) {
 
 		struct cpu_time_info *tmp_info;
 
 		tmp_info = &per_cpu(hotplug_cpu_time, cpu_rq_min);
-		/*If CPU(cpu_rq_min) load is less than trans_load_rq, hotplug-out*/
+		/* If CPU(cpu_rq_min) load is less than trans_load_rq, hotplug-out */
 		if (tmp_info->load < trans_load_rq)
 			return HOTPLUG_OUT;
 #endif
@@ -275,7 +271,7 @@ static void hotplug_timer(struct work_struct *work)
 
 	mutex_lock(&hotplug_lock);
 
-	if(!standhotplug_enabled) {
+	if (!standhotplug_enabled) {
 		printk(KERN_INFO "pm-hotplug: disable cpu auto-hotplug\n");
 		goto off_hotplug;
 	}
@@ -340,7 +336,7 @@ static void hotplug_timer(struct work_struct *work)
 	flag_hotplug = standalone_hotplug(load, nr_rq_min, cpu_rq_min);
 
 	/*do not ever hotplug out CPU 0*/
-	if((cpu_rq_min == 0) && (flag_hotplug == HOTPLUG_OUT))
+	if ((cpu_rq_min == 0) && (flag_hotplug == HOTPLUG_OUT))
 		goto no_hotplug;
 
 	/*cpu hotplug*/
@@ -353,16 +349,16 @@ static void hotplug_timer(struct work_struct *work)
 		DBG_PRINT("cpu%d turnning off!\n", cpu_rq_min);
 		cpu_down(cpu_rq_min);
 		DBG_PRINT("cpu%d off!\n", cpu_rq_min);
-		if(!screen_off) hotpluging_rate = check_rate;
-		else hotpluging_rate = check_rate_scroff;
+		if (!screen_off) {
+			hotpluging_rate = check_rate;
+		} else {
+			hotpluging_rate = check_rate_scroff;
+		}
 	} 
 
 no_hotplug:
-	//printk("hotplug_timer done.\n");
-
 	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, hotpluging_rate);
 off_hotplug:
-
 	mutex_unlock(&hotplug_lock);
 }
 
@@ -398,24 +394,14 @@ static struct notifier_block exynos4_pm_hotplug_notifier = {
 
 static void hotplug_early_suspend(struct early_suspend *handler)
 {
-	mutex_lock(&hotplug_lock);
 	screen_off = true;
-	//Hotplug out all extra CPUs
-	while(num_online_cpus() > 1)
-	  cpu_down(num_online_cpus()-1);
 	hotpluging_rate = check_rate_scroff;
-	mutex_unlock(&hotplug_lock);
 }
 
 static void hotplug_late_resume(struct early_suspend *handler)
 {
-	printk(KERN_INFO "pm-hotplug: enable cpu auto-hotplug\n");
-
-	mutex_lock(&hotplug_lock);
 	screen_off = false;
 	hotpluging_rate = check_rate;
-	queue_delayed_work_on(0, hotplug_wq, &hotplug_work, hotpluging_rate);
-	mutex_unlock(&hotplug_lock);
 }
 
 static struct early_suspend hotplug_early_suspend_notifier = {
@@ -473,7 +459,7 @@ declare_store(hotplug_on) {
 	
 	if (!hotplug_on && strcmp(buf, "on\n") == 0) {
 		hotplug_on = 1;
-		// restart worker thread.
+		// restart worker thread
 		hotpluging_rate = CHECK_DELAY_ON;
 		queue_delayed_work_on(0, hotplug_wq, &hotplug_work, hotpluging_rate);
 		printk("second_core: hotplug is on!\n");
@@ -565,7 +551,6 @@ static int __init exynos4_pm_hotplug_init(void)
 	struct cpufreq_frequency_table *table;
 
 	printk(KERN_INFO "EXYNOS4 PM-hotplug init function\n");
-	//hotplug_wq = create_workqueue("dynamic hotplug");
 	hotplug_wq = alloc_workqueue("dynamic hotplug", 0, 0);
 	if (!hotplug_wq) {
 		printk(KERN_ERR "Creation of hotplug work failed\n");

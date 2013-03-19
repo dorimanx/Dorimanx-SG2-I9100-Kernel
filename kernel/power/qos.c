@@ -43,6 +43,7 @@
 #include <linux/kernel.h>
 
 #include <linux/uaccess.h>
+#include <linux/module.h>
 
 /*
  * locking rule: all changes to constraints or notifiers lists
@@ -192,6 +193,7 @@ static inline int pm_qos_get_value(struct pm_qos_constraints *c)
 	default:
 		/* runtime check for not using enum */
 		BUG();
+		return PM_QOS_DEFAULT_VALUE;
 	}
 }
 

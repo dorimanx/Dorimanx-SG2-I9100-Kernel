@@ -56,24 +56,24 @@ static int lowmem_minfree[6] = {
 	2 * 1024,	/* 8MB */
 	4 * 1024,	/* 16MB */
 	5 * 1024,	/* 20MB */
+	6 * 1024,	/* 24MB */
 	8 * 1024,	/* 32MB */
-	16 * 1024,	/* 64MB */
 };
 static int lowmem_minfree_screen_off[6] = {
 	3 * 512,	/* 6MB */
 	2 * 1024,	/* 8MB */
 	4 * 1024,	/* 16MB */
 	5 * 1024,	/* 20MB */
+	6 * 1024,	/* 24MB */
 	8 * 1024,	/* 32MB */
-	16 * 1024,	/* 64MB */
 };
 static int lowmem_minfree_screen_on[6] = {
 	3 * 512,	/* 6MB */
 	2 * 1024,	/* 8MB */
 	4 * 1024,	/* 16MB */
 	5 * 1024,	/* 20MB */
+	6 * 1024,	/* 24MB */
 	8 * 1024,	/* 32MB */
-	16 * 1024,	/* 64MB */
 };
 static int lowmem_minfree_size = 6;
 
@@ -84,6 +84,22 @@ static unsigned long lowmem_deathpending_timeout;
 		if (lowmem_debug_level >= (level))	\
 			printk(x);			\
 	} while (0)
+
+static int test_task_flag(struct task_struct *p, int flag)
+{
+	struct task_struct *t = p;
+
+	do {
+		task_lock(t);
+		if (test_tsk_thread_flag(t, flag)) {
+			task_unlock(t);
+			return 1;
+		}
+		task_unlock(t);
+	} while_each_thread(p, t);
+
+	return 0;
+}
 
 static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 {
@@ -96,7 +112,8 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int selected_tasksize = 0;
 	short selected_oom_score_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
-	int other_free = global_page_state(NR_FREE_PAGES);
+	int other_free = global_page_state(NR_FREE_PAGES) -
+						totalreserve_pages;
 	int other_file = global_page_state(NR_FILE_PAGES) -
 						global_page_state(NR_SHMEM);
 
@@ -138,6 +155,10 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		if (!p)
 			continue;
 
+		/* if task no longer has any memory ignore it */
+		if (test_task_flag(tsk, TIF_MM_RELEASED))
+			continue;
+
 		if (test_tsk_thread_flag(p, TIF_MEMDIE) &&
 		    time_before_eq(jiffies, lowmem_deathpending_timeout)) {
 			task_unlock(p);
@@ -174,7 +195,10 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		send_sig(SIGKILL, selected, 0);
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
 		rem -= selected_tasksize;
-	}
+		rcu_read_unlock();
+	} else
+		rcu_read_unlock();
+
 	lowmem_print(4, "lowmem_shrink %lu, %x, return %d\n",
 		     sc->nr_to_scan, sc->gfp_mask, rem);
 	rcu_read_unlock();
@@ -299,7 +323,7 @@ module_param_named(cost, lowmem_shrinker.seeks, int, S_IRUGO | S_IWUSR);
 __module_param_call(MODULE_PARAM_PREFIX, adj,
 		    &lowmem_adj_array_ops,
 		    .arr = &__param_arr_adj,
-		    S_IRUGO | S_IWUSR, 0);
+		    S_IRUGO | S_IWUSR, 0644);
 __MODULE_PARM_TYPE(adj, "array of int");
 #else
 module_param_array_named(adj, lowmem_adj, short, &lowmem_adj_size,
