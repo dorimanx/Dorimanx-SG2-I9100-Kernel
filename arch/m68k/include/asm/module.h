@@ -1,7 +1,21 @@
 #ifndef _ASM_M68K_MODULE_H
 #define _ASM_M68K_MODULE_H
 
+<<<<<<< HEAD
 #ifdef CONFIG_MMU
+=======
+#include <asm-generic/module.h>
+
+enum m68k_fixup_type {
+	m68k_fixup_memoffset,
+	m68k_fixup_vnode_shift,
+};
+
+struct m68k_fixup_info {
+	enum m68k_fixup_type type;
+	void *addr;
+};
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h
 
 struct mod_arch_specific {
 	struct m68k_fixup_info *fixup_start, *fixup_end;
@@ -34,6 +48,7 @@ struct module;
 extern void module_fixup(struct module *mod, struct m68k_fixup_info *start,
 			 struct m68k_fixup_info *end);
 
+<<<<<<< HEAD
 #else
 
 struct mod_arch_specific {
@@ -45,4 +60,6 @@ struct mod_arch_specific {
 #define Elf_Sym Elf32_Sym
 #define Elf_Ehdr Elf32_Ehdr
 
+=======
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h
 #endif /* _ASM_M68K_MODULE_H */

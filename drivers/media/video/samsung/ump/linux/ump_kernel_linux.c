@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2010-2012 ARM Limited. All rights reserved.
- *
+ * 
  * This program is free software and is provided to you under the terms of the GNU General Public License version 2
  * as published by the Free Software Foundation, and any use by you of this program is subject to the terms of such GNU licence.
- *
+ * 
  * A copy of the licence is included with the program, and can also be obtained from Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
@@ -173,6 +173,7 @@ int ump_kernel_device_initialize(void)
 {
 	int err;
 	dev_t dev = 0;
+#if UMP_LICENSE_IS_GPL
 	ump_debugfs_dir = debugfs_create_dir(ump_dev_name, NULL);
 	if (ERR_PTR(-ENODEV) == ump_debugfs_dir)
 	{
@@ -180,8 +181,9 @@ int ump_kernel_device_initialize(void)
 	}
 	else
 	{
-		debugfs_create_file("memory_usage", 0444, ump_debugfs_dir, NULL, &ump_memory_usage_fops);
+		debugfs_create_file("memory_usage", 0400, ump_debugfs_dir, NULL, &ump_memory_usage_fops);
 	}
+#endif
 
 	if (0 == ump_major)
 	{
@@ -432,7 +434,7 @@ static int ump_file_mmap(struct file * filp, struct vm_area_struct * vma)
 
 	/* Validate the session data */
 	session_data = (struct ump_session_data *)filp->private_data;
-	if (NULL == session_data)
+	if (NULL == session_data || NULL == session_data->cookies_map->table->mappings)
 	{
 		MSG_ERR(("mmap() called without any session data available\n"));
 		return -EFAULT;
@@ -477,6 +479,9 @@ EXPORT_SYMBOL(ump_dd_phys_blocks_get);
 EXPORT_SYMBOL(ump_dd_size_get);
 EXPORT_SYMBOL(ump_dd_reference_add);
 EXPORT_SYMBOL(ump_dd_reference_release);
+EXPORT_SYMBOL(ump_dd_meminfo_get);
+EXPORT_SYMBOL(ump_dd_meminfo_set);
+EXPORT_SYMBOL(ump_dd_handle_get_from_vaddr);
 
 /* Export our own extended kernel space allocator */
 EXPORT_SYMBOL(ump_dd_handle_create_from_phys_blocks);

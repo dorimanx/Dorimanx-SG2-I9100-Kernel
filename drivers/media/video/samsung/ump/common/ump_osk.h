@@ -43,6 +43,8 @@ void _ump_osk_mem_mapregion_term( ump_memory_allocation * descriptor );
 void _ump_osk_msync_old( ump_dd_mem * mem, ump_uk_msync_op op,  u32 start, u32 address, u32 size);
 void _ump_osk_msync( ump_dd_mem * mem, void * virt, u32 offset, u32 size, ump_uk_msync_op op, ump_session_data * session_data );
 
+void _ump_osk_mem_mapregion_get( ump_dd_mem ** mem, unsigned long vaddr);
+
 #ifdef __cplusplus
 }
 #endif

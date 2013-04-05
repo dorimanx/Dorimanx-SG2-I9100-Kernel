@@ -51,7 +51,7 @@ asynchronous and synchronous parts of the kernel.
 #include <linux/async.h>
 #include <linux/atomic.h>
 #include <linux/ktime.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
@@ -197,6 +197,9 @@ static async_cookie_t __async_schedule(async_func_ptr *ptr, void *data, struct l
 	list_add_tail(&entry->list, &async_pending);
 	atomic_inc(&entry_count);
 	spin_unlock_irqrestore(&async_lock, flags);
+
+	/* mark that this task has queued an async job, used by module init */
+	current->flags |= PF_USED_ASYNC;
 
 	/* schedule for execution */
 	queue_work(system_unbound_wq, &entry->work);

@@ -39,7 +39,7 @@
 #include <linux/slab.h>
 #include <linux/device.h>
 #include <linux/mutex.h>
-#include <linux/module.h>
+#include <linux/export.h>
 
 
 static DEFINE_MUTEX(dev_pm_qos_mtx);

@@ -179,8 +179,7 @@ static unsigned int get_nr_run_avg(void)
 #define DEF_FREQ_UP_BRAKE		(5u)
 
 /* HOTPLUG FROM STANDALONE */
-#define CPU1_ON_FREQ			800000
-#define CPU1_OFF_FREQ			800000
+#define DEF_FREQ_MIN			200000
 #define TRANS_LOAD_H0			20
 #define TRANS_LOAD_L1			20
 #define TRANS_LOAD_H1			100
@@ -282,8 +281,7 @@ static struct nightmare_tuners {
 	unsigned int dec_cpu_load;
 	unsigned int sampling_up_factor;
 	unsigned int freq_up_brake;
-	unsigned int freq_cpu1on;
-	unsigned int freq_cpu1off;
+	unsigned int freq_min;
 	unsigned int trans_rq;
 	unsigned int trans_load_rq;
 	unsigned int trans_load_h0;
@@ -319,8 +317,7 @@ static struct nightmare_tuners {
 	.dec_cpu_load = DEF_DEC_CPU_LOAD,
 	.sampling_up_factor = DEF_SAMPLING_UP_FACTOR,
 	.freq_up_brake = DEF_FREQ_UP_BRAKE,
-	.freq_cpu1on = CPU1_ON_FREQ,
-	.freq_cpu1off = CPU1_OFF_FREQ,
+	.freq_min = DEF_FREQ_MIN,
 	.trans_rq = TRANS_RQ,
 	.trans_load_rq = TRANS_LOAD_RQ,
 	.trans_load_h0 = TRANS_LOAD_H0,
@@ -534,8 +531,7 @@ show_one(inc_cpu_load, inc_cpu_load);
 show_one(dec_cpu_load, dec_cpu_load);
 show_one(sampling_up_factor, sampling_up_factor);
 show_one(freq_up_brake, freq_up_brake);
-show_one(freq_cpu1on, freq_cpu1on);
-show_one(freq_cpu1off, freq_cpu1off);
+show_one(freq_min, freq_min);
 show_one(trans_rq, trans_rq);
 show_one(trans_load_rq, trans_load_rq);
 show_one(trans_load_h0, trans_load_h0);
@@ -862,8 +858,8 @@ static ssize_t store_freq_up_brake(struct kobject *a, struct attribute *b,
 	return count;
 }
 
-/* freq_cpu1on */
-static ssize_t store_freq_cpu1on(struct kobject *a, struct attribute *b,
+/* freq_min */
+static ssize_t store_freq_min(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
 	unsigned int input;
@@ -871,19 +867,7 @@ static ssize_t store_freq_cpu1on(struct kobject *a, struct attribute *b,
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
-	nightmare_tuners_ins.freq_cpu1on = input;
-	return count;
-}
-/* freq_cpu1off */
-static ssize_t store_freq_cpu1off(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	nightmare_tuners_ins.freq_cpu1off = input;
+	nightmare_tuners_ins.freq_min = input;
 	return count;
 }
 
@@ -1042,8 +1026,7 @@ define_one_global_rw(inc_cpu_load);
 define_one_global_rw(dec_cpu_load);
 define_one_global_rw(sampling_up_factor);
 define_one_global_rw(freq_up_brake);
-define_one_global_rw(freq_cpu1on);
-define_one_global_rw(freq_cpu1off);
+define_one_global_rw(freq_min);
 define_one_global_rw(trans_rq);
 define_one_global_rw(trans_load_rq);
 define_one_global_rw(trans_load_h0);
@@ -1081,8 +1064,7 @@ static struct attribute *dbs_attributes[] = {
 	&dec_cpu_load.attr,
 	&sampling_up_factor.attr,
 	&freq_up_brake.attr,
-	&freq_cpu1on.attr,
-	&freq_cpu1off.attr,
+	&freq_min.attr,
 	&trans_rq.attr,
 	&trans_load_rq.attr,
 	&trans_load_h0.attr,
@@ -1111,7 +1093,7 @@ static bool nightmare_hotplug_out_check(unsigned int nr_online_cpu, unsigned int
 {
 	return ((nr_online_cpu > 1) &&
 		(avg_load < threshold_up ||
-		cur_freq < nightmare_tuners_ins.freq_cpu1off));
+		cur_freq <= nightmare_tuners_ins.freq_min));
 }
 
 static inline enum flag
@@ -1177,7 +1159,7 @@ standalone_hotplug(struct cpufreq_nightmare_cpuinfo *this_nightmare_cpuinfo)
 		/* If total nr_running is less than cpu(on-state) number, hotplug do not hotplug-in */
 	} else if (nr_running() > nr_online_cpu &&
 		   avg_load > (screen_off ? threshold_scroff[nr_online_cpu-1][1] : threshold[nr_online_cpu - 1][1] )
-		   && cur_freq >= nightmare_tuners_ins.freq_cpu1on) {
+		   && cur_freq >= nightmare_tuners_ins.freq_min) {
 
 		return HOTPLUG_IN;
 	} else if (nr_online_cpu > 1 && nr_rq_min < nightmare_tuners_ins.trans_rq) {

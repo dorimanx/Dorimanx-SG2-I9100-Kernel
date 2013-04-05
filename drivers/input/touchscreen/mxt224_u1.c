@@ -4149,7 +4149,7 @@ static int __devinit mxt224_probe(struct i2c_client *client,
 	set_bit(MT_TOOL_FINGER, input_dev->keybit);
 	set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
 
-	input_mt_init_slots(input_dev, data->num_fingers);
+	input_mt_init_slots(input_dev, data->num_fingers, 0);
 
 	input_set_abs_params(input_dev, ABS_MT_POSITION_X, pdata->min_x,
 			     pdata->max_x, 0, 0);

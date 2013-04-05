@@ -19,7 +19,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: epivers.h.in,v 13.33 2010-09-08 22:08:53 $
+ * $Id: epivers.h.in,v 13.33 2010-09-08 22:08:53 csm Exp $
  *
 */
 
@@ -30,26 +30,26 @@
 
 #define	EPI_MINOR_VERSION	28
 
-#define	EPI_RC_NUMBER		23
+#define	EPI_RC_NUMBER		19
 
-#define	EPI_INCREMENTAL_NUMBER	0
+#define	EPI_INCREMENTAL_NUMBER	4
 
 #define	EPI_BUILD_NUMBER	0
 
-#define	EPI_VERSION		1, 28, 23, 0
+#define	EPI_VERSION		1, 28, 19, 4
 
-#define	EPI_VERSION_NUM		0x011c1700
+#define	EPI_VERSION_NUM		0x011c1304
 
-#define EPI_VERSION_DEV		1.28.23
+#define EPI_VERSION_DEV		1.28.19
 
 /* Driver Version String, ASCII, 32 chars max */
 #ifdef BCMINTERNAL
-#define	EPI_VERSION_STR		"1.28.23 (r BCMINT)"
+#define	EPI_VERSION_STR		"1.28.19.4 (r BCMINT)"
 #else
 #ifdef WLTEST
-#define	EPI_VERSION_STR		"1.28.23 (r WLTEST)"
+#define	EPI_VERSION_STR		"1.28.19.4 (r WLTEST)"
 #else
-#define	EPI_VERSION_STR		"1.28.23 (r)"
+#define	EPI_VERSION_STR		"1.28.19.4 (1113_onoffpatch)"
 #endif
 #endif /* BCMINTERNAL */
 

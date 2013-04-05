@@ -370,7 +370,7 @@ static int pn544_probe(struct i2c_client *client,
 	client->irq = irq_num;
 
 	ret = request_threaded_irq(irq_num, NULL, pn544_dev_irq_handler,
-			IRQF_TRIGGER_RISING, "pn544", pn544_dev);
+			IRQF_TRIGGER_RISING | IRQF_ONESHOT, "pn544", pn544_dev);
 	if (ret) {
 		dev_err(&client->dev, "request_irq failed\n");
 		goto err_request_irq_failed;

@@ -130,6 +130,7 @@ config S390
 	select HAVE_ARCH_JUMP_LABEL if !MARCH_G5
 	select HAVE_ARCH_MUTEX_CPU_RELAX
 	select HAVE_ARCH_SECCOMP_FILTER
+<<<<<<< HEAD
 	select HAVE_ARCH_TRACEHOOK
 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE if 64BIT
 	select HAVE_BPF_JIT if 64BIT && PACK_STACK
@@ -169,6 +170,10 @@ config S390
 	select SYSCTL_EXCEPTION_TRACE
 	select USE_GENERIC_SMP_HELPERS if SMP
 	select VIRT_CPU_ACCOUNTING
+=======
+	select HAVE_MOD_ARCH_SPECIFIC
+	select MODULES_USE_ELF_RELA
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h
 
 config SCHED_OMIT_FRAME_POINTER
 	def_bool y

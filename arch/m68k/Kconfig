@@ -19,8 +19,11 @@ config M68K
 	select HAVE_MOD_ARCH_SPECIFIC
 	select MODULES_USE_ELF_REL
 	select MODULES_USE_ELF_RELA
+<<<<<<< HEAD
 	select OLD_SIGSUSPEND3
 	select OLD_SIGACTION
+=======
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h
 
 config RWSEM_GENERIC_SPINLOCK
 	bool

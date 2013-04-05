@@ -25,7 +25,7 @@
 /* Bluetooth HCI core. */
 
 #include <linux/jiffies.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/kmod.h>
 
 #include <linux/types.h>

@@ -72,12 +72,6 @@ typedef uint16 chanspec_t;
 
 #define WL_CHANSPEC_BAND_MASK		0xf000
 #define WL_CHANSPEC_BAND_SHIFT		12
-#ifdef WL_CHANSPEC_BAND_5G
-#undef WL_CHANSPEC_BAND_5G
-#endif
-#ifdef WL_CHANSPEC_BAND_2G
-#undef WL_CHANSPEC_BAND_2G
-#endif
 #define WL_CHANSPEC_BAND_5G		0x1000
 #define WL_CHANSPEC_BAND_2G		0x2000
 #define INVCHANSPEC			255
@@ -476,15 +470,4 @@ extern int wf_mhz2channel(uint freq, uint start_factor);
  */
 extern int wf_channel2mhz(uint channel, uint start_factor);
 
-/**
- * Convert ctl chan and bw to chanspec
- *
- * @param	ctl_ch		channel
- * @param	bw	        bandwidth
- *
- * @return	> 0 if successful or 0 otherwise
- *
- */
-extern uint16 wf_channel2chspec(uint ctl_ch, uint bw);
-
-#endif	/* _bcmwifi_channels_h_ */
+#endif	

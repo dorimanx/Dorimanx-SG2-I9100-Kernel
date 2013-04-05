@@ -49,6 +49,7 @@
 #include <linux/sched.h>
 #include <linux/ptrace.h>
 #include <linux/security.h>
+#include <linux/task_work.h>
 struct linux_binprm;
 
 /**
@@ -547,8 +548,10 @@ static inline void tracehook_report_death(struct task_struct *task,
  */
 static inline void set_notify_resume(struct task_struct *task)
 {
+#ifdef TIF_NOTIFY_RESUME
 	if (!test_and_set_tsk_thread_flag(task, TIF_NOTIFY_RESUME))
 		kick_process(task);
+#endif
 }
 
 /**
@@ -566,6 +569,14 @@ static inline void set_notify_resume(struct task_struct *task)
  */
 static inline void tracehook_notify_resume(struct pt_regs *regs)
 {
+	/*
+	 * The caller just cleared TIF_NOTIFY_RESUME. This barrier
+	 * pairs with task_work_add()->set_notify_resume() after
+	 * hlist_add_head(task->task_works);
+	 */
+	smp_mb__after_clear_bit();
+	if (unlikely(current->task_works))
+		task_work_run();
 }
 #endif	/* TIF_NOTIFY_RESUME */
 

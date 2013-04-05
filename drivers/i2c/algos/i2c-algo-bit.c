@@ -46,7 +46,7 @@
 
 /* ----- global variables ---------------------------------------------	*/
 
-static int bit_test;	/* see if the line-setting functions work	*/
+static bool bit_test;	/* see if the line-setting functions work	*/
 module_param(bit_test, bool, 0);
 MODULE_PARM_DESC(bit_test, "Test the lines of the bus to see if it is stuck");
 

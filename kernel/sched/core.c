@@ -562,6 +562,8 @@ void force_cpu_resched(int cpu)
 }
 
 #ifdef CONFIG_NO_HZ
+
+#if 0 // moved to sched_select_non_idle_cpu
 /*
  * In the semi idle case, use the nearest busy cpu for migrating timers
  * from an idle cpu.  This is good for power-savings.
@@ -589,6 +591,7 @@ unlock:
 	rcu_read_unlock();
 	return cpu;
 }
+#endif
 /*
  * When add_timer_on() enqueues a timer into the timer wheel of an
  * idle CPU then this timer might expire before the next timer event
@@ -643,6 +646,37 @@ static inline bool got_nohz_idle_kick(void)
 }
 
 #endif /* CONFIG_NO_HZ */
+
+/*
+ * This routine returns the cpu which is non-idle. If the local CPU isn't idle
+ * OR all cpus are idle, local cpu is returned back. If local cpu is idle, then
+ * we must look for another CPU which isn't idle.
+ */
+int sched_select_non_idle_cpu(void)
+{
+	struct sched_domain *sd;
+	int cpu = smp_processor_id();
+	int i;
+
+	/* If Current cpu isn't idle, don't migrate anything */
+	if (!idle_cpu(cpu))
+		return cpu;
+
+	rcu_read_lock();
+	for_each_domain(cpu, sd) {
+		for_each_cpu(i, sched_domain_span(sd)) {
+			if (i == cpu)
+				continue;
+			if (!idle_cpu(i)) {
+				cpu = i;
+				goto unlock;
+			}
+		}
+	}
+unlock:
+	rcu_read_unlock();
+	return cpu;
+}
 
 void sched_avg_update(struct rq *rq)
 {

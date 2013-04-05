@@ -1191,7 +1191,7 @@ static void __devexit via_sd_remove(struct pci_dev *pcidev)
 	mmiowb();
 
 	if (sdhost->mrq) {
-		pr_err("%s: Controller removed during "
+		printk(KERN_ERR "%s: Controller removed during "
 			"transfer\n", mmc_hostname(sdhost->mmc));
 
 		/* make sure all DMA is stopped */

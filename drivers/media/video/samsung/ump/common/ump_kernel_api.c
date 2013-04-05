@@ -59,7 +59,24 @@ UMP_KERNEL_API_EXPORT ump_dd_handle ump_dd_handle_create_from_secure_id(ump_secu
 	return (ump_dd_handle)mem;
 }
 
+UMP_KERNEL_API_EXPORT ump_dd_handle ump_dd_handle_get(ump_secure_id secure_id)
+{
+	ump_dd_mem * mem;
 
+	_mali_osk_lock_wait(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
+
+	DBG_MSG(5, ("Getting handle from secure ID. ID: %u\n", secure_id));
+	if (0 != ump_descriptor_mapping_get(device.secure_id_map, (int)secure_id, (void**)&mem))
+	{
+		_mali_osk_lock_signal(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
+		DBG_MSG(1, ("Secure ID not found. ID: %u\n", secure_id));
+		return UMP_DD_HANDLE_INVALID;
+	}
+
+	_mali_osk_lock_signal(device.secure_id_map_lock, _MALI_OSK_LOCKMODE_RW);
+
+	return (ump_dd_handle)mem;
+}
 
 UMP_KERNEL_API_EXPORT unsigned long ump_dd_phys_block_count_get(ump_dd_handle memh)
 {

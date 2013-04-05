@@ -203,7 +203,7 @@ static void mmc_test_prepare_mrq(struct mmc_test_card *test,
 static int mmc_test_busy(struct mmc_command *cmd)
 {
 	return !(cmd->resp[0] & R1_READY_FOR_DATA) ||
-		(R1_CURRENT_STATE(cmd->resp[0]) == R1_STATE_PRG);
+		(R1_CURRENT_STATE(cmd->resp[0]) == 7);
 }
 
 /*
@@ -229,7 +229,7 @@ static int mmc_test_wait_busy(struct mmc_test_card *test)
 		if (!busy && mmc_test_busy(&cmd)) {
 			busy = 1;
 			if (test->card->host->caps & MMC_CAP_WAIT_WHILE_BUSY)
-				pr_info("%s: Warning: Host did not "
+				printk(KERN_INFO "%s: Warning: Host did not "
 					"wait for busy state to end.\n",
 					mmc_hostname(test->card->host));
 		}
@@ -526,7 +526,7 @@ static void mmc_test_print_rate(struct mmc_test_card *test, uint64_t bytes,
 	rate = mmc_test_rate(bytes, &ts);
 	iops = mmc_test_rate(100, &ts); /* I/O ops per sec x 100 */
 
-	pr_info("%s: Transfer of %u sectors (%u%s KiB) took %lu.%09lu "
+	printk(KERN_INFO "%s: Transfer of %u sectors (%u%s KiB) took %lu.%09lu "
 			 "seconds (%u kB/s, %u KiB/s, %u.%02u IOPS)\n",
 			 mmc_hostname(test->card->host), sectors, sectors >> 1,
 			 (sectors & 1 ? ".5" : ""), (unsigned long)ts.tv_sec,
@@ -552,7 +552,7 @@ static void mmc_test_print_avg_rate(struct mmc_test_card *test, uint64_t bytes,
 	rate = mmc_test_rate(tot, &ts);
 	iops = mmc_test_rate(count * 100, &ts); /* I/O ops per sec x 100 */
 
-	pr_info("%s: Transfer of %u x %u sectors (%u x %u%s KiB) took "
+	printk(KERN_INFO "%s: Transfer of %u x %u sectors (%u x %u%s KiB) took "
 			 "%lu.%09lu seconds (%u kB/s, %u KiB/s, "
 			 "%u.%02u IOPS)\n",
 			 mmc_hostname(test->card->host), count, sectors, count,
@@ -1291,7 +1291,7 @@ static int mmc_test_multi_read_high(struct mmc_test_card *test)
 
 static int mmc_test_no_highmem(struct mmc_test_card *test)
 {
-	pr_info("%s: Highmem not configured - test skipped\n",
+	printk(KERN_INFO "%s: Highmem not configured - test skipped\n",
 	       mmc_hostname(test->card->host));
 	return 0;
 }
@@ -1318,7 +1318,7 @@ static int mmc_test_area_map(struct mmc_test_card *test, unsigned long sz,
 				      t->max_seg_sz, &t->sg_len);
 	}
 	if (err)
-		pr_info("%s: Failed to map sg list\n",
+		printk(KERN_INFO "%s: Failed to map sg list\n",
 		       mmc_hostname(test->card->host));
 	return err;
 }
@@ -2231,7 +2231,7 @@ static void mmc_test_run(struct mmc_test_card *test, int testcase)
 {
 	int i, ret;
 
-	pr_info("%s: Starting tests of card %s...\n",
+	printk(KERN_INFO "%s: Starting tests of card %s...\n",
 		mmc_hostname(test->card->host), mmc_card_id(test->card));
 
 	mmc_claim_host(test->card->host);
@@ -2242,14 +2242,14 @@ static void mmc_test_run(struct mmc_test_card *test, int testcase)
 		if (testcase && ((i + 1) != testcase))
 			continue;
 
-		pr_info("%s: Test case %d. %s...\n",
+		printk(KERN_INFO "%s: Test case %d. %s...\n",
 			mmc_hostname(test->card->host), i + 1,
 			mmc_test_cases[i].name);
 
 		if (mmc_test_cases[i].prepare) {
 			ret = mmc_test_cases[i].prepare(test);
 			if (ret) {
-				pr_info("%s: Result: Prepare "
+				printk(KERN_INFO "%s: Result: Prepare "
 					"stage failed! (%d)\n",
 					mmc_hostname(test->card->host),
 					ret);
@@ -2279,25 +2279,25 @@ static void mmc_test_run(struct mmc_test_card *test, int testcase)
 		ret = mmc_test_cases[i].run(test);
 		switch (ret) {
 		case RESULT_OK:
-			pr_info("%s: Result: OK\n",
+			printk(KERN_INFO "%s: Result: OK\n",
 				mmc_hostname(test->card->host));
 			break;
 		case RESULT_FAIL:
-			pr_info("%s: Result: FAILED\n",
+			printk(KERN_INFO "%s: Result: FAILED\n",
 				mmc_hostname(test->card->host));
 			break;
 		case RESULT_UNSUP_HOST:
-			pr_info("%s: Result: UNSUPPORTED "
+			printk(KERN_INFO "%s: Result: UNSUPPORTED "
 				"(by host)\n",
 				mmc_hostname(test->card->host));
 			break;
 		case RESULT_UNSUP_CARD:
-			pr_info("%s: Result: UNSUPPORTED "
+			printk(KERN_INFO "%s: Result: UNSUPPORTED "
 				"(by card)\n",
 				mmc_hostname(test->card->host));
 			break;
 		default:
-			pr_info("%s: Result: ERROR (%d)\n",
+			printk(KERN_INFO "%s: Result: ERROR (%d)\n",
 				mmc_hostname(test->card->host), ret);
 		}
 
@@ -2308,7 +2308,7 @@ static void mmc_test_run(struct mmc_test_card *test, int testcase)
 		if (mmc_test_cases[i].cleanup) {
 			ret = mmc_test_cases[i].cleanup(test);
 			if (ret) {
-				pr_info("%s: Warning: Cleanup "
+				printk(KERN_INFO "%s: Warning: Cleanup "
 					"stage failed! (%d)\n",
 					mmc_hostname(test->card->host),
 					ret);
@@ -2318,7 +2318,7 @@ static void mmc_test_run(struct mmc_test_card *test, int testcase)
 
 	mmc_release_host(test->card->host);
 
-	pr_info("%s: Tests completed.\n",
+	printk(KERN_INFO "%s: Tests completed.\n",
 		mmc_hostname(test->card->host));
 }
 
@@ -2445,33 +2445,7 @@ static const struct file_operations mmc_test_fops_test = {
 	.release	= single_release,
 };
 
-static int mtf_testlist_show(struct seq_file *sf, void *data)
-{
-	int i;
-
-	mutex_lock(&mmc_test_lock);
-
-	for (i = 0; i < ARRAY_SIZE(mmc_test_cases); i++)
-		seq_printf(sf, "%d:\t%s\n", i+1, mmc_test_cases[i].name);
-
-	mutex_unlock(&mmc_test_lock);
-
-	return 0;
-}
-
-static int mtf_testlist_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, mtf_testlist_show, inode->i_private);
-}
-
-static const struct file_operations mmc_test_fops_testlist = {
-	.open		= mtf_testlist_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= single_release,
-};
-
-static void mmc_test_free_dbgfs_file(struct mmc_card *card)
+static void mmc_test_free_file_test(struct mmc_card *card)
 {
 	struct mmc_test_dbgfs_file *df, *dfs;
 
@@ -2488,21 +2462,23 @@ static void mmc_test_free_dbgfs_file(struct mmc_card *card)
 	mutex_unlock(&mmc_test_lock);
 }
 
-static int __mmc_test_register_dbgfs_file(struct mmc_card *card,
-	const char *name, mode_t mode, const struct file_operations *fops)
+static int mmc_test_register_file_test(struct mmc_card *card)
 {
 	struct dentry *file = NULL;
 	struct mmc_test_dbgfs_file *df;
+	int ret = 0;
+
+	mutex_lock(&mmc_test_lock);
 
 	if (card->debugfs_root)
-		file = debugfs_create_file(name, mode, card->debugfs_root,
-			card, fops);
+		file = debugfs_create_file("test", S_IWUSR | S_IRUGO,
+			card->debugfs_root, card, &mmc_test_fops_test);
 
 	if (IS_ERR_OR_NULL(file)) {
 		dev_err(&card->dev,
-			"Can't create %s. Perhaps debugfs is disabled.\n",
-			name);
-		return -ENODEV;
+			"Can't create file. Perhaps debugfs is disabled.\n");
+		ret = -ENODEV;
+		goto err;
 	}
 
 	df = kmalloc(sizeof(struct mmc_test_dbgfs_file), GFP_KERNEL);
@@ -2510,31 +2486,14 @@ static int __mmc_test_register_dbgfs_file(struct mmc_card *card,
 		debugfs_remove(file);
 		dev_err(&card->dev,
 			"Can't allocate memory for internal usage.\n");
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto err;
 	}
 
 	df->card = card;
 	df->file = file;
 
 	list_add(&df->link, &mmc_test_file_test);
-	return 0;
-}
-
-static int mmc_test_register_dbgfs_file(struct mmc_card *card)
-{
-	int ret;
-
-	mutex_lock(&mmc_test_lock);
-
-	ret = __mmc_test_register_dbgfs_file(card, "test", S_IWUSR | S_IRUGO,
-		&mmc_test_fops_test);
-	if (ret)
-		goto err;
-
-	ret = __mmc_test_register_dbgfs_file(card, "testlist", S_IRUGO,
-		&mmc_test_fops_testlist);
-	if (ret)
-		goto err;
 
 err:
 	mutex_unlock(&mmc_test_lock);
@@ -2549,7 +2508,7 @@ static int mmc_test_probe(struct mmc_card *card)
 	if (!mmc_card_mmc(card) && !mmc_card_sd(card))
 		return -ENODEV;
 
-	ret = mmc_test_register_dbgfs_file(card);
+	ret = mmc_test_register_file_test(card);
 	if (ret)
 		return ret;
 
@@ -2561,7 +2520,7 @@ static int mmc_test_probe(struct mmc_card *card)
 static void mmc_test_remove(struct mmc_card *card)
 {
 	mmc_test_free_result(card);
-	mmc_test_free_dbgfs_file(card);
+	mmc_test_free_file_test(card);
 }
 
 static struct mmc_driver mmc_driver = {
@@ -2581,7 +2540,7 @@ static void __exit mmc_test_exit(void)
 {
 	/* Clear stalled data if card is still plugged */
 	mmc_test_free_result(NULL);
-	mmc_test_free_dbgfs_file(NULL);
+	mmc_test_free_file_test(NULL);
 
 	mmc_unregister_driver(&mmc_driver);
 }

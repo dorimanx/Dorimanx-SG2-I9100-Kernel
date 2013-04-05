@@ -196,9 +196,7 @@ typedef BWL_PRE_PACKED_STRUCT struct bcm_event {
 #define WLC_E_SERVICE_FOUND     102     /* desired service found */
 #define WLC_E_GAS_FRAGMENT_RX   103     /* GAS fragment received */
 #define WLC_E_GAS_COMPLETE      104     /* GAS sessions all complete */
-#define WLC_E_P2PO_ADD_DEVICE	105		/* New device found by p2p offload */
-#define WLC_E_P2PO_DEL_DEVICE	106 	/* device has been removed by p2p offload */
-#define WLC_E_LAST              107     /* highest val + 1 for range checking */
+#define WLC_E_LAST              105     /* highest val + 1 for range checking */
 
 
 /* Table of event name strings for UIs and debugging dumps */
@@ -225,6 +223,9 @@ extern const int		bcmevent_names_size;
 #define WLC_E_STATUS_11HQUIET		11	/* 802.11h quiet period started */
 #define WLC_E_STATUS_SUPPRESS		12	/* user disabled scanning (WLC_SET_SCANSUPPRESS) */
 #define WLC_E_STATUS_NOCHANS		13	/* no allowable channels to scan */
+#ifdef BCMCCX
+#define WLC_E_STATUS_CCXFASTRM		14
+#endif
 #define WLC_E_STATUS_CS_ABORT		15	/* abort channel select */
 #define WLC_E_STATUS_ERROR		16	/* request failed due to error */
 
@@ -257,11 +258,21 @@ extern const int		bcmevent_names_size;
 #define WLC_E_RSN_MISMATCH		8	/* STA does not support AP's RSN */
 #define WLC_E_PRUNE_NO_COMMON_RATES	9	/* No rates in common with AP */
 #define WLC_E_PRUNE_BASIC_RATES		10	/* STA does not support all basic rates of BSS */
+#ifdef BCMCCX
+#define WLC_E_PRUNE_CCXFAST_PREVAP	11
+#endif
 #define WLC_E_PRUNE_CIPHER_NA		12	/* BSS's cipher not supported */
 #define WLC_E_PRUNE_KNOWN_STA		13	/* AP is already known to us as a STA */
+#ifdef BCMCCX
+#define WLC_E_PRUNE_CCXFAST_DROAM	14
+#endif
 #define WLC_E_PRUNE_WDS_PEER		15	/* AP is already known to us as a WDS peer */
 #define WLC_E_PRUNE_QBSS_LOAD		16	/* QBSS LOAD - AAC is too low */
 #define WLC_E_PRUNE_HOME_AP		17	/* prune home AP */
+#ifdef BCMCCX
+#define WLC_E_PRUNE_AP_BLOCKED		18
+#define WLC_E_PRUNE_NO_DIAG_SUPPORT	19
+#endif
 
 /* WPA failure reason codes carried in the WLC_E_PSK_SUP event */
 #define WLC_E_SUP_OTHER			0	/* Other reason */
@@ -336,33 +347,6 @@ typedef struct wl_event_data_if {
 #define WLC_E_TDLS_PEER_CONNECTED		1
 #define WLC_E_TDLS_PEER_DISCONNECTED	2
 
-/* GAS event data */
-typedef BWL_PRE_PACKED_STRUCT struct wl_event_gas {
-	uint16	channel;		/* channel of GAS protocol */
-	uint8	dialog_token;	/* GAS dialog token */
-	uint8	fragment_id;	/* fragment id */
-	uint16	status_code;	/* status code on GAS completion */
-	uint16 	data_len;		/* length of data to follow */
-	uint8	data[1];		/* variable length specified by data_len */
-} BWL_POST_PACKED_STRUCT wl_event_gas_t;
-
-/* service discovery TLV */
-typedef BWL_PRE_PACKED_STRUCT struct wl_sd_tlv {
-	uint16	length;			/* length of response_data */
-	uint8	protocol;		/* service protocol type */
-	uint8	transaction_id;		/* service transaction id */
-	uint8	status_code;		/* status code */
-	uint8	data[1];		/* response data */
-} BWL_POST_PACKED_STRUCT wl_sd_tlv_t;
-
-/* service discovery event data */
-typedef BWL_PRE_PACKED_STRUCT struct wl_event_sd {
-	uint16	channel;		/* channel */
-	uint8	count;			/* number of tlvs */
-	wl_sd_tlv_t	tlv[1];		/* service discovery TLV */
-} BWL_POST_PACKED_STRUCT wl_event_sd_t;
-
-/* This marks the end of a packed structure section. */
 #include <packed_section_end.h>
 
 #endif /* _BCMEVENT_H_ */

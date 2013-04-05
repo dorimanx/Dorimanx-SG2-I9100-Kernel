@@ -22,7 +22,7 @@ config BCM43241
 config BCMDHD_FW_PATH
 	depends on WLAN
 	string "Firmware path"
-	default "/system/vendor/firmware/fw_bcmdhd.bin"
+	default "/system/etc/firmware/fw_bcmdhd.bin"
 	---help---
 	  Path to the firmware file.
 

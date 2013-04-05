@@ -1520,6 +1520,12 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 			log everything. Information is printed at KERN_DEBUG
 			so loglevel=8 may also need to be specified.
 
+	module.sig_enforce
+			[KNL] When CONFIG_MODULE_SIG is set, this means that
+			modules without (valid) signatures will fail to load.
+			Note that if CONFIG_MODULE_SIG_ENFORCE is set, that
+			is always true, so this option does nothing.
+
 	mousedev.tap_time=
 			[MOUSE] Maximum time between finger touching and
 			leaving touchpad surface for touch to be considered
@@ -1794,6 +1800,12 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 
 	nomfgpt		[X86-32] Disable Multi-Function General Purpose
 			Timer usage (for AMD Geode machines).
+
+	nonmi_ipi	[X86] Disable using NMI IPIs during panic/reboot to
+			shutdown the other cpus.  Instead use the REBOOT_VECTOR
+			irq.
+
+	nomodule	Disable module load
 
 	nopat		[X86] Disable PAT (page attribute table extension of
 			pagetables) support.
@@ -2415,9 +2427,6 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 
 	smart2=		[HW]
 			Format: <io1>[,<io2>[,...,<io8>]]
-
-	smp-alt-once	[X86-32,SMP] On a hotplug CPU system, only
-			attempt to substitute SMP alternatives once at boot.
 
 	smsc-ircc2.nopnp	[HW] Don't use PNP to discover SMC devices
 	smsc-ircc2.ircc_cfg=	[HW] Device configuration I/O port

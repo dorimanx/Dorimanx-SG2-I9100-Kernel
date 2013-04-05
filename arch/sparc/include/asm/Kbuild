@@ -16,3 +16,13 @@ header-y += traps.h
 header-y += uctx.h
 header-y += utrap.h
 header-y += watchdog.h
+<<<<<<< HEAD
+=======
+
+generic-y += div64.h
+generic-y += local64.h
+generic-y += irq_regs.h
+generic-y += local.h
+generic-y += module.h
+generic-y += word-at-a-time.h
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h

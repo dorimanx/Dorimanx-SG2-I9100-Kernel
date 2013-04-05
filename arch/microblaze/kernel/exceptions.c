@@ -17,7 +17,7 @@
 #include <linux/signal.h>
 #include <linux/sched.h>
 #include <linux/kallsyms.h>
-#include <linux/module.h>
+#include <linux/export.h>
 
 #include <asm/exceptions.h>
 #include <asm/entry.h>		/* For KM CPU var */

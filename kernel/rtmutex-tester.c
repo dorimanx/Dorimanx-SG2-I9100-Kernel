@@ -8,7 +8,7 @@
  */
 #include <linux/device.h>
 #include <linux/kthread.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/sched.h>
 #include <linux/sched/rt.h>
 #include <linux/spinlock.h>

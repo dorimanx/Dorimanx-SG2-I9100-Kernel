@@ -1,5 +1,5 @@
 #include <linux/kernel.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/uaccess.h>
 
 #include <asm/word-at-a-time.h>

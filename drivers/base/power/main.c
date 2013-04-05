@@ -19,7 +19,7 @@
 
 #include <linux/device.h>
 #include <linux/kallsyms.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/mutex.h>
 #include <linux/pm.h>
 #include <linux/pm_runtime.h>

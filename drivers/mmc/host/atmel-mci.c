@@ -55,31 +55,7 @@ enum atmel_mci_state {
 	STATE_SENDING_DATA,
 	STATE_DATA_BUSY,
 	STATE_SENDING_STOP,
-	STATE_END_REQUEST,
-};
-
-enum atmci_xfer_dir {
-	XFER_RECEIVE = 0,
-	XFER_TRANSMIT,
-};
-
-enum atmci_pdc_buf {
-	PDC_FIRST_BUF = 0,
-	PDC_SECOND_BUF,
-};
-
-struct atmel_mci_caps {
-	bool    has_dma;
-	bool    has_pdc;
-	bool    has_cfg_reg;
-	bool    has_cstor_reg;
-	bool    has_highspeed;
-	bool    has_rwproof;
-	bool	has_odd_clk_div;
-	bool	has_bad_data_ordering;
-	bool	need_reset_after_xfer;
-	bool	need_blksz_mul_4;
-	bool	need_notbusy_for_read_ops;
+	STATE_DATA_ERROR,
 };
 
 struct atmel_mci_dma {
@@ -1339,14 +1315,24 @@ static void atmci_tasklet_func(unsigned long priv)
 						EVENT_DATA_COMPLETE))
 				break;
 
-			if (host->caps.need_notbusy_for_read_ops ||
-			   (host->data->flags & MMC_DATA_WRITE)) {
-				atmci_writel(host, ATMCI_IER, ATMCI_NOTBUSY);
-				state = STATE_WAITING_NOTBUSY;
-			} else if (host->mrq->stop) {
-				atmci_writel(host, ATMCI_IER, ATMCI_CMDRDY);
-				atmci_send_stop_cmd(host, data);
-				state = STATE_SENDING_STOP;
+			host->data = NULL;
+			atmci_set_completed(host, EVENT_DATA_COMPLETE);
+			status = host->data_status;
+			if (unlikely(status & ATMCI_DATA_ERROR_FLAGS)) {
+				if (status & MCI_DTOE) {
+					dev_dbg(&host->pdev->dev,
+							"data timeout error\n");
+					data->error = -ETIMEDOUT;
+				} else if (status & MCI_DCRCE) {
+					dev_dbg(&host->pdev->dev,
+							"data CRC error\n");
+					data->error = -EILSEQ;
+				} else {
+					dev_dbg(&host->pdev->dev,
+						"data FIFO error (status=%08x)\n",
+						status);
+					data->error = -EIO;
+				}
 			} else {
 				data->bytes_xfered = data->blocks * data->blksz;
 				data->error = 0;
@@ -1766,63 +1752,9 @@ static void atmci_configure_dma(struct atmel_mci *host)
 					"Using %s for DMA transfers\n",
 					dma_chan_name(host->dma.chan));
 }
-
-/*
- * HSMCI (High Speed MCI) module is not fully compatible with MCI module.
- * HSMCI provides DMA support and a new config register but no more supports
- * PDC.
- */
-static void __init atmci_get_cap(struct atmel_mci *host)
-{
-	unsigned int version;
-
-	version = atmci_get_version(host);
-	dev_info(&host->pdev->dev,
-			"version: 0x%x\n", version);
-
-	host->caps.has_dma = 0;
-	host->caps.has_pdc = 1;
-	host->caps.has_cfg_reg = 0;
-	host->caps.has_cstor_reg = 0;
-	host->caps.has_highspeed = 0;
-	host->caps.has_rwproof = 0;
-	host->caps.has_odd_clk_div = 0;
-	host->caps.has_bad_data_ordering = 1;
-	host->caps.need_reset_after_xfer = 1;
-	host->caps.need_blksz_mul_4 = 1;
-	host->caps.need_notbusy_for_read_ops = 0;
-
-	/* keep only major version number */
-	switch (version & 0xf00) {
-	case 0x500:
-		host->caps.has_odd_clk_div = 1;
-	case 0x400:
-	case 0x300:
-#ifdef CONFIG_AT_HDMAC
-		host->caps.has_dma = 1;
 #else
 static void atmci_configure_dma(struct atmel_mci *host) {}
 #endif
-		host->caps.has_pdc = 0;
-		host->caps.has_cfg_reg = 1;
-		host->caps.has_cstor_reg = 1;
-		host->caps.has_highspeed = 1;
-	case 0x200:
-		host->caps.has_rwproof = 1;
-		host->caps.need_blksz_mul_4 = 0;
-		host->caps.need_notbusy_for_read_ops = 1;
-	case 0x100:
-		host->caps.has_bad_data_ordering = 0;
-		host->caps.need_reset_after_xfer = 0;
-	case 0x0:
-		break;
-	default:
-		host->caps.has_pdc = 0;
-		dev_warn(&host->pdev->dev,
-				"Unmanaged mci version, set minimum capabilities\n");
-		break;
-	}
-}
 
 static int __init atmci_probe(struct platform_device *pdev)
 {

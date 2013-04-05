@@ -9,7 +9,7 @@
  * Copyright (C) 2004 Thiemo Seufer
  */
 #include <linux/errno.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/sched.h>
 #include <linux/tick.h>
 #include <linux/kernel.h>

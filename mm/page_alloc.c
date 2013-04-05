@@ -204,7 +204,7 @@ static char * const zone_names[MAX_NR_ZONES] = {
 	 "Movable",
 };
 
-int min_free_kbytes = 4096;
+int min_free_kbytes = 8192;
 int min_free_order_shift = 4;
 
 static unsigned long __meminitdata nr_kernel_pages;

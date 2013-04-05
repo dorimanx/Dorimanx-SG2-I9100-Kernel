@@ -158,6 +158,9 @@ config LZO_COMPRESS
 config LZO_DECOMPRESS
 	tristate
 
+config LZ4_DECOMPRESS
+	tristate
+
 source "lib/xz/Kconfig"
 
 #
@@ -182,6 +185,9 @@ config DECOMPRESS_LZO
 	select LZO_DECOMPRESS
 	tristate
 
+config DECOMPRESS_LZ4 
+	select LZ4_DECOMPRESS 
+	tristate
 #
 # Generic allocator support is selected if needed
 #

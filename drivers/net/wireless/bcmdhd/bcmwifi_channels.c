@@ -997,58 +997,7 @@ wf_chspec_ctlchspec(chanspec_t chspec)
 	return ctl_chspec;
 }
 
-/* return chanspec given control channel and bandwidth
- * return 0 on error
- */
-uint16
-wf_channel2chspec(uint ctl_ch, uint bw)
-{
-	uint16 chspec;
-	const uint8 *center_ch = NULL;
-	int num_ch = 0;
-	int sb = -1;
-	int i = 0;
-
-	chspec = ((ctl_ch <= CH_MAX_2G_CHANNEL) ? WL_CHANSPEC_BAND_2G : WL_CHANSPEC_BAND_5G);
-
-	chspec |= bw;
-
-	if (bw == WL_CHANSPEC_BW_40) {
-		center_ch = wf_5g_40m_chans;
-		num_ch = WF_NUM_5G_40M_CHANS;
-		bw = 40;
-	} else if (bw == WL_CHANSPEC_BW_80) {
-		center_ch = wf_5g_80m_chans;
-		num_ch = WF_NUM_5G_80M_CHANS;
-		bw = 80;
-	} else if (bw == WL_CHANSPEC_BW_160) {
-		center_ch = wf_5g_160m_chans;
-		num_ch = WF_NUM_5G_160M_CHANS;
-		bw = 160;
-	} else if (bw == WL_CHANSPEC_BW_20) {
-		chspec |= ctl_ch;
-		return chspec;
-	} else {
-		return 0;
-	}
-
-	for (i = 0; i < num_ch; i ++) {
-		sb = channel_to_sb(center_ch[i], ctl_ch, bw);
-		if (sb >= 0) {
-			chspec |= center_ch[i];
-			chspec |= (sb << WL_CHANSPEC_CTL_SB_SHIFT);
-			break;
-		}
-	}
-
-	/* check for no matching sb/center */
-	if (sb < 0) {
-		return 0;
-	}
-
-	return chspec;
-}
-#endif /* D11AC_IOTYPES */
+#endif 
 
 /*
  * This function returns the chanspec for the primary 40MHz of an 80MHz channel.

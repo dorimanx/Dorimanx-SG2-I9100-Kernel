@@ -57,7 +57,6 @@ static bool si_buscore_prep(si_info_t *sii, uint bustype, uint devid, void *sdh)
 static bool si_buscore_setup(si_info_t *sii, chipcregs_t *cc, uint bustype, uint32 savewin,
 	uint *origidx, void *regs);
 
-
 /* global variable to indicate reservation/release of gpio's */
 static uint32 si_gpioreservation = 0;
 
@@ -108,7 +107,7 @@ si_kattach(osl_t *osh)
 	static bool ksii_attached = FALSE;
 
 	if (!ksii_attached) {
-		void *regs;
+		void *regs = NULL;
 		regs = REG_MAP(SI_ENUM_BASE, SI_CORE_SIZE);
 
 		if (si_doattach(&ksii, BCM4710_DEVICE_ID, osh, regs,

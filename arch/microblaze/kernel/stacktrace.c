@@ -13,7 +13,7 @@
 #include <linux/stacktrace.h>
 #include <linux/thread_info.h>
 #include <linux/ptrace.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <asm/unwind.h>
 
 void save_stack_trace(struct stack_trace *trace)

@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2010-2012 ARM Limited. All rights reserved.
- *
+ * 
  * This program is free software and is provided to you under the terms of the GNU General Public License version 2
  * as published by the Free Software Foundation, and any use by you of this program is subject to the terms of such GNU licence.
- *
+ * 
  * A copy of the licence is included with the program, and can also be obtained from Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
@@ -79,6 +79,8 @@ ump_memory_backend * ump_os_memory_backend_create(const int max_allocation)
 	backend->stat = os_stat;
 	backend->pre_allocate_physical_check = NULL;
 	backend->adjust_to_mali_phys = NULL;
+	backend->get = NULL;
+	backend->set = NULL;
 
 	return backend;
 }
@@ -136,9 +138,7 @@ static int os_allocate(void* ctx, ump_dd_mem * descriptor)
 		return 0; /* failure */
 	}
 
-	while (left > 0 &&
-		((info->num_pages_allocated + pages_allocated)
-					< info->num_pages_max))
+	while (left > 0)
 	{
 		struct page * new_page;
 
@@ -147,16 +147,17 @@ static int os_allocate(void* ctx, ump_dd_mem * descriptor)
 SAMSUNGROM
 			new_page = alloc_page(GFP_KERNEL | __GFP_ZERO | __GFP_NOWARN);
 else
-			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_REPEAT | __GFP_NOWARN);
+			new_page = alloc_page(GFP_KERNEL | __GFP_ZERO | __GFP_NORETRY | __GFP_NOWARN );
 		} else
 		{
 SAMSUNGROM
 			new_page = alloc_page(GFP_KERNEL | __GFP_ZERO | __GFP_NOWARN | __GFP_COLD);
 else
-			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_REPEAT | __GFP_NOWARN | __GFP_COLD);
+			new_page = alloc_page(GFP_KERNEL | __GFP_ZERO | __GFP_NORETRY | __GFP_NOWARN | __GFP_COLD);
 		}
 		if (NULL == new_page)
 		{
+			MSG_ERR(("UMP memory allocated: Out of Memory !!\n"));
 			break;
 		}
 
@@ -192,6 +193,8 @@ else
 	if (left)
 	{
 		DBG_MSG(1, ("Failed to allocate needed pages\n"));
+		DBG_MSG(1, ("UMP memory allocated: %d kB  Configured maximum OS memory usage: %d kB\n",
+				 (pages_allocated * _MALI_OSK_CPU_PAGE_SIZE)/1024, (info->num_pages_max* _MALI_OSK_CPU_PAGE_SIZE)/1024));
 
 		while(pages_allocated)
 		{

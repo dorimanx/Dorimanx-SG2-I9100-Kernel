@@ -140,8 +140,6 @@ request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
 extern int __must_check
 request_any_context_irq(unsigned int irq, irq_handler_t handler,
 			unsigned long flags, const char *name, void *dev_id);
-
-extern void exit_irq_thread(void);
 #else
 
 extern int __must_check
@@ -168,8 +166,6 @@ request_any_context_irq(unsigned int irq, irq_handler_t handler,
 {
 	return request_irq(irq, handler, flags, name, dev_id);
 }
-
-static inline void exit_irq_thread(void) { }
 #endif
 
 extern void free_irq(unsigned int, void *);
