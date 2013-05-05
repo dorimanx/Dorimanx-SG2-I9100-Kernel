@@ -177,6 +177,24 @@ if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
 	${KERNELDIR}/mkshbootimg.py ${KERNELDIR}/zImage ${KERNELDIR}/arch/arm/boot/zImage ${KERNELDIR}/payload.tar.xz ${KERNELDIR}/recovery.tar.xz;
 
 	# copy all needed to ready kernel folder
+<<<<<<< HEAD
+	cp ${KERNELDIR}/.config ${KERNELDIR}/arch/arm/configs/${KERNEL_CONFIG}
+	cp ${KERNELDIR}/.config ${KERNELDIR}/READY-JB/
+	rm ${KERNELDIR}/READY-JB/boot/zImage
+	rm ${KERNELDIR}/READY-JB/Kernel_*
+	stat ${KERNELDIR}/zImage
+<<<<<<< HEAD
+	GETVER=`grep 'Siyah-.*-V' arch/arm/configs/${KERNEL_CONFIG} | sed 's/.*".//g' | cut -c 1-19`
+	cp ${KERNELDIR}/zImage /${KERNELDIR}/READY-JB/boot/
+	cd ${KERNELDIR}/READY-JB/
+	zip -r Kernel_${GETVER}-`date +"[%H-%M]-[%d-%m]-JB-CM-AOKP-SGII-PWR-CORE"`.zip .
+=======
+	GETVER=`grep 'Siyah-.*-V' arch/arm/configs/${KERNEL_CONFIG} | sed 's/.*".//g' | sed 's/-J.*//g'`
+	cp ${KERNELDIR}/zImage /${KERNELDIR}/READY-JB/boot/
+	cd ${KERNELDIR}/READY-JB/
+	zip -r Kernel_${GETVER}-`date +"[%H-%M]-[%d-%m]-JB-SGII-PWR-CORE"`.zip .
+>>>>>>> upstream/master-jelly-bean
+=======
 	cp ${KERNELDIR}/.config ${KERNELDIR}/arch/arm/configs/${KERNEL_CONFIG};
 	cp ${KERNELDIR}/.config ${KERNELDIR}/READY-JB/;
 	rm ${KERNELDIR}/READY-JB/boot/zImage;
@@ -186,6 +204,7 @@ if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
 	cd ${KERNELDIR}/READY-JB/;
 	zip -r Kernel_${GETVER}-`date +"[%H-%M]-[%d-%m]-JB-SGII-PWR-CORE"`.zip .;
 
+>>>>>>> upstream/master-jelly-bean
 	STATUS=`adb get-state`;
 	if [ "$STATUS" == "device" ]; then
 		read -p "push kernel to android (y/n)?";
