@@ -628,8 +628,8 @@ int vectors_user_mapping(void)
 	struct mm_struct *mm = current->mm;
 	return install_special_mapping(mm, 0xffff0000, PAGE_SIZE,
 				       VM_READ | VM_EXEC |
-				       VM_MAYREAD | VM_MAYEXEC | VM_RESERVED,
-				       NULL);
+				       VM_MAYREAD | VM_MAYEXEC | VM_DONTEXPAND |
+				       VM_DONTDUMP, NULL);
 }
 
 const char *arch_vma_name(struct vm_area_struct *vma)

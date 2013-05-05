@@ -67,8 +67,14 @@
 #include <linux/syscalls.h>
 #include <linux/capability.h>
 #include <linux/fs_struct.h>
+#include <linux/compat.h>
 
 #include "audit.h"
+
+/* flags stating the success for a syscall */
+#define AUDITSC_INVALID 0
+#define AUDITSC_SUCCESS 1
+#define AUDITSC_FAILURE 2
 
 /* AUDIT_NAMES is the number of slots we reserve in the audit_context
  * for saving names from getname().  If we get more names we will allocate
@@ -1743,7 +1749,7 @@ static void audit_log_exit(struct audit_context *context, struct task_struct *ts
  *
  * Called from copy_process and do_exit
  */
-void audit_free(struct task_struct *tsk)
+void __audit_free(struct task_struct *tsk)
 {
 	struct audit_context *context;
 
@@ -1781,7 +1787,7 @@ void audit_free(struct task_struct *tsk)
  * will only be written if another part of the kernel requests that it
  * be written).
  */
-void audit_syscall_entry(int arch, int major,
+void __audit_syscall_entry(int arch, int major,
 			 unsigned long a1, unsigned long a2,
 			 unsigned long a3, unsigned long a4)
 {
@@ -1856,30 +1862,9 @@ void audit_syscall_entry(int arch, int major,
 	context->ppid       = 0;
 }
 
-void audit_finish_fork(struct task_struct *child)
-{
-	struct audit_context *ctx = current->audit_context;
-	struct audit_context *p = child->audit_context;
-	if (!p || !ctx)
-		return;
-	if (!ctx->in_syscall || ctx->current_state != AUDIT_RECORD_CONTEXT)
-		return;
-	p->arch = ctx->arch;
-	p->major = ctx->major;
-	memcpy(p->argv, ctx->argv, sizeof(ctx->argv));
-	p->ctime = ctx->ctime;
-	p->dummy = ctx->dummy;
-	p->in_syscall = ctx->in_syscall;
-	p->filterkey = kstrdup(ctx->filterkey, GFP_KERNEL);
-	p->ppid = current->pid;
-	p->prio = ctx->prio;
-	p->current_state = ctx->current_state;
-}
-
 /**
  * audit_syscall_exit - deallocate audit context after a system call
- * @valid: success/failure flag
- * @return_code: syscall return value
+ * @pt_regs: syscall registers
  *
  * Tear down after system call.  If the audit context has been marked as
  * auditable (either because of the AUDIT_RECORD_CONTEXT state from
@@ -1887,13 +1872,17 @@ void audit_finish_fork(struct task_struct *child)
  * message), then write out the syscall information.  In call cases,
  * free the names stored from getname().
  */
-void audit_syscall_exit(int valid, long return_code)
+void __audit_syscall_exit(int success, long return_code)
 {
 	struct task_struct *tsk = current;
 	struct audit_context *context;
 
-	context = audit_get_context(tsk, valid, return_code);
+	if (success)
+		success = AUDITSC_SUCCESS;
+	else
+		success = AUDITSC_FAILURE;
 
+	context = audit_get_context(tsk, success, return_code);
 	if (likely(!context))
 		return;
 
@@ -2302,16 +2291,16 @@ int auditsc_get_stamp(struct audit_context *ctx,
 static atomic_t session_id = ATOMIC_INIT(0);
 
 /**
- * audit_set_loginuid - set a task's audit_context loginuid
- * @task: task whose audit context is being modified
+ * audit_set_loginuid - set current task's audit_context loginuid
  * @loginuid: loginuid value
  *
  * Returns 0.
  *
  * Called (set) from fs/proc/base.c::proc_loginuid_write().
  */
-int audit_set_loginuid(struct task_struct *task, uid_t loginuid)
+int audit_set_loginuid(uid_t loginuid)
 {
+	struct task_struct *task = current;
 	unsigned int sessionid = atomic_inc_return(&session_id);
 	struct audit_context *context = task->audit_context;
 
@@ -2712,13 +2701,16 @@ void audit_core_dumps(long signr)
 	audit_log_end(ab);
 }
 
-void __audit_seccomp(unsigned long syscall)
+void __audit_seccomp(unsigned long syscall, long signr, int code)
 {
 	struct audit_buffer *ab;
 
 	ab = audit_log_start(NULL, GFP_KERNEL, AUDIT_ANOM_ABEND);
-	audit_log_abend(ab, "seccomp", SIGKILL);
+	audit_log_abend(ab, "seccomp", signr);
 	audit_log_format(ab, " syscall=%ld", syscall);
+	audit_log_format(ab, " compat=%d", is_compat_task());
+	audit_log_format(ab, " ip=0x%lx", KSTK_EIP(current));
+	audit_log_format(ab, " code=0x%x", code);
 	audit_log_end(ab);
 }
 

@@ -74,8 +74,12 @@ static inline struct orig_node *orig_hash_find(struct bat_priv *bat_priv,
 {
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_head *head;
+<<<<<<< HEAD
 	struct hlist_node *node;
 	struct orig_node *orig_node, *orig_node_tmp = NULL;
+=======
+	struct batadv_orig_node *orig_node, *orig_node_tmp = NULL;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	int index;
 
 	if (!hash)
@@ -85,8 +89,13 @@ static inline struct orig_node *orig_hash_find(struct bat_priv *bat_priv,
 	head = &hash->table[index];
 
 	rcu_read_lock();
+<<<<<<< HEAD
 	hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
 		if (!compare_eth(orig_node, data))
+=======
+	hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
+		if (!batadv_compare_eth(orig_node, data))
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			continue;
 
 		if (!atomic_inc_not_zero(&orig_node->refcount))

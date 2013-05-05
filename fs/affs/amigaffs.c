@@ -124,6 +124,7 @@ affs_remove_hash(struct inode *dir, struct buffer_head *rem_bh)
 static void
 affs_fix_dcache(struct dentry *dentry, u32 entry_ino)
 {
+<<<<<<< HEAD
 	struct inode *inode = dentry->d_inode;
 	void *data = dentry->d_fsdata;
 	struct list_head *head, *next;
@@ -133,6 +134,11 @@ affs_fix_dcache(struct dentry *dentry, u32 entry_ino)
 	next = head->next;
 	while (next != head) {
 		dentry = list_entry(next, struct dentry, d_alias);
+=======
+	struct dentry *dentry;
+	spin_lock(&inode->i_lock);
+	hlist_for_each_entry(dentry, &inode->i_dentry, d_alias) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		if (entry_ino == (u32)(long)dentry->d_fsdata) {
 			dentry->d_fsdata = data;
 			break;

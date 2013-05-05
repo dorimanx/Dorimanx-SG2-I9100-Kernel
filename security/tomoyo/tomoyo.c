@@ -126,7 +126,7 @@ static int tomoyo_path_symlink(struct path *parent, struct dentry *dentry,
 }
 
 static int tomoyo_path_mknod(struct path *parent, struct dentry *dentry,
-			     int mode, unsigned int dev)
+			     umode_t mode, unsigned int dev)
 {
 	struct path path = { parent->mnt, dentry };
 	int type = TOMOYO_TYPE_CREATE;
@@ -219,8 +219,19 @@ static int tomoyo_path_chroot(struct path *path)
 	return tomoyo_path_perm(TOMOYO_TYPE_CHROOT, path);
 }
 
-static int tomoyo_sb_mount(char *dev_name, struct path *path,
-			   char *type, unsigned long flags, void *data)
+/**
+ * tomoyo_sb_mount - Target for security_sb_mount().
+ *
+ * @dev_name: Name of device file. Maybe NULL.
+ * @path:     Pointer to "struct path".
+ * @type:     Name of filesystem type. Maybe NULL.
+ * @flags:    Mount options.
+ * @data:     Optional data. Maybe NULL.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int tomoyo_sb_mount(const char *dev_name, struct path *path,
+			   const char *type, unsigned long flags, void *data)
 {
 	return tomoyo_mount_permission(dev_name, path, type, flags, data);
 }

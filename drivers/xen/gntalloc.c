@@ -482,7 +482,11 @@ static int gntalloc_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	vma->vm_private_data = gref;
 
+<<<<<<< HEAD
 	vma->vm_flags |= VM_RESERVED;
+=======
+	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
+>>>>>>> 314e51b... mm: kill vma flag VM_RESERVED and mm->reserved_vm counter
 
 	vma->vm_ops = &gntalloc_vmops;
 

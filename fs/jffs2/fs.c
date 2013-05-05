@@ -235,7 +235,7 @@ void jffs2_evict_inode (struct inode *inode)
 
 	D1(printk(KERN_DEBUG "jffs2_evict_inode(): ino #%lu mode %o\n", inode->i_ino, inode->i_mode));
 	truncate_inode_pages(&inode->i_data, 0);
-	end_writeback(inode);
+	clear_inode(inode);
 	jffs2_do_clear_inode(c, f);
 }
 

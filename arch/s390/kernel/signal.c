@@ -57,6 +57,7 @@ typedef struct
  */
 SYSCALL_DEFINE3(sigsuspend, int, history0, int, history1, old_sigset_t, mask)
 {
+<<<<<<< HEAD
 	mask &= _BLOCKABLE;
 	spin_lock_irq(&current->sighand->siglock);
 	current->saved_sigmask = current->blocked;
@@ -69,6 +70,11 @@ SYSCALL_DEFINE3(sigsuspend, int, history0, int, history1, old_sigset_t, mask)
 	set_thread_flag(TIF_RESTORE_SIGMASK);
 
 	return -ERESTARTNOHAND;
+=======
+	sigset_t blocked;
+	siginitset(&blocked, mask);
+	return sigsuspend(&blocked);
+>>>>>>> 68f3f16... new helper: sigsuspend()
 }
 
 SYSCALL_DEFINE3(sigaction, int, sig, const struct old_sigaction __user *, act,

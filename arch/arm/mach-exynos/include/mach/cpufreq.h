@@ -65,6 +65,8 @@ enum cpufreq_lock_ID {
 	DVFS_LOCK_ID_END,
 };
 
+int exynos_cpufreq_get_curfreq(void);
+int exynos_cpufreq_get_maxfreq(void);
 int exynos_cpufreq_get_level(unsigned int freq,
 			unsigned int *level);
 int exynos_find_cpufreq_level_by_volt(unsigned int arm_volt,

@@ -13,6 +13,7 @@
 #include <linux/linkage.h>
 #include <linux/init.h>
 #include <asm/assembler.h>
+#include <asm/errno.h>
 #include <asm/unwind.h>
 
 #include "proc-macros.S"
@@ -31,6 +32,24 @@ ENTRY(v7_flush_icache_all)
 	ALT_UP(mcr	p15, 0, r0, c7, c5, 0)		@ I+BTB cache invalidate
 	mov	pc, lr
 ENDPROC(v7_flush_icache_all)
+
+ /*
+ *     v7_flush_dcache_louis()
+ *
+ *     Flush the D-cache up to the Level of Unification Inner Shareable
+ *
+ *     Corrupted registers: r0-r7, r9-r11 (r6 only in Thumb mode)
+ */
+
+ENTRY(v7_flush_dcache_louis)
+	dmb					@ ensure ordering with previous memory accesses
+	mrc	p15, 1, r0, c0, c0, 1		@ read clidr, r0 = clidr
+	ands	r3, r0, #0xe00000		@ extract LoUIS from clidr
+	mov	r3, r3, lsr #20			@ r3 = LoUIS * 2
+	moveq	pc, lr				@ return if level == 0
+	mov	r10, #0				@ r10 (starting level) = 0
+	b	loop1				@ start flushing cache levels
+ENDPROC(v7_flush_dcache_louis)
 
 /*
  *	v7_flush_dcache_all()
@@ -119,6 +138,24 @@ ENTRY(v7_flush_kern_cache_all)
 	mov	pc, lr
 ENDPROC(v7_flush_kern_cache_all)
 
+ /*
+ *     v7_flush_kern_cache_louis(void)
+ *
+ *     Flush the data cache up to Level of Unification Inner Shareable.
+ *     Invalidate the I-cache to the point of unification.
+ */
+ENTRY(v7_flush_kern_cache_louis)
+ ARM(	stmfd	sp!, {r4-r5, r7, r9-r11, lr}	)
+ THUMB(	stmfd	sp!, {r4-r7, r9-r11, lr}	)
+	bl	v7_flush_dcache_louis
+	mov	r0, #0
+	ALT_SMP(mcr	p15, 0, r0, c7, c1, 0)	@ invalidate I-cache inner shareable
+	ALT_UP(mcr	p15, 0, r0, c7, c5, 0)	@ I+BTB cache invalidate
+ ARM(	ldmfd	sp!, {r4-r5, r7, r9-r11, lr}	)
+ THUMB(	ldmfd	sp!, {r4-r7, r9-r11, lr}	)
+	mov	pc, lr
+ENDPROC(v7_flush_kern_cache_louis)
+
 /*
  *	v7_flush_cache_all()
  *
@@ -198,7 +235,6 @@ ENTRY(v7_coherent_user_range)
 	add	r12, r12, r2
 	cmp	r12, r1
 	blo	2b
-3:
 	mov	r0, #0
 	ALT_SMP(mcr	p15, 0, r0, c7, c1, 6)	@ invalidate BTB Inner Shareable
 	ALT_UP(mcr	p15, 0, r0, c7, c5, 6)	@ invalidate BTB
@@ -208,16 +244,14 @@ ENTRY(v7_coherent_user_range)
 
 /*
  * Fault handling for the cache operation above. If the virtual address in r0
- * isn't mapped, just try the next page.
+ * isn't mapped, fail with -EFAULT.
  */
 9001:
 #ifdef CONFIG_ARM_ERRATA_775420
 	dsb
 #endif
-	mov	r12, r12, lsr #12
-	mov	r12, r12, lsl #12
-	add	r12, r12, #4096
-	b	3b
+	mov	r0, #-EFAULT
+	mov	pc, lr
  UNWIND(.fnend		)
 ENDPROC(v7_coherent_kern_range)
 ENDPROC(v7_coherent_user_range)

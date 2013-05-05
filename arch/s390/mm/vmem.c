@@ -182,19 +182,23 @@ static void vmem_remove_range(unsigned long start, unsigned long size)
 /*
  * Add a backed mem_map array to the virtual mem_map array.
  */
-int __meminit vmemmap_populate(struct page *start, unsigned long nr, int node)
+int __meminit vmemmap_populate(unsigned long start, unsigned long end, int node)
 {
-	unsigned long address, start_addr, end_addr;
+	unsigned long address = start;
 	pgd_t *pg_dir;
 	pud_t *pu_dir;
 	pmd_t *pm_dir;
 	pte_t *pt_dir;
 	int ret = -ENOMEM;
 
+<<<<<<< HEAD
 	start_addr = (unsigned long) start;
 	end_addr = (unsigned long) (start + nr);
 
 	for (address = start_addr; address < end_addr; address += PAGE_SIZE) {
+=======
+	for (address = start; address < end;) {
+>>>>>>> 0aad818... sparse-vmemmap: specify vmemmap population range in bytes
 		pg_dir = pgd_offset_k(address);
 		if (pgd_none(*pg_dir)) {
 			pu_dir = vmem_pud_alloc();
@@ -248,13 +252,20 @@ int __meminit vmemmap_populate(struct page *start, unsigned long nr, int node)
 			pte_val(*pt_dir) = __pa(new_page);
 		}
 	}
-	memset(start, 0, nr * sizeof(struct page));
+	memset((void *)start, 0, end - start);
 	ret = 0;
 out:
-	flush_tlb_kernel_range(start_addr, end_addr);
+	flush_tlb_kernel_range(start, end);
 	return ret;
 }
 
+<<<<<<< HEAD
+=======
+void vmemmap_free(unsigned long start, unsigned long end)
+{
+}
+
+>>>>>>> 0aad818... sparse-vmemmap: specify vmemmap population range in bytes
 /*
  * Add memory segment to the segment list if it doesn't overlap with
  * an already present segment.

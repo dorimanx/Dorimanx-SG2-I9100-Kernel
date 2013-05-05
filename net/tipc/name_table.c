@@ -530,11 +530,10 @@ static void tipc_nameseq_subscribe(struct name_seq *nseq, struct subscription *s
 static struct name_seq *nametbl_find_seq(u32 type)
 {
 	struct hlist_head *seq_head;
-	struct hlist_node *seq_node;
 	struct name_seq *ns;
 
 	seq_head = &table.types[hash(type)];
-	hlist_for_each_entry(ns, seq_node, seq_head, ns_list) {
+	hlist_for_each_entry(ns, seq_head, ns_list) {
 		if (ns->type == type)
 			return ns;
 	}
@@ -930,7 +929,6 @@ static void nametbl_list(struct print_buf *buf, u32 depth_info,
 			 u32 type, u32 lowbound, u32 upbound)
 {
 	struct hlist_head *seq_head;
-	struct hlist_node *seq_node;
 	struct name_seq *seq;
 	int all_types;
 	u32 depth;
@@ -949,9 +947,16 @@ static void nametbl_list(struct print_buf *buf, u32 depth_info,
 		upbound = ~0;
 		for (i = 0; i < tipc_nametbl_size; i++) {
 			seq_head = &table.types[i];
+<<<<<<< HEAD
 			hlist_for_each_entry(seq, seq_node, seq_head, ns_list) {
 				nameseq_list(seq, buf, depth, seq->type,
 					     lowbound, upbound, i);
+=======
+			hlist_for_each_entry(seq, seq_head, ns_list) {
+				ret += nameseq_list(seq, buf + ret, len - ret,
+						   depth, seq->type,
+						   lowbound, upbound, i);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			}
 		}
 	} else {
@@ -963,7 +968,7 @@ static void nametbl_list(struct print_buf *buf, u32 depth_info,
 		nametbl_header(buf, depth);
 		i = hash(type);
 		seq_head = &table.types[i];
-		hlist_for_each_entry(seq, seq_node, seq_head, ns_list) {
+		hlist_for_each_entry(seq, seq_head, ns_list) {
 			if (seq->type == type) {
 				nameseq_list(seq, buf, depth, type,
 					     lowbound, upbound, i);

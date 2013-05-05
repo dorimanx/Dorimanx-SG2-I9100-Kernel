@@ -44,6 +44,7 @@
 #define IRQ_MODE	0x00000012
 #define SVC_MODE	0x00000013
 #define ABT_MODE	0x00000017
+#define HYP_MODE	0x0000001a
 #define UND_MODE	0x0000001b
 #define SYSTEM_MODE	0x0000001f
 #define MODE32_BIT	0x00000010
@@ -189,6 +190,11 @@ static inline int valid_user_regs(struct pt_regs *regs)
 	return 0;
 }
 
+static inline long regs_return_value(struct pt_regs *regs)
+{
+	return regs->ARM_r0;
+}
+
 #define instruction_pointer(regs)	(regs)->ARM_pc
 
 #ifdef CONFIG_SMP
@@ -240,6 +246,11 @@ static inline unsigned long regs_get_register(struct pt_regs *regs,
 
 /* Valid only for Kernel mode traps. */
 static inline unsigned long kernel_stack_pointer(struct pt_regs *regs)
+{
+	return regs->ARM_sp;
+}
+
+static inline unsigned long user_stack_pointer(struct pt_regs *regs)
 {
 	return regs->ARM_sp;
 }

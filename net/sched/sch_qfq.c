@@ -203,6 +203,144 @@ out:
 	return index;
 }
 
+<<<<<<< HEAD
+=======
+static void qfq_deactivate_agg(struct qfq_sched *, struct qfq_aggregate *);
+static void qfq_activate_agg(struct qfq_sched *, struct qfq_aggregate *,
+			     enum update_reason);
+
+static void qfq_init_agg(struct qfq_sched *q, struct qfq_aggregate *agg,
+			 u32 lmax, u32 weight)
+{
+	INIT_LIST_HEAD(&agg->active);
+	hlist_add_head(&agg->nonfull_next, &q->nonfull_aggs);
+
+	agg->lmax = lmax;
+	agg->class_weight = weight;
+}
+
+static struct qfq_aggregate *qfq_find_agg(struct qfq_sched *q,
+					  u32 lmax, u32 weight)
+{
+	struct qfq_aggregate *agg;
+
+	hlist_for_each_entry(agg, &q->nonfull_aggs, nonfull_next)
+		if (agg->lmax == lmax && agg->class_weight == weight)
+			return agg;
+
+	return NULL;
+}
+
+
+/* Update aggregate as a function of the new number of classes. */
+static void qfq_update_agg(struct qfq_sched *q, struct qfq_aggregate *agg,
+			   int new_num_classes)
+{
+	u32 new_agg_weight;
+
+	if (new_num_classes == q->max_agg_classes)
+		hlist_del_init(&agg->nonfull_next);
+
+	if (agg->num_classes > new_num_classes &&
+	    new_num_classes == q->max_agg_classes - 1) /* agg no more full */
+		hlist_add_head(&agg->nonfull_next, &q->nonfull_aggs);
+
+	agg->budgetmax = new_num_classes * agg->lmax;
+	new_agg_weight = agg->class_weight * new_num_classes;
+	agg->inv_w = ONE_FP/new_agg_weight;
+
+	if (agg->grp == NULL) {
+		int i = qfq_calc_index(agg->inv_w, agg->budgetmax,
+				       q->min_slot_shift);
+		agg->grp = &q->groups[i];
+	}
+
+	q->wsum +=
+		(int) agg->class_weight * (new_num_classes - agg->num_classes);
+
+	agg->num_classes = new_num_classes;
+}
+
+/* Add class to aggregate. */
+static void qfq_add_to_agg(struct qfq_sched *q,
+			   struct qfq_aggregate *agg,
+			   struct qfq_class *cl)
+{
+	cl->agg = agg;
+
+	qfq_update_agg(q, agg, agg->num_classes+1);
+	if (cl->qdisc->q.qlen > 0) { /* adding an active class */
+		list_add_tail(&cl->alist, &agg->active);
+		if (list_first_entry(&agg->active, struct qfq_class, alist) ==
+		    cl && q->in_serv_agg != agg) /* agg was inactive */
+			qfq_activate_agg(q, agg, enqueue); /* schedule agg */
+	}
+}
+
+static struct qfq_aggregate *qfq_choose_next_agg(struct qfq_sched *);
+
+static void qfq_destroy_agg(struct qfq_sched *q, struct qfq_aggregate *agg)
+{
+	if (!hlist_unhashed(&agg->nonfull_next))
+		hlist_del_init(&agg->nonfull_next);
+	if (q->in_serv_agg == agg)
+		q->in_serv_agg = qfq_choose_next_agg(q);
+	kfree(agg);
+}
+
+/* Deschedule class from within its parent aggregate. */
+static void qfq_deactivate_class(struct qfq_sched *q, struct qfq_class *cl)
+{
+	struct qfq_aggregate *agg = cl->agg;
+
+
+	list_del(&cl->alist); /* remove from RR queue of the aggregate */
+	if (list_empty(&agg->active)) /* agg is now inactive */
+		qfq_deactivate_agg(q, agg);
+}
+
+/* Remove class from its parent aggregate. */
+static void qfq_rm_from_agg(struct qfq_sched *q, struct qfq_class *cl)
+{
+	struct qfq_aggregate *agg = cl->agg;
+
+	cl->agg = NULL;
+	if (agg->num_classes == 1) { /* agg being emptied, destroy it */
+		qfq_destroy_agg(q, agg);
+		return;
+	}
+	qfq_update_agg(q, agg, agg->num_classes-1);
+}
+
+/* Deschedule class and remove it from its parent aggregate. */
+static void qfq_deact_rm_from_agg(struct qfq_sched *q, struct qfq_class *cl)
+{
+	if (cl->qdisc->q.qlen > 0) /* class is active */
+		qfq_deactivate_class(q, cl);
+
+	qfq_rm_from_agg(q, cl);
+}
+
+/* Move class to a new aggregate, matching the new class weight and/or lmax */
+static int qfq_change_agg(struct Qdisc *sch, struct qfq_class *cl, u32 weight,
+			   u32 lmax)
+{
+	struct qfq_sched *q = qdisc_priv(sch);
+	struct qfq_aggregate *new_agg = qfq_find_agg(q, lmax, weight);
+
+	if (new_agg == NULL) { /* create new aggregate */
+		new_agg = kzalloc(sizeof(*new_agg), GFP_ATOMIC);
+		if (new_agg == NULL)
+			return -ENOBUFS;
+		qfq_init_agg(q, new_agg, lmax, weight);
+	}
+	qfq_deact_rm_from_agg(q, cl);
+	qfq_add_to_agg(q, new_agg, cl);
+
+	return 0;
+}
+
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 static int qfq_change_class(struct Qdisc *sch, u32 classid, u32 parentid,
 			    struct nlattr **tca, unsigned long *arg)
 {
@@ -461,14 +599,13 @@ static void qfq_walk(struct Qdisc *sch, struct qdisc_walker *arg)
 {
 	struct qfq_sched *q = qdisc_priv(sch);
 	struct qfq_class *cl;
-	struct hlist_node *n;
 	unsigned int i;
 
 	if (arg->stop)
 		return;
 
 	for (i = 0; i < q->clhash.hashsize; i++) {
-		hlist_for_each_entry(cl, n, &q->clhash.hash[i], common.hnode) {
+		hlist_for_each_entry(cl, &q->clhash.hash[i], common.hnode) {
 			if (arg->count < arg->skip) {
 				arg->count++;
 				continue;
@@ -998,6 +1135,34 @@ static void qfq_qlen_notify(struct Qdisc *sch, unsigned long arg)
 		qfq_deactivate_class(q, cl);
 }
 
+<<<<<<< HEAD
+=======
+static unsigned int qfq_drop_from_slot(struct qfq_sched *q,
+				       struct hlist_head *slot)
+{
+	struct qfq_aggregate *agg;
+	struct qfq_class *cl;
+	unsigned int len;
+
+	hlist_for_each_entry(agg, slot, next) {
+		list_for_each_entry(cl, &agg->active, alist) {
+
+			if (!cl->qdisc->ops->drop)
+				continue;
+
+			len = cl->qdisc->ops->drop(cl->qdisc);
+			if (len > 0) {
+				if (cl->qdisc->q.qlen == 0)
+					qfq_deactivate_class(q, cl);
+
+				return len;
+			}
+		}
+	}
+	return 0;
+}
+
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 static unsigned int qfq_drop(struct Qdisc *sch)
 {
 	struct qfq_sched *q = qdisc_priv(sch);
@@ -1057,6 +1222,7 @@ static void qfq_reset_qdisc(struct Qdisc *sch)
 	struct qfq_sched *q = qdisc_priv(sch);
 	struct qfq_group *grp;
 	struct qfq_class *cl;
+<<<<<<< HEAD
 	struct hlist_node *n, *tmp;
 	unsigned int i, j;
 
@@ -1065,6 +1231,13 @@ static void qfq_reset_qdisc(struct Qdisc *sch)
 		for (j = 0; j < QFQ_MAX_SLOTS; j++) {
 			hlist_for_each_entry_safe(cl, n, tmp,
 						  &grp->slots[j], next) {
+=======
+	unsigned int i;
+
+	for (i = 0; i < q->clhash.hashsize; i++) {
+		hlist_for_each_entry(cl, &q->clhash.hash[i], common.hnode) {
+			if (cl->qdisc->q.qlen > 0)
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 				qfq_deactivate_class(q, cl);
 			}
 		}
@@ -1081,13 +1254,13 @@ static void qfq_destroy_qdisc(struct Qdisc *sch)
 {
 	struct qfq_sched *q = qdisc_priv(sch);
 	struct qfq_class *cl;
-	struct hlist_node *n, *next;
+	struct hlist_node *next;
 	unsigned int i;
 
 	tcf_destroy_chain(&q->filter_list);
 
 	for (i = 0; i < q->clhash.hashsize; i++) {
-		hlist_for_each_entry_safe(cl, n, next, &q->clhash.hash[i],
+		hlist_for_each_entry_safe(cl, next, &q->clhash.hash[i],
 					  common.hnode) {
 			qfq_destroy_class(sch, cl);
 		}

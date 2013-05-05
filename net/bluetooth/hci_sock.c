@@ -89,12 +89,21 @@ void hci_send_to_sock(struct hci_dev *hdev, struct sk_buff *skb,
 							struct sock *skip_sk)
 {
 	struct sock *sk;
+<<<<<<< HEAD
 	struct hlist_node *node;
+=======
+	struct sk_buff *skb_copy = NULL;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 	BT_DBG("hdev %p len %d", hdev, skb->len);
 
 	read_lock(&hci_sk_list.lock);
+<<<<<<< HEAD
 	sk_for_each(sk, node, &hci_sk_list.head) {
+=======
+
+	sk_for_each(sk, &hci_sk_list.head) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		struct hci_filter *flt;
 		struct sk_buff *nskb;
 
@@ -137,14 +146,167 @@ void hci_send_to_sock(struct hci_dev *hdev, struct sk_buff *skb,
 				continue;
 		}
 
+<<<<<<< HEAD
 clone:
+=======
+		if (!skb_copy) {
+			/* Create a private copy with headroom */
+			skb_copy = __pskb_copy(skb, 1, GFP_ATOMIC);
+			if (!skb_copy)
+				continue;
+
+			/* Put type byte before the data */
+			memcpy(skb_push(skb_copy, 1), &bt_cb(skb)->pkt_type, 1);
+		}
+
+		nskb = skb_clone(skb_copy, GFP_ATOMIC);
+		if (!nskb)
+			continue;
+
+		if (sock_queue_rcv_skb(sk, nskb))
+			kfree_skb(nskb);
+	}
+
+	read_unlock(&hci_sk_list.lock);
+
+	kfree_skb(skb_copy);
+}
+
+/* Send frame to control socket */
+void hci_send_to_control(struct sk_buff *skb, struct sock *skip_sk)
+{
+	struct sock *sk;
+
+	BT_DBG("len %d", skb->len);
+
+	read_lock(&hci_sk_list.lock);
+
+	sk_for_each(sk, &hci_sk_list.head) {
+		struct sk_buff *nskb;
+
+		/* Skip the original socket */
+		if (sk == skip_sk)
+			continue;
+
+		if (sk->sk_state != BT_BOUND)
+			continue;
+
+		if (hci_pi(sk)->channel != HCI_CHANNEL_CONTROL)
+			continue;
+
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		nskb = skb_clone(skb, GFP_ATOMIC);
 		if (!nskb)
 			continue;
 
+<<<<<<< HEAD
 		/* Put type byte before the data */
 		if (bt_cb(skb)->channel == HCI_CHANNEL_RAW)
 			memcpy(skb_push(nskb, 1), &bt_cb(nskb)->pkt_type, 1);
+=======
+		if (sock_queue_rcv_skb(sk, nskb))
+			kfree_skb(nskb);
+	}
+
+	read_unlock(&hci_sk_list.lock);
+}
+
+/* Send frame to monitor socket */
+void hci_send_to_monitor(struct hci_dev *hdev, struct sk_buff *skb)
+{
+	struct sock *sk;
+	struct sk_buff *skb_copy = NULL;
+	__le16 opcode;
+
+	if (!atomic_read(&monitor_promisc))
+		return;
+
+	BT_DBG("hdev %p len %d", hdev, skb->len);
+
+	switch (bt_cb(skb)->pkt_type) {
+	case HCI_COMMAND_PKT:
+		opcode = __constant_cpu_to_le16(HCI_MON_COMMAND_PKT);
+		break;
+	case HCI_EVENT_PKT:
+		opcode = __constant_cpu_to_le16(HCI_MON_EVENT_PKT);
+		break;
+	case HCI_ACLDATA_PKT:
+		if (bt_cb(skb)->incoming)
+			opcode = __constant_cpu_to_le16(HCI_MON_ACL_RX_PKT);
+		else
+			opcode = __constant_cpu_to_le16(HCI_MON_ACL_TX_PKT);
+		break;
+	case HCI_SCODATA_PKT:
+		if (bt_cb(skb)->incoming)
+			opcode = __constant_cpu_to_le16(HCI_MON_SCO_RX_PKT);
+		else
+			opcode = __constant_cpu_to_le16(HCI_MON_SCO_TX_PKT);
+		break;
+	default:
+		return;
+	}
+
+	read_lock(&hci_sk_list.lock);
+
+	sk_for_each(sk, &hci_sk_list.head) {
+		struct sk_buff *nskb;
+
+		if (sk->sk_state != BT_BOUND)
+			continue;
+
+		if (hci_pi(sk)->channel != HCI_CHANNEL_MONITOR)
+			continue;
+
+		if (!skb_copy) {
+			struct hci_mon_hdr *hdr;
+
+			/* Create a private copy with headroom */
+			skb_copy = __pskb_copy(skb, HCI_MON_HDR_SIZE,
+					       GFP_ATOMIC);
+			if (!skb_copy)
+				continue;
+
+			/* Put header before the data */
+			hdr = (void *) skb_push(skb_copy, HCI_MON_HDR_SIZE);
+			hdr->opcode = opcode;
+			hdr->index = cpu_to_le16(hdev->id);
+			hdr->len = cpu_to_le16(skb->len);
+		}
+
+		nskb = skb_clone(skb_copy, GFP_ATOMIC);
+		if (!nskb)
+			continue;
+
+		if (sock_queue_rcv_skb(sk, nskb))
+			kfree_skb(nskb);
+	}
+
+	read_unlock(&hci_sk_list.lock);
+
+	kfree_skb(skb_copy);
+}
+
+static void send_monitor_event(struct sk_buff *skb)
+{
+	struct sock *sk;
+
+	BT_DBG("len %d", skb->len);
+
+	read_lock(&hci_sk_list.lock);
+
+	sk_for_each(sk, &hci_sk_list.head) {
+		struct sk_buff *nskb;
+
+		if (sk->sk_state != BT_BOUND)
+			continue;
+
+		if (hci_pi(sk)->channel != HCI_CHANNEL_MONITOR)
+			continue;
+
+		nskb = skb_clone(skb, GFP_ATOMIC);
+		if (!nskb)
+			continue;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 		if (sock_queue_rcv_skb(sk, nskb))
 			kfree_skb(nskb);
@@ -152,6 +314,144 @@ clone:
 	read_unlock(&hci_sk_list.lock);
 }
 
+<<<<<<< HEAD
+=======
+static struct sk_buff *create_monitor_event(struct hci_dev *hdev, int event)
+{
+	struct hci_mon_hdr *hdr;
+	struct hci_mon_new_index *ni;
+	struct sk_buff *skb;
+	__le16 opcode;
+
+	switch (event) {
+	case HCI_DEV_REG:
+		skb = bt_skb_alloc(HCI_MON_NEW_INDEX_SIZE, GFP_ATOMIC);
+		if (!skb)
+			return NULL;
+
+		ni = (void *) skb_put(skb, HCI_MON_NEW_INDEX_SIZE);
+		ni->type = hdev->dev_type;
+		ni->bus = hdev->bus;
+		bacpy(&ni->bdaddr, &hdev->bdaddr);
+		memcpy(ni->name, hdev->name, 8);
+
+		opcode = __constant_cpu_to_le16(HCI_MON_NEW_INDEX);
+		break;
+
+	case HCI_DEV_UNREG:
+		skb = bt_skb_alloc(0, GFP_ATOMIC);
+		if (!skb)
+			return NULL;
+
+		opcode = __constant_cpu_to_le16(HCI_MON_DEL_INDEX);
+		break;
+
+	default:
+		return NULL;
+	}
+
+	__net_timestamp(skb);
+
+	hdr = (void *) skb_push(skb, HCI_MON_HDR_SIZE);
+	hdr->opcode = opcode;
+	hdr->index = cpu_to_le16(hdev->id);
+	hdr->len = cpu_to_le16(skb->len - HCI_MON_HDR_SIZE);
+
+	return skb;
+}
+
+static void send_monitor_replay(struct sock *sk)
+{
+	struct hci_dev *hdev;
+
+	read_lock(&hci_dev_list_lock);
+
+	list_for_each_entry(hdev, &hci_dev_list, list) {
+		struct sk_buff *skb;
+
+		skb = create_monitor_event(hdev, HCI_DEV_REG);
+		if (!skb)
+			continue;
+
+		if (sock_queue_rcv_skb(sk, skb))
+			kfree_skb(skb);
+	}
+
+	read_unlock(&hci_dev_list_lock);
+}
+
+/* Generate internal stack event */
+static void hci_si_event(struct hci_dev *hdev, int type, int dlen, void *data)
+{
+	struct hci_event_hdr *hdr;
+	struct hci_ev_stack_internal *ev;
+	struct sk_buff *skb;
+
+	skb = bt_skb_alloc(HCI_EVENT_HDR_SIZE + sizeof(*ev) + dlen, GFP_ATOMIC);
+	if (!skb)
+		return;
+
+	hdr = (void *) skb_put(skb, HCI_EVENT_HDR_SIZE);
+	hdr->evt  = HCI_EV_STACK_INTERNAL;
+	hdr->plen = sizeof(*ev) + dlen;
+
+	ev  = (void *) skb_put(skb, sizeof(*ev) + dlen);
+	ev->type = type;
+	memcpy(ev->data, data, dlen);
+
+	bt_cb(skb)->incoming = 1;
+	__net_timestamp(skb);
+
+	bt_cb(skb)->pkt_type = HCI_EVENT_PKT;
+	skb->dev = (void *) hdev;
+	hci_send_to_sock(hdev, skb);
+	kfree_skb(skb);
+}
+
+void hci_sock_dev_event(struct hci_dev *hdev, int event)
+{
+	struct hci_ev_si_device ev;
+
+	BT_DBG("hdev %s event %d", hdev->name, event);
+
+	/* Send event to monitor */
+	if (atomic_read(&monitor_promisc)) {
+		struct sk_buff *skb;
+
+		skb = create_monitor_event(hdev, event);
+		if (skb) {
+			send_monitor_event(skb);
+			kfree_skb(skb);
+		}
+	}
+
+	/* Send event to sockets */
+	ev.event  = event;
+	ev.dev_id = hdev->id;
+	hci_si_event(NULL, HCI_EV_SI_DEVICE, sizeof(ev), &ev);
+
+	if (event == HCI_DEV_UNREG) {
+		struct sock *sk;
+
+		/* Detach sockets from device */
+		read_lock(&hci_sk_list.lock);
+		sk_for_each(sk, &hci_sk_list.head) {
+			bh_lock_sock_nested(sk);
+			if (hci_pi(sk)->hdev == hdev) {
+				hci_pi(sk)->hdev = NULL;
+				sk->sk_err = EPIPE;
+				sk->sk_state = BT_OPEN;
+				sk->sk_state_change(sk);
+
+				hci_dev_put(hdev);
+			}
+			bh_unlock_sock(sk);
+		}
+		read_unlock(&hci_sk_list.lock);
+	}
+}
+
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 static int hci_sock_release(struct socket *sock)
 {
 	struct sock *sk = sock->sk;

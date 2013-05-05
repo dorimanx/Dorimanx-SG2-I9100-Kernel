@@ -1,0 +1,7 @@
+
+config EDS_MODULE
+        tristate "EDS Module for TrueCrypt container"
+	help
+	  http://www.sovworks.com/details.html#compileModule
+	  http://www.sovworks.com/eds/source/kernel-module/
+

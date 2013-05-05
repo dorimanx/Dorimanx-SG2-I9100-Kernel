@@ -148,14 +148,13 @@ static int afiucv_pm_freeze(struct device *dev)
 {
 	struct iucv_sock *iucv;
 	struct sock *sk;
-	struct hlist_node *node;
 	int err = 0;
 
 #ifdef CONFIG_PM_DEBUG
 	printk(KERN_WARNING "afiucv_pm_freeze\n");
 #endif
 	read_lock(&iucv_sk_list.lock);
-	sk_for_each(sk, node, &iucv_sk_list.head) {
+	sk_for_each(sk, &iucv_sk_list.head) {
 		iucv = iucv_sk(sk);
 		skb_queue_purge(&iucv->send_skb_q);
 		skb_queue_purge(&iucv->backlog_skb_q);
@@ -191,13 +190,12 @@ static int afiucv_pm_freeze(struct device *dev)
 static int afiucv_pm_restore_thaw(struct device *dev)
 {
 	struct sock *sk;
-	struct hlist_node *node;
 
 #ifdef CONFIG_PM_DEBUG
 	printk(KERN_WARNING "afiucv_pm_restore_thaw\n");
 #endif
 	read_lock(&iucv_sk_list.lock);
-	sk_for_each(sk, node, &iucv_sk_list.head) {
+	sk_for_each(sk, &iucv_sk_list.head) {
 		switch (sk->sk_state) {
 		case IUCV_CONNECTED:
 			sk->sk_err = EPIPE;
@@ -334,9 +332,8 @@ static void iucv_sock_clear_timer(struct sock *sk)
 static struct sock *__iucv_get_sock_by_name(char *nm)
 {
 	struct sock *sk;
-	struct hlist_node *node;
 
-	sk_for_each(sk, node, &iucv_sk_list.head)
+	sk_for_each(sk, &iucv_sk_list.head)
 		if (!memcmp(&iucv_sk(sk)->src_name, nm, 8))
 			return sk;
 
@@ -1157,6 +1154,8 @@ static int iucv_sock_recvmsg(struct kiocb *iocb, struct socket *sock,
 	struct sk_buff *skb, *rskb, *cskb;
 	int err = 0;
 
+	msg->msg_namelen = 0;
+
 	if ((sk->sk_state == IUCV_DISCONN || sk->sk_state == IUCV_SEVERED) &&
 	    skb_queue_empty(&iucv->backlog_skb_q) &&
 	    skb_queue_empty(&sk->sk_receive_queue) &&
@@ -1481,7 +1480,6 @@ static int iucv_callback_connreq(struct iucv_path *path,
 	unsigned char user_data[16];
 	unsigned char nuser_data[16];
 	unsigned char src_name[8];
-	struct hlist_node *node;
 	struct sock *sk, *nsk;
 	struct iucv_sock *iucv, *niucv;
 	int err;
@@ -1492,7 +1490,7 @@ static int iucv_callback_connreq(struct iucv_path *path,
 	read_lock(&iucv_sk_list.lock);
 	iucv = NULL;
 	sk = NULL;
-	sk_for_each(sk, node, &iucv_sk_list.head)
+	sk_for_each(sk, &iucv_sk_list.head)
 		if (sk->sk_state == IUCV_LISTEN &&
 		    !memcmp(&iucv_sk(sk)->src_name, src_name, 8)) {
 			/*
@@ -1692,6 +1690,443 @@ static void iucv_callback_shutdown(struct iucv_path *path, u8 ipuser[16])
 	bh_unlock_sock(sk);
 }
 
+<<<<<<< HEAD
+=======
+/***************** HiperSockets transport callbacks ********************/
+static void afiucv_swap_src_dest(struct sk_buff *skb)
+{
+	struct af_iucv_trans_hdr *trans_hdr =
+				(struct af_iucv_trans_hdr *)skb->data;
+	char tmpID[8];
+	char tmpName[8];
+
+	ASCEBC(trans_hdr->destUserID, sizeof(trans_hdr->destUserID));
+	ASCEBC(trans_hdr->destAppName, sizeof(trans_hdr->destAppName));
+	ASCEBC(trans_hdr->srcUserID, sizeof(trans_hdr->srcUserID));
+	ASCEBC(trans_hdr->srcAppName, sizeof(trans_hdr->srcAppName));
+	memcpy(tmpID, trans_hdr->srcUserID, 8);
+	memcpy(tmpName, trans_hdr->srcAppName, 8);
+	memcpy(trans_hdr->srcUserID, trans_hdr->destUserID, 8);
+	memcpy(trans_hdr->srcAppName, trans_hdr->destAppName, 8);
+	memcpy(trans_hdr->destUserID, tmpID, 8);
+	memcpy(trans_hdr->destAppName, tmpName, 8);
+	skb_push(skb, ETH_HLEN);
+	memset(skb->data, 0, ETH_HLEN);
+}
+
+/**
+ * afiucv_hs_callback_syn - react on received SYN
+ **/
+static int afiucv_hs_callback_syn(struct sock *sk, struct sk_buff *skb)
+{
+	struct sock *nsk;
+	struct iucv_sock *iucv, *niucv;
+	struct af_iucv_trans_hdr *trans_hdr;
+	int err;
+
+	iucv = iucv_sk(sk);
+	trans_hdr = (struct af_iucv_trans_hdr *)skb->data;
+	if (!iucv) {
+		/* no sock - connection refused */
+		afiucv_swap_src_dest(skb);
+		trans_hdr->flags = AF_IUCV_FLAG_SYN | AF_IUCV_FLAG_FIN;
+		err = dev_queue_xmit(skb);
+		goto out;
+	}
+
+	nsk = iucv_sock_alloc(NULL, sk->sk_type, GFP_ATOMIC);
+	bh_lock_sock(sk);
+	if ((sk->sk_state != IUCV_LISTEN) ||
+	    sk_acceptq_is_full(sk) ||
+	    !nsk) {
+		/* error on server socket - connection refused */
+		if (nsk)
+			sk_free(nsk);
+		afiucv_swap_src_dest(skb);
+		trans_hdr->flags = AF_IUCV_FLAG_SYN | AF_IUCV_FLAG_FIN;
+		err = dev_queue_xmit(skb);
+		bh_unlock_sock(sk);
+		goto out;
+	}
+
+	niucv = iucv_sk(nsk);
+	iucv_sock_init(nsk, sk);
+	niucv->transport = AF_IUCV_TRANS_HIPER;
+	niucv->msglimit = iucv->msglimit;
+	if (!trans_hdr->window)
+		niucv->msglimit_peer = IUCV_HIPER_MSGLIM_DEFAULT;
+	else
+		niucv->msglimit_peer = trans_hdr->window;
+	memcpy(niucv->dst_name, trans_hdr->srcAppName, 8);
+	memcpy(niucv->dst_user_id, trans_hdr->srcUserID, 8);
+	memcpy(niucv->src_name, iucv->src_name, 8);
+	memcpy(niucv->src_user_id, iucv->src_user_id, 8);
+	nsk->sk_bound_dev_if = sk->sk_bound_dev_if;
+	niucv->hs_dev = iucv->hs_dev;
+	dev_hold(niucv->hs_dev);
+	afiucv_swap_src_dest(skb);
+	trans_hdr->flags = AF_IUCV_FLAG_SYN | AF_IUCV_FLAG_ACK;
+	trans_hdr->window = niucv->msglimit;
+	/* if receiver acks the xmit connection is established */
+	err = dev_queue_xmit(skb);
+	if (!err) {
+		iucv_accept_enqueue(sk, nsk);
+		nsk->sk_state = IUCV_CONNECTED;
+		sk->sk_data_ready(sk, 1);
+	} else
+		iucv_sock_kill(nsk);
+	bh_unlock_sock(sk);
+
+out:
+	return NET_RX_SUCCESS;
+}
+
+/**
+ * afiucv_hs_callback_synack() - react on received SYN-ACK
+ **/
+static int afiucv_hs_callback_synack(struct sock *sk, struct sk_buff *skb)
+{
+	struct iucv_sock *iucv = iucv_sk(sk);
+	struct af_iucv_trans_hdr *trans_hdr =
+					(struct af_iucv_trans_hdr *)skb->data;
+
+	if (!iucv)
+		goto out;
+	if (sk->sk_state != IUCV_BOUND)
+		goto out;
+	bh_lock_sock(sk);
+	iucv->msglimit_peer = trans_hdr->window;
+	sk->sk_state = IUCV_CONNECTED;
+	sk->sk_state_change(sk);
+	bh_unlock_sock(sk);
+out:
+	kfree_skb(skb);
+	return NET_RX_SUCCESS;
+}
+
+/**
+ * afiucv_hs_callback_synfin() - react on received SYN_FIN
+ **/
+static int afiucv_hs_callback_synfin(struct sock *sk, struct sk_buff *skb)
+{
+	struct iucv_sock *iucv = iucv_sk(sk);
+
+	if (!iucv)
+		goto out;
+	if (sk->sk_state != IUCV_BOUND)
+		goto out;
+	bh_lock_sock(sk);
+	sk->sk_state = IUCV_DISCONN;
+	sk->sk_state_change(sk);
+	bh_unlock_sock(sk);
+out:
+	kfree_skb(skb);
+	return NET_RX_SUCCESS;
+}
+
+/**
+ * afiucv_hs_callback_fin() - react on received FIN
+ **/
+static int afiucv_hs_callback_fin(struct sock *sk, struct sk_buff *skb)
+{
+	struct iucv_sock *iucv = iucv_sk(sk);
+
+	/* other end of connection closed */
+	if (!iucv)
+		goto out;
+	bh_lock_sock(sk);
+	if (sk->sk_state == IUCV_CONNECTED) {
+		sk->sk_state = IUCV_DISCONN;
+		sk->sk_state_change(sk);
+	}
+	bh_unlock_sock(sk);
+out:
+	kfree_skb(skb);
+	return NET_RX_SUCCESS;
+}
+
+/**
+ * afiucv_hs_callback_win() - react on received WIN
+ **/
+static int afiucv_hs_callback_win(struct sock *sk, struct sk_buff *skb)
+{
+	struct iucv_sock *iucv = iucv_sk(sk);
+	struct af_iucv_trans_hdr *trans_hdr =
+					(struct af_iucv_trans_hdr *)skb->data;
+
+	if (!iucv)
+		return NET_RX_SUCCESS;
+
+	if (sk->sk_state != IUCV_CONNECTED)
+		return NET_RX_SUCCESS;
+
+	atomic_sub(trans_hdr->window, &iucv->msg_sent);
+	iucv_sock_wake_msglim(sk);
+	return NET_RX_SUCCESS;
+}
+
+/**
+ * afiucv_hs_callback_rx() - react on received data
+ **/
+static int afiucv_hs_callback_rx(struct sock *sk, struct sk_buff *skb)
+{
+	struct iucv_sock *iucv = iucv_sk(sk);
+
+	if (!iucv) {
+		kfree_skb(skb);
+		return NET_RX_SUCCESS;
+	}
+
+	if (sk->sk_state != IUCV_CONNECTED) {
+		kfree_skb(skb);
+		return NET_RX_SUCCESS;
+	}
+
+	if (sk->sk_shutdown & RCV_SHUTDOWN) {
+		kfree_skb(skb);
+		return NET_RX_SUCCESS;
+	}
+
+		/* write stuff from iucv_msg to skb cb */
+	if (skb->len < sizeof(struct af_iucv_trans_hdr)) {
+		kfree_skb(skb);
+		return NET_RX_SUCCESS;
+	}
+	skb_pull(skb, sizeof(struct af_iucv_trans_hdr));
+	skb_reset_transport_header(skb);
+	skb_reset_network_header(skb);
+	spin_lock(&iucv->message_q.lock);
+	if (skb_queue_empty(&iucv->backlog_skb_q)) {
+		if (sock_queue_rcv_skb(sk, skb)) {
+			/* handle rcv queue full */
+			skb_queue_tail(&iucv->backlog_skb_q, skb);
+		}
+	} else
+		skb_queue_tail(&iucv_sk(sk)->backlog_skb_q, skb);
+	spin_unlock(&iucv->message_q.lock);
+	return NET_RX_SUCCESS;
+}
+
+/**
+ * afiucv_hs_rcv() - base function for arriving data through HiperSockets
+ *                   transport
+ *                   called from netif RX softirq
+ **/
+static int afiucv_hs_rcv(struct sk_buff *skb, struct net_device *dev,
+	struct packet_type *pt, struct net_device *orig_dev)
+{
+	struct sock *sk;
+	struct iucv_sock *iucv;
+	struct af_iucv_trans_hdr *trans_hdr;
+	char nullstring[8];
+	int err = 0;
+
+	skb_pull(skb, ETH_HLEN);
+	trans_hdr = (struct af_iucv_trans_hdr *)skb->data;
+	EBCASC(trans_hdr->destAppName, sizeof(trans_hdr->destAppName));
+	EBCASC(trans_hdr->destUserID, sizeof(trans_hdr->destUserID));
+	EBCASC(trans_hdr->srcAppName, sizeof(trans_hdr->srcAppName));
+	EBCASC(trans_hdr->srcUserID, sizeof(trans_hdr->srcUserID));
+	memset(nullstring, 0, sizeof(nullstring));
+	iucv = NULL;
+	sk = NULL;
+	read_lock(&iucv_sk_list.lock);
+	sk_for_each(sk, &iucv_sk_list.head) {
+		if (trans_hdr->flags == AF_IUCV_FLAG_SYN) {
+			if ((!memcmp(&iucv_sk(sk)->src_name,
+				     trans_hdr->destAppName, 8)) &&
+			    (!memcmp(&iucv_sk(sk)->src_user_id,
+				     trans_hdr->destUserID, 8)) &&
+			    (!memcmp(&iucv_sk(sk)->dst_name, nullstring, 8)) &&
+			    (!memcmp(&iucv_sk(sk)->dst_user_id,
+				     nullstring, 8))) {
+				iucv = iucv_sk(sk);
+				break;
+			}
+		} else {
+			if ((!memcmp(&iucv_sk(sk)->src_name,
+				     trans_hdr->destAppName, 8)) &&
+			    (!memcmp(&iucv_sk(sk)->src_user_id,
+				     trans_hdr->destUserID, 8)) &&
+			    (!memcmp(&iucv_sk(sk)->dst_name,
+				     trans_hdr->srcAppName, 8)) &&
+			    (!memcmp(&iucv_sk(sk)->dst_user_id,
+				     trans_hdr->srcUserID, 8))) {
+				iucv = iucv_sk(sk);
+				break;
+			}
+		}
+	}
+	read_unlock(&iucv_sk_list.lock);
+	if (!iucv)
+		sk = NULL;
+
+	/* no sock
+	how should we send with no sock
+	1) send without sock no send rc checking?
+	2) introduce default sock to handle this cases
+
+	 SYN -> send SYN|ACK in good case, send SYN|FIN in bad case
+	 data -> send FIN
+	 SYN|ACK, SYN|FIN, FIN -> no action? */
+
+	switch (trans_hdr->flags) {
+	case AF_IUCV_FLAG_SYN:
+		/* connect request */
+		err = afiucv_hs_callback_syn(sk, skb);
+		break;
+	case (AF_IUCV_FLAG_SYN | AF_IUCV_FLAG_ACK):
+		/* connect request confirmed */
+		err = afiucv_hs_callback_synack(sk, skb);
+		break;
+	case (AF_IUCV_FLAG_SYN | AF_IUCV_FLAG_FIN):
+		/* connect request refused */
+		err = afiucv_hs_callback_synfin(sk, skb);
+		break;
+	case (AF_IUCV_FLAG_FIN):
+		/* close request */
+		err = afiucv_hs_callback_fin(sk, skb);
+		break;
+	case (AF_IUCV_FLAG_WIN):
+		err = afiucv_hs_callback_win(sk, skb);
+		if (skb->len == sizeof(struct af_iucv_trans_hdr)) {
+			kfree_skb(skb);
+			break;
+		}
+		/* fall through and receive non-zero length data */
+	case (AF_IUCV_FLAG_SHT):
+		/* shutdown request */
+		/* fall through and receive zero length data */
+	case 0:
+		/* plain data frame */
+		memcpy(CB_TRGCLS(skb), &trans_hdr->iucv_hdr.class,
+		       CB_TRGCLS_LEN);
+		err = afiucv_hs_callback_rx(sk, skb);
+		break;
+	default:
+		;
+	}
+
+	return err;
+}
+
+/**
+ * afiucv_hs_callback_txnotify() - handle send notifcations from HiperSockets
+ *                                 transport
+ **/
+static void afiucv_hs_callback_txnotify(struct sk_buff *skb,
+					enum iucv_tx_notify n)
+{
+	struct sock *isk = skb->sk;
+	struct sock *sk = NULL;
+	struct iucv_sock *iucv = NULL;
+	struct sk_buff_head *list;
+	struct sk_buff *list_skb;
+	struct sk_buff *nskb;
+	unsigned long flags;
+
+	read_lock_irqsave(&iucv_sk_list.lock, flags);
+	sk_for_each(sk, &iucv_sk_list.head)
+		if (sk == isk) {
+			iucv = iucv_sk(sk);
+			break;
+		}
+	read_unlock_irqrestore(&iucv_sk_list.lock, flags);
+
+	if (!iucv || sock_flag(sk, SOCK_ZAPPED))
+		return;
+
+	list = &iucv->send_skb_q;
+	spin_lock_irqsave(&list->lock, flags);
+	if (skb_queue_empty(list))
+		goto out_unlock;
+	list_skb = list->next;
+	nskb = list_skb->next;
+	while (list_skb != (struct sk_buff *)list) {
+		if (skb_shinfo(list_skb) == skb_shinfo(skb)) {
+			switch (n) {
+			case TX_NOTIFY_OK:
+				__skb_unlink(list_skb, list);
+				kfree_skb(list_skb);
+				iucv_sock_wake_msglim(sk);
+				break;
+			case TX_NOTIFY_PENDING:
+				atomic_inc(&iucv->pendings);
+				break;
+			case TX_NOTIFY_DELAYED_OK:
+				__skb_unlink(list_skb, list);
+				atomic_dec(&iucv->pendings);
+				if (atomic_read(&iucv->pendings) <= 0)
+					iucv_sock_wake_msglim(sk);
+				kfree_skb(list_skb);
+				break;
+			case TX_NOTIFY_UNREACHABLE:
+			case TX_NOTIFY_DELAYED_UNREACHABLE:
+			case TX_NOTIFY_TPQFULL: /* not yet used */
+			case TX_NOTIFY_GENERALERROR:
+			case TX_NOTIFY_DELAYED_GENERALERROR:
+				__skb_unlink(list_skb, list);
+				kfree_skb(list_skb);
+				if (sk->sk_state == IUCV_CONNECTED) {
+					sk->sk_state = IUCV_DISCONN;
+					sk->sk_state_change(sk);
+				}
+				break;
+			}
+			break;
+		}
+		list_skb = nskb;
+		nskb = nskb->next;
+	}
+out_unlock:
+	spin_unlock_irqrestore(&list->lock, flags);
+
+	if (sk->sk_state == IUCV_CLOSING) {
+		if (skb_queue_empty(&iucv_sk(sk)->send_skb_q)) {
+			sk->sk_state = IUCV_CLOSED;
+			sk->sk_state_change(sk);
+		}
+	}
+
+}
+
+/*
+ * afiucv_netdev_event: handle netdev notifier chain events
+ */
+static int afiucv_netdev_event(struct notifier_block *this,
+			       unsigned long event, void *ptr)
+{
+	struct net_device *event_dev = (struct net_device *)ptr;
+	struct sock *sk;
+	struct iucv_sock *iucv;
+
+	switch (event) {
+	case NETDEV_REBOOT:
+	case NETDEV_GOING_DOWN:
+		sk_for_each(sk, &iucv_sk_list.head) {
+			iucv = iucv_sk(sk);
+			if ((iucv->hs_dev == event_dev) &&
+			    (sk->sk_state == IUCV_CONNECTED)) {
+				if (event == NETDEV_GOING_DOWN)
+					iucv_send_ctrl(sk, AF_IUCV_FLAG_FIN);
+				sk->sk_state = IUCV_DISCONN;
+				sk->sk_state_change(sk);
+			}
+		}
+		break;
+	case NETDEV_DOWN:
+	case NETDEV_UNREGISTER:
+	default:
+		break;
+	}
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block afiucv_netdev_notifier = {
+	.notifier_call = afiucv_netdev_event,
+};
+
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 static const struct proto_ops iucv_sock_ops = {
 	.family		= PF_IUCV,
 	.owner		= THIS_MODULE,

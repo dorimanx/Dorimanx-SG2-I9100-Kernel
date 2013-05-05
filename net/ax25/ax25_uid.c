@@ -37,6 +37,7 @@
 #include <linux/stat.h>
 #include <linux/netfilter.h>
 #include <linux/sysctl.h>
+#include <linux/export.h>
 #include <net/ip.h>
 #include <net/arp.h>
 
@@ -54,10 +55,9 @@ EXPORT_SYMBOL(ax25_uid_policy);
 ax25_uid_assoc *ax25_findbyuid(uid_t uid)
 {
 	ax25_uid_assoc *ax25_uid, *res = NULL;
-	struct hlist_node *node;
 
 	read_lock(&ax25_uid_lock);
-	ax25_uid_for_each(ax25_uid, node, &ax25_uid_list) {
+	ax25_uid_for_each(ax25_uid, &ax25_uid_list) {
 		if (ax25_uid->uid == uid) {
 			ax25_uid_hold(ax25_uid);
 			res = ax25_uid;
@@ -74,7 +74,6 @@ EXPORT_SYMBOL(ax25_findbyuid);
 int ax25_uid_ioctl(int cmd, struct sockaddr_ax25 *sax)
 {
 	ax25_uid_assoc *ax25_uid;
-	struct hlist_node *node;
 	ax25_uid_assoc *user;
 	unsigned long res;
 
@@ -82,7 +81,7 @@ int ax25_uid_ioctl(int cmd, struct sockaddr_ax25 *sax)
 	case SIOCAX25GETUID:
 		res = -ENOENT;
 		read_lock(&ax25_uid_lock);
-		ax25_uid_for_each(ax25_uid, node, &ax25_uid_list) {
+		ax25_uid_for_each(ax25_uid, &ax25_uid_list) {
 			if (ax25cmp(&sax->sax25_call, &ax25_uid->call) == 0) {
 				res = ax25_uid->uid;
 				break;
@@ -121,7 +120,7 @@ int ax25_uid_ioctl(int cmd, struct sockaddr_ax25 *sax)
 
 		ax25_uid = NULL;
 		write_lock(&ax25_uid_lock);
-		ax25_uid_for_each(ax25_uid, node, &ax25_uid_list) {
+		ax25_uid_for_each(ax25_uid, &ax25_uid_list) {
 			if (ax25cmp(&sax->sax25_call, &ax25_uid->call) == 0)
 				break;
 		}
@@ -205,11 +204,10 @@ const struct file_operations ax25_uid_fops = {
 void __exit ax25_uid_free(void)
 {
 	ax25_uid_assoc *ax25_uid;
-	struct hlist_node *node;
 
 	write_lock(&ax25_uid_lock);
 again:
-	ax25_uid_for_each(ax25_uid, node, &ax25_uid_list) {
+	ax25_uid_for_each(ax25_uid, &ax25_uid_list) {
 		hlist_del_init(&ax25_uid->uid_node);
 		ax25_uid_put(ax25_uid);
 		goto again;

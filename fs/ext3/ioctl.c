@@ -110,7 +110,7 @@ flags_err:
 			err = ext3_change_inode_journal_flag(inode, jflag);
 flags_out:
 		mutex_unlock(&inode->i_mutex);
-		mnt_drop_write(filp->f_path.mnt);
+		mnt_drop_write_file(filp);
 		return err;
 	}
 	case EXT3_IOC_GETVERSION:
@@ -151,7 +151,7 @@ flags_out:
 unlock_out:
 		mutex_unlock(&inode->i_mutex);
 setversion_out:
-		mnt_drop_write(filp->f_path.mnt);
+		mnt_drop_write_file(filp);
 		return err;
 	}
 #ifdef CONFIG_JBD_DEBUG
@@ -223,7 +223,7 @@ setversion_out:
 		}
 		mutex_unlock(&ei->truncate_mutex);
 setrsvsz_out:
-		mnt_drop_write(filp->f_path.mnt);
+		mnt_drop_write_file(filp);
 		return err;
 	}
 	case EXT3_IOC_GROUP_EXTEND: {
@@ -249,7 +249,7 @@ setrsvsz_out:
 		if (err == 0)
 			err = err2;
 group_extend_out:
-		mnt_drop_write(filp->f_path.mnt);
+		mnt_drop_write_file(filp);
 		return err;
 	}
 	case EXT3_IOC_GROUP_ADD: {
@@ -277,7 +277,7 @@ group_extend_out:
 		if (err == 0)
 			err = err2;
 group_add_out:
-		mnt_drop_write(filp->f_path.mnt);
+		mnt_drop_write_file(filp);
 		return err;
 	}
 	case FITRIM: {

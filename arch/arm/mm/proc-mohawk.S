@@ -190,6 +190,7 @@ ENTRY(mohawk_coherent_user_range)
 	cmp	r0, r1
 	blo	1b
 	mcr	p15, 0, r0, c7, c10, 4		@ drain WB
+	mov	r0, #0
 	mov	pc, lr
 
 /*
@@ -298,6 +299,9 @@ ENDPROC(mohawk_dma_map_area)
 ENTRY(mohawk_dma_unmap_area)
 	mov	pc, lr
 ENDPROC(mohawk_dma_unmap_area)
+
+	.globl	mohawk_flush_kern_cache_louis
+	.equ	mohawk_flush_kern_cache_louis, mohawk_flush_kern_cache_all
 
 	@ define struct cpu_cache_fns (see <asm/cacheflush.h> and proc-macros.S)
 	define_cache_functions mohawk

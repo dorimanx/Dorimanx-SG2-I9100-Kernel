@@ -13,6 +13,7 @@
 #include <linux/fs.h>
 #include <linux/log2.h>
 #include <linux/mount.h>
+#include <linux/magic.h>
 #include <linux/pipe_fs_i.h>
 #include <linux/uio.h>
 #include <linux/highmem.h>
@@ -1324,8 +1325,8 @@ static int __init init_pipe_fs(void)
 
 static void __exit exit_pipe_fs(void)
 {
+	kern_unmount(pipe_mnt);
 	unregister_filesystem(&pipe_fs_type);
-	mntput(pipe_mnt);
 }
 
 fs_initcall(init_pipe_fs);

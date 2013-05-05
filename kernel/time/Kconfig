@@ -1,6 +1,11 @@
 #
 # Timer subsystem related configuration options
 #
+
+# Architecture can handle broadcast in a driver-agnostic way
+config ARCH_HAS_TICK_BROADCAST
+	bool
+
 config TICK_ONESHOT
 	bool
 

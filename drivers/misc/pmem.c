@@ -485,7 +485,8 @@ static int pmem_map_garbage(int id, struct vm_area_struct *vma,
 {
 	int i, garbage_pages = len >> PAGE_SHIFT;
 
-	vma->vm_flags |= VM_IO | VM_RESERVED | VM_PFNMAP | VM_SHARED | VM_WRITE;
+	vma->vm_flags |= VM_IO | VM_DONTEXPAND | VM_DONTDUMP |
+			VM_PFNMAP | VM_SHARED | VM_WRITE;
 	for (i = 0; i < garbage_pages; i++) {
 		if (vm_insert_pfn(vma, vma->vm_start + offset + (i * PAGE_SIZE),
 		    pmem[id].garbage_pfn))

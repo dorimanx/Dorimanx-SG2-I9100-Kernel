@@ -47,9 +47,12 @@
 #include <asm/topology.h>
 #include <asm/vgtod.h>
 #include <asm/traps.h>
+<<<<<<< HEAD
 
 #define CREATE_TRACE_POINTS
 #include "vsyscall_trace.h"
+=======
+>>>>>>> 5cec93c... x86-64: Emulate legacy vsyscalls
 
 DEFINE_VVAR(int, vgetcpu_mode);
 DEFINE_VVAR(struct vsyscall_gtod_data, vsyscall_gtod_data) =
@@ -96,7 +99,11 @@ void update_vsyscall(struct timespec *wall_time, struct timespec *wtm,
 	write_seqlock_irqsave(&vsyscall_gtod_data.lock, flags);
 
 	/* copy vsyscall data */
+<<<<<<< HEAD
 	vsyscall_gtod_data.clock.vclock_mode	= clock->archdata.vclock_mode;
+=======
+	vsyscall_gtod_data.clock.vread		= clock->vread;
+>>>>>>> 5cec93c... x86-64: Emulate legacy vsyscalls
 	vsyscall_gtod_data.clock.cycle_last	= clock->cycle_last;
 	vsyscall_gtod_data.clock.mask		= clock->mask;
 	vsyscall_gtod_data.clock.mult		= mult;
@@ -114,6 +121,7 @@ static void warn_bad_vsyscall(const char *level, struct pt_regs *regs,
 {
 	static DEFINE_RATELIMIT_STATE(rs, DEFAULT_RATELIMIT_INTERVAL, DEFAULT_RATELIMIT_BURST);
 	struct task_struct *tsk;
+<<<<<<< HEAD
 
 	if (!show_unhandled_signals || !__ratelimit(&rs))
 		return;
@@ -281,6 +289,105 @@ bool emulate_vsyscall(struct pt_regs *regs, unsigned long address)
 sigsegv:
 	force_sig(SIGSEGV, current);
 	return true;
+=======
+
+	if (!show_unhandled_signals || !__ratelimit(&rs))
+		return;
+
+	tsk = current;
+
+	printk("%s%s[%d] %s ip:%lx sp:%lx ax:%lx si:%lx di:%lx\n",
+	       level, tsk->comm, task_pid_nr(tsk),
+	       message, regs->ip - 2, regs->sp, regs->ax, regs->si, regs->di);
+}
+
+void dotraplinkage do_emulate_vsyscall(struct pt_regs *regs, long error_code)
+{
+	const char *vsyscall_name;
+	struct task_struct *tsk;
+	unsigned long caller;
+	int vsyscall_nr;
+	long ret;
+
+	/* Kernel code must never get here. */
+	BUG_ON(!user_mode(regs));
+
+	local_irq_enable();
+
+	/*
+	 * x86-ism here: regs->ip points to the instruction after the int 0xcc,
+	 * and int 0xcc is two bytes long.
+	 */
+	if (!is_vsyscall_entry(regs->ip - 2)) {
+		warn_bad_vsyscall(KERN_WARNING, regs, "illegal int 0xcc (exploit attempt?)");
+		goto sigsegv;
+	}
+	vsyscall_nr = vsyscall_entry_nr(regs->ip - 2);
+
+	if (get_user(caller, (unsigned long __user *)regs->sp) != 0) {
+		warn_bad_vsyscall(KERN_WARNING, regs, "int 0xcc with bad stack (exploit attempt?)");
+		goto sigsegv;
+	}
+
+	tsk = current;
+	if (seccomp_mode(&tsk->seccomp))
+		do_exit(SIGKILL);
+
+	switch (vsyscall_nr) {
+	case 0:
+		vsyscall_name = "gettimeofday";
+		ret = sys_gettimeofday(
+			(struct timeval __user *)regs->di,
+			(struct timezone __user *)regs->si);
+		break;
+
+	case 1:
+		vsyscall_name = "time";
+		ret = sys_time((time_t __user *)regs->di);
+		break;
+
+	case 2:
+		vsyscall_name = "getcpu";
+		ret = sys_getcpu((unsigned __user *)regs->di,
+				 (unsigned __user *)regs->si,
+				 0);
+		break;
+
+	default:
+		/*
+		 * If we get here, then vsyscall_nr indicates that int 0xcc
+		 * happened at an address in the vsyscall page that doesn't
+		 * contain int 0xcc.  That can't happen.
+		 */
+		BUG();
+	}
+
+	if (ret == -EFAULT) {
+		/*
+		 * Bad news -- userspace fed a bad pointer to a vsyscall.
+		 *
+		 * With a real vsyscall, that would have caused SIGSEGV.
+		 * To make writing reliable exploits using the emulated
+		 * vsyscalls harder, generate SIGSEGV here as well.
+		 */
+		warn_bad_vsyscall(KERN_INFO, regs,
+				  "vsyscall fault (exploit attempt?)");
+		goto sigsegv;
+	}
+
+	regs->ax = ret;
+
+	/* Emulate a ret instruction. */
+	regs->ip = caller;
+	regs->sp += 8;
+
+	local_irq_disable();
+	return;
+
+sigsegv:
+	regs->ip -= 2;  /* The faulting instruction should be the int 0xcc. */
+	force_sig(SIGSEGV, current);
+>>>>>>> 5cec93c... x86-64: Emulate legacy vsyscalls
 }
 
 /*
@@ -341,8 +448,7 @@ void __init map_vsyscall(void)
 		     (unsigned long)VSYSCALL_START);
 
 	__set_fixmap(VVAR_PAGE, physaddr_vvar_page, PAGE_KERNEL_VVAR);
-	BUILD_BUG_ON((unsigned long)__fix_to_virt(VVAR_PAGE) !=
-		     (unsigned long)VVAR_ADDRESS);
+	BUILD_BUG_ON((unsigned long)__fix_to_virt(VVAR_PAGE) != (unsigned long)VVAR_ADDRESS);
 }
 
 static int __init vsyscall_init(void)

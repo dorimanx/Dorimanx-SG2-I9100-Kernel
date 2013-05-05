@@ -753,6 +753,111 @@ static int btrfs_set_super(struct super_block *s, void *data)
 	return set_anon_super(s, data);
 }
 
+/*
+ * subvolumes are identified by ino 256
+ */
+static inline int is_subvolume_inode(struct inode *inode)
+{
+	if (inode && inode->i_ino == BTRFS_FIRST_FREE_OBJECTID)
+		return 1;
+	return 0;
+}
+
+/*
+ * This will strip out the subvol=%s argument for an argument string and add
+ * subvolid=0 to make sure we get the actual tree root for path walking to the
+ * subvol we want.
+ */
+static char *setup_root_args(char *args)
+{
+	unsigned copied = 0;
+	unsigned len = strlen(args) + 2;
+	char *pos;
+	char *ret;
+
+	/*
+	 * We need the same args as before, but minus
+	 *
+	 * subvol=a
+	 *
+	 * and add
+	 *
+	 * subvolid=0
+	 *
+	 * which is a difference of 2 characters, so we allocate strlen(args) +
+	 * 2 characters.
+	 */
+	ret = kzalloc(len * sizeof(char), GFP_NOFS);
+	if (!ret)
+		return NULL;
+	pos = strstr(args, "subvol=");
+
+	/* This shouldn't happen, but just in case.. */
+	if (!pos) {
+		kfree(ret);
+		return NULL;
+	}
+
+	/*
+	 * The subvol=<> arg is not at the front of the string, copy everybody
+	 * up to that into ret.
+	 */
+	if (pos != args) {
+		*pos = '\0';
+		strcpy(ret, args);
+		copied += strlen(args);
+		pos++;
+	}
+
+	strncpy(ret + copied, "subvolid=0", len - copied);
+
+	/* Length of subvolid=0 */
+	copied += 10;
+
+	/*
+	 * If there is no , after the subvol= option then we know there's no
+	 * other options and we can just return.
+	 */
+	pos = strchr(pos, ',');
+	if (!pos)
+		return ret;
+
+	/* Copy the rest of the arguments into our buffer */
+	strncpy(ret + copied, pos, len - copied);
+	copied += strlen(pos);
+
+	return ret;
+}
+
+static struct dentry *mount_subvol(const char *subvol_name, int flags,
+				   const char *device_name, char *data)
+{
+	struct dentry *root;
+	struct vfsmount *mnt;
+	char *newargs;
+
+	newargs = setup_root_args(data);
+	if (!newargs)
+		return ERR_PTR(-ENOMEM);
+	mnt = vfs_kern_mount(&btrfs_fs_type, flags, device_name,
+			     newargs);
+	kfree(newargs);
+	if (IS_ERR(mnt))
+		return ERR_CAST(mnt);
+
+	root = mount_subtree(mnt, subvol_name);
+
+	if (!IS_ERR(root) && !is_subvolume_inode(root->d_inode)) {
+		struct super_block *s = root->d_sb;
+		dput(root);
+		root = ERR_PTR(-EINVAL);
+		deactivate_locked_super(s);
+		printk(KERN_ERR "btrfs: '%s' is not a valid subvolume\n",
+				subvol_name);
+	}
+
+	return root;
+}
 
 /*
  * Find a superblock for the given device / mount point.

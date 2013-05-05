@@ -157,6 +157,7 @@ void dec_module_count(void)
 
 int is_my_mac(uint8_t *addr)
 {
+<<<<<<< HEAD
 	struct hard_iface *hard_iface;
 
 	rcu_read_lock();
@@ -168,6 +169,79 @@ int is_my_mac(uint8_t *addr)
 			rcu_read_unlock();
 			return 1;
 		}
+=======
+	struct batadv_algo_ops *bat_algo_ops = NULL, *bat_algo_ops_tmp;
+
+	hlist_for_each_entry(bat_algo_ops_tmp, &batadv_algo_list, list) {
+		if (strcmp(bat_algo_ops_tmp->name, name) != 0)
+			continue;
+
+		bat_algo_ops = bat_algo_ops_tmp;
+		break;
+	}
+
+	return bat_algo_ops;
+}
+
+int batadv_algo_register(struct batadv_algo_ops *bat_algo_ops)
+{
+	struct batadv_algo_ops *bat_algo_ops_tmp;
+	int ret;
+
+	bat_algo_ops_tmp = batadv_algo_get(bat_algo_ops->name);
+	if (bat_algo_ops_tmp) {
+		pr_info("Trying to register already registered routing algorithm: %s\n",
+			bat_algo_ops->name);
+		ret = -EEXIST;
+		goto out;
+	}
+
+	/* all algorithms must implement all ops (for now) */
+	if (!bat_algo_ops->bat_iface_enable ||
+	    !bat_algo_ops->bat_iface_disable ||
+	    !bat_algo_ops->bat_iface_update_mac ||
+	    !bat_algo_ops->bat_primary_iface_set ||
+	    !bat_algo_ops->bat_ogm_schedule ||
+	    !bat_algo_ops->bat_ogm_emit) {
+		pr_info("Routing algo '%s' does not implement required ops\n",
+			bat_algo_ops->name);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	INIT_HLIST_NODE(&bat_algo_ops->list);
+	hlist_add_head(&bat_algo_ops->list, &batadv_algo_list);
+	ret = 0;
+
+out:
+	return ret;
+}
+
+int batadv_algo_select(struct batadv_priv *bat_priv, char *name)
+{
+	struct batadv_algo_ops *bat_algo_ops;
+	int ret = -EINVAL;
+
+	bat_algo_ops = batadv_algo_get(name);
+	if (!bat_algo_ops)
+		goto out;
+
+	bat_priv->bat_algo_ops = bat_algo_ops;
+	ret = 0;
+
+out:
+	return ret;
+}
+
+int batadv_algo_seq_print_text(struct seq_file *seq, void *offset)
+{
+	struct batadv_algo_ops *bat_algo_ops;
+
+	seq_printf(seq, "Available routing algorithms:\n");
+
+	hlist_for_each_entry(bat_algo_ops, &batadv_algo_list, list) {
+		seq_printf(seq, "%s\n", bat_algo_ops->name);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	}
 	rcu_read_unlock();
 	return 0;

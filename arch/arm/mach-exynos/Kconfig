@@ -542,6 +542,19 @@ config LEGACY_HOTPLUG_POLICY
 	  Avg-load is calculated with only cpu utilization of cpu
 	  frequency at that time.
 
+config ARM_AUTO_HOTPLUG
+	bool "Auto hotplugging based on scheduler runqueue load for ARM SoCs"
+	depends on EXYNOS_PM_HOTPLUG
+	depends on HOTPLUG_CPU
+	depends on ARCH_EXYNOS4
+
+config INTELLI_PLUG
+	bool "Enable intelli-plug cpu hotplug driver"
+	depends on EXYNOS_PM_HOTPLUG
+	depends on HOTPLUG_CPU
+	help
+	  Generic Intelli-plug cpu hotplug driver for ARM SOCs
+
 config WITH_DVFS_POLICY
 	depends on EXYNOS4_CPUFREQ
 	bool "Intergrated DVFS CPU hotplug"

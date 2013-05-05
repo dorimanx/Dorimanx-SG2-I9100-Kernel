@@ -2,37 +2,74 @@
 
 To compile you need to add
 sudo apt-get install ccache
+sudo apt-get install imagemagick
 
-This is ICS Tuned Kernel only! not supporting any 2.x.x roms!
-Kernel is updated to 3.1.Y and beyond.(hybrid)
-This is ICS/JB Tuned Kernel only! not supporting any 2.x.x roms!
+==================================================================
+My info guide.
+
+How to cherry pick commits from other branch to yours.
+
+fetch new branch, checkout inside.
+
+git fetch git://github.com/dorimanx/Dorimanx-SG2-I9100-Kernel.git
+git checkout FETCH_HEAD
+
+now git log
+
+find the hash number of the oldest commit that you want and the newst commit that you want,
+it's a range of commits! :)
+
+now example! ( the .. from old to new is a must)
+rm -f *.patch  (clean all old junk)
+
+you must use commit hash -1 from commit that you want to start adding!
+just take commit that you have/not want as first!, git format-patch will start from next to one you put as the oldest.!
+
+then "OLD" + "NEW" are info, dont write.
+
+git format-patch "OLD" 177e5c7ce53b6d06b9ee3448c00215ba6d70ffc9..c87ade04d28d2024b8ed2000346aa568a07a7f0b "NEW"
+git checkout DESTINATION/YOUR branch.
+git am *.patch
+rm -f *.patch
+git push
+
+all done :)
+
+if git am fail to add patch, you can stop and try to fix the commit, that is another story :)
+
+More will be added later.
+
+=================================================================
+
+Kernel is updated to 3.1.Y and beyond.(hybrid)(we have 70% from 3.9.Y kernel!)
+This is JB Tuned Kernel only! not supporting any 2.x.x/4.0.x roms!
 Dual CPU support
 Default CPU governor: HYPER
 CFS CPU SCHEDULER Tweaks.
-Default CPU frequency: 200-1200 MHz (MAX OC up to 1.5Ghz speed!)
+Default CPU frequency: 200-1200 MHz (MAX OC up to 1.6Ghz speed!)
 Kernel Support STweaks and 5 Profiles.
-Overclocking to 1500 MHz. (via ANY CPU Tweak Apps or STweaks)
-Kernel support 15 CPU steps! 1500Mhz->100Mhz by static default!
+Overclocking to 1600 MHz. (via ANY CPU Tweak Apps or STweaks)
+Kernel support 16 CPU steps! 1600Mhz->100Mhz by static default!
 You can set MIN/MAX CPU Freq in STweaks app! + lots of CPU tweaks.
 Kernel will sleep in deep sleep on 200Mhz->600Mhz as Samsung requesting to prevent SOD.
-Support undervolt/overvolting via sysfs interface/apps interface. and STweaks (750-1500mV) (all set to best)
+Support undervolt/overvolting via sysfs interface/apps interface. and STweaks (800-1500mV) (all set to best)
 Be very careful with voltage settings! (all set already)
-Default I/O Scheduling: ZEN
-More I/O Scheduling present in kernel: DEADLINE, VR, NOOP, CFQ, BFQ V4, SIO, ROW
+Default I/O Scheduling: ROW
+More I/O Scheduling present in kernel: DEADLINE, VR, NOOP, FIFO, CFQ, BFQ V6, SIO, ZEN
 Native USB Tethering.
 Native Wi-Fi Tethering
 File systems support: Ext3/4, FAT32, NFS, CIFS, NTFS
 Added tweaks to increase I/O Speed.
 Added tweaks to increase CPU speed
 Removed all the debuggers to free kernel from unneeded jobs, and logs.
-More Govs present, conservative, performance, luzactiveq, pegasusq, scary, ondemand(default sleep gov), sleepy, ZenX, Nightmare.
+More Govs present, conservative, performance, pegasusq, nightmare, scary, ondemand(default sleep gov), sleepy.
 ZRAM SWAP add more 150/300/600MB compressed RAM, activated by STweaks, set to off by default.
 Tweak camera (better picks quality)
 Kernel Include Siyah Recovery with Dual ROM support!
 In Recovery you have section to select kernel profile. Performance, default, battery, the default is DEFAULT.
 Kernel will Auto ROOT your device!
-You can disable ROOT in STweaks app! (download from market!)
-Tuned for I/O Mega Speed SQLite is injected to ROM after install, only for CM9 or AOKP and JB ROMS, will NOT be injected to MIUI/SAMMY ROMS.
+You can disable ROOT in STweaks app!
+Tuned for I/O Mega Speed SQLite is injected to ROM after install, only for CM9 or AOKP and JB ROMS, will NOT be injected to MIUI.
 BLN by GM! lights time out, and blink/breathing effect, see STweaks BLN tab to activate!
 New Kernel Management app STweaks by GM! installed with kernel.
 BLN without Wakelock to save battery when BLN active till timed out. by GM.
@@ -42,25 +79,26 @@ It's will work by auto and set lots of tweaks: NET tweaks, GPU tweaks, CPU manag
 It's name is cortexbrain-tune.sh
 WE SAFE (MMC_CAP_ERASE not present) in kernel MMC Code!
 MMC code merged with SAMMY Update 7
-FM-RADIO WORKING! (you need Spirit FM PAID!!!!) or original ICS FM APP.
+FM-RADIO WORKING! (you need Spirit FM PAID!!!!) or Sammy ROM with FM APP.
 Touch screen color + touch thresholds are in STweaks,
 Kernel Cleaning Script is build IN! by VOKU.
 BT Support for SAMMY 4.0.4 ported by GM! + BT driver from SAMMY JB LEAK
-Video(GPU) + Camera Driver from SAMMY JB LEAK + patches
-WIFI Driver 1.28.15
-Modem Driver from SAMMY JB LEAK
-SMP Processor code updated from Kernel 3.6.Y
+Video(GPU) + Camera Driver from SAMMY JB/CM10.1 + patches
+WIFI Driver 1.28.19
+Modem Driver from SAMMY JB SOURCE
+SMP Processor code updated from Kernel 3.9.Y
 RCU + SRCU Processor code updated from Kernel 3.6.Y
 Kernel Code for on screen gestures by Tungstwenty fixed by MARIO1968
 EXT4 Code merged with lots of updates from 3.6.Y kernel
-SLUB fully merged with 3.6.Y kernel
-Memcontrol merged with 3.8.Y kernel.
+SLUB fully merged with 3.9.Y kernel
+SCHED CORE fully merged with 3.9.Y kernel.
+Mem merged with 3.9.Y kernel.
 VFP updated to MAX from 3.4.Y
 Slide2Wake by FLUXI, (swipe from left to right on turned off screen to wakeup device, tweak can be turned on/off in STweaks, this mod use 5% battery! (Modded by GM for less battery drain)
 Sound boost controls by FLUXI in STweaks.
-New Mali Video Driver combined with old to support ICS + JB-Mail in one kernel by Gokhanmoral!
+New Mali V2 Video Driver combined with old to support ICS + in one kernel by Gokhanmoral/me/CM-TEAM!
 Added mdnie interface and made hardcore.s sharpness tweaks optional by GM!
-5 GPU FREQ Steps from 62Mhz to 520Mhz by GM!
+5 GPU FREQ Steps from 108Mhz to 520Mhz by GM!
 
 
 	Linux kernel release 3.x <http://kernel.org/>

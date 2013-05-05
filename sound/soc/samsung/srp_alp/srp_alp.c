@@ -739,7 +739,7 @@ static int srp_mmap(struct file *filep, struct vm_area_struct *vma)
 	unsigned int pfn;
 
 	vma->vm_flags |= VM_IO;
-	vma->vm_flags |= VM_RESERVED;
+	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
 	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
 
 	pfn = __phys_to_pfn(srp.mmap_base);

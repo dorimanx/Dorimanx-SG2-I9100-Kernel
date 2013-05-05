@@ -109,9 +109,15 @@ struct neigh_node *create_neighbor(struct orig_node *orig_node,
 
 static void orig_node_free_rcu(struct rcu_head *rcu)
 {
+<<<<<<< HEAD
 	struct hlist_node *node, *node_tmp;
 	struct neigh_node *neigh_node, *tmp_neigh_node;
 	struct orig_node *orig_node;
+=======
+	struct hlist_node *node_tmp;
+	struct batadv_neigh_node *neigh_node, *tmp_neigh_node;
+	struct batadv_orig_node *orig_node;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 	orig_node = container_of(rcu, struct orig_node, rcu);
 
@@ -125,7 +131,7 @@ static void orig_node_free_rcu(struct rcu_head *rcu)
 	}
 
 	/* for all neighbors towards this originator ... */
-	hlist_for_each_entry_safe(neigh_node, node, node_tmp,
+	hlist_for_each_entry_safe(neigh_node, node_tmp,
 				  &orig_node->neigh_list, list) {
 		hlist_del_rcu(&neigh_node->list);
 		neigh_node_free_ref(neigh_node);
@@ -150,8 +156,13 @@ void orig_node_free_ref(struct orig_node *orig_node)
 
 void originator_free(struct bat_priv *bat_priv)
 {
+<<<<<<< HEAD
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_node *node, *node_tmp;
+=======
+	struct batadv_hashtable *hash = bat_priv->orig_hash;
+	struct hlist_node *node_tmp;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	spinlock_t *list_lock; /* spinlock to protect write access */
 	struct orig_node *orig_node;
@@ -169,11 +180,16 @@ void originator_free(struct bat_priv *bat_priv)
 		list_lock = &hash->list_locks[i];
 
 		spin_lock_bh(list_lock);
-		hlist_for_each_entry_safe(orig_node, node, node_tmp,
+		hlist_for_each_entry_safe(orig_node, node_tmp,
 					  head, hash_entry) {
+<<<<<<< HEAD
 
 			hlist_del_rcu(node);
 			orig_node_free_ref(orig_node);
+=======
+			hlist_del_rcu(&orig_node->hash_entry);
+			batadv_orig_node_free_ref(orig_node);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		}
 		spin_unlock_bh(list_lock);
 	}
@@ -254,8 +270,13 @@ static bool purge_orig_neighbors(struct bat_priv *bat_priv,
 				 struct orig_node *orig_node,
 				 struct neigh_node **best_neigh_node)
 {
+<<<<<<< HEAD
 	struct hlist_node *node, *node_tmp;
 	struct neigh_node *neigh_node;
+=======
+	struct hlist_node *node_tmp;
+	struct batadv_neigh_node *neigh_node;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	bool neigh_purged = false;
 
 	*best_neigh_node = NULL;
@@ -263,7 +284,7 @@ static bool purge_orig_neighbors(struct bat_priv *bat_priv,
 	spin_lock_bh(&orig_node->neigh_list_lock);
 
 	/* for all neighbors towards this originator ... */
-	hlist_for_each_entry_safe(neigh_node, node, node_tmp,
+	hlist_for_each_entry_safe(neigh_node, node_tmp,
 				  &orig_node->neigh_list, list) {
 
 		if ((time_after(jiffies,
@@ -333,8 +354,13 @@ static bool purge_orig_node(struct bat_priv *bat_priv,
 
 static void _purge_orig(struct bat_priv *bat_priv)
 {
+<<<<<<< HEAD
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_node *node, *node_tmp;
+=======
+	struct batadv_hashtable *hash = bat_priv->orig_hash;
+	struct hlist_node *node_tmp;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	spinlock_t *list_lock; /* spinlock to protect write access */
 	struct orig_node *orig_node;
@@ -349,13 +375,20 @@ static void _purge_orig(struct bat_priv *bat_priv)
 		list_lock = &hash->list_locks[i];
 
 		spin_lock_bh(list_lock);
-		hlist_for_each_entry_safe(orig_node, node, node_tmp,
+		hlist_for_each_entry_safe(orig_node, node_tmp,
 					  head, hash_entry) {
 			if (purge_orig_node(bat_priv, orig_node)) {
 				if (orig_node->gw_flags)
+<<<<<<< HEAD
 					gw_node_delete(bat_priv, orig_node);
 				hlist_del_rcu(node);
 				orig_node_free_ref(orig_node);
+=======
+					batadv_gw_node_delete(bat_priv,
+							      orig_node);
+				hlist_del_rcu(&orig_node->hash_entry);
+				batadv_orig_node_free_ref(orig_node);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 				continue;
 			}
 
@@ -391,9 +424,14 @@ void purge_orig_ref(struct bat_priv *bat_priv)
 int orig_seq_print_text(struct seq_file *seq, void *offset)
 {
 	struct net_device *net_dev = (struct net_device *)seq->private;
+<<<<<<< HEAD
 	struct bat_priv *bat_priv = netdev_priv(net_dev);
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_node *node, *node_tmp;
+=======
+	struct batadv_priv *bat_priv = netdev_priv(net_dev);
+	struct batadv_hashtable *hash = bat_priv->orig_hash;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	struct hard_iface *primary_if;
 	struct orig_node *orig_node;
@@ -431,8 +469,13 @@ int orig_seq_print_text(struct seq_file *seq, void *offset)
 		head = &hash->table[i];
 
 		rcu_read_lock();
+<<<<<<< HEAD
 		hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
 			neigh_node = orig_node_get_router(orig_node);
+=======
+		hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
+			neigh_node = batadv_orig_node_get_router(orig_node);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			if (!neigh_node)
 				continue;
 
@@ -450,7 +493,7 @@ int orig_seq_print_text(struct seq_file *seq, void *offset)
 				   neigh_node->addr,
 				   neigh_node->if_incoming->net_dev->name);
 
-			hlist_for_each_entry_rcu(neigh_node_tmp, node_tmp,
+			hlist_for_each_entry_rcu(neigh_node_tmp,
 						 &orig_node->neigh_list, list) {
 				seq_printf(seq, " %pM (%3i)",
 					   neigh_node_tmp->addr,
@@ -507,9 +550,14 @@ static int orig_node_add_if(struct orig_node *orig_node, int max_if_num)
 
 int orig_hash_add_if(struct hard_iface *hard_iface, int max_if_num)
 {
+<<<<<<< HEAD
 	struct bat_priv *bat_priv = netdev_priv(hard_iface->soft_iface);
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_node *node;
+=======
+	struct batadv_priv *bat_priv = netdev_priv(hard_iface->soft_iface);
+	struct batadv_hashtable *hash = bat_priv->orig_hash;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	struct orig_node *orig_node;
 	int i, ret;
@@ -520,7 +568,7 @@ int orig_hash_add_if(struct hard_iface *hard_iface, int max_if_num)
 		head = &hash->table[i];
 
 		rcu_read_lock();
-		hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
+		hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
 			spin_lock_bh(&orig_node->ogm_cnt_lock);
 			ret = orig_node_add_if(orig_node, max_if_num);
 			spin_unlock_bh(&orig_node->ogm_cnt_lock);
@@ -592,9 +640,14 @@ free_own_sum:
 
 int orig_hash_del_if(struct hard_iface *hard_iface, int max_if_num)
 {
+<<<<<<< HEAD
 	struct bat_priv *bat_priv = netdev_priv(hard_iface->soft_iface);
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_node *node;
+=======
+	struct batadv_priv *bat_priv = netdev_priv(hard_iface->soft_iface);
+	struct batadv_hashtable *hash = bat_priv->orig_hash;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	struct hard_iface *hard_iface_tmp;
 	struct orig_node *orig_node;
@@ -606,7 +659,7 @@ int orig_hash_del_if(struct hard_iface *hard_iface, int max_if_num)
 		head = &hash->table[i];
 
 		rcu_read_lock();
-		hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
+		hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
 			spin_lock_bh(&orig_node->ogm_cnt_lock);
 			ret = orig_node_del_if(orig_node, max_if_num,
 					hard_iface->if_num);

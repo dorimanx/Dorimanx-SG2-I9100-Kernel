@@ -22,6 +22,7 @@
 #include <linux/random.h>
 #include <linux/bitops.h>
 #include <linux/blkdev.h>
+#include <linux/math64.h>
 #include <asm/byteorder.h>
 
 #include "ext4.h"

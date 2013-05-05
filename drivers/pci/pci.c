@@ -794,6 +794,7 @@ EXPORT_SYMBOL(pci_choose_state);
 
 #define PCI_EXP_SAVE_REGS	7
 
+<<<<<<< HEAD
 #define pcie_cap_has_devctl(type, flags)	1
 #define pcie_cap_has_lnkctl(type, flags)		\
 		((flags & PCI_EXP_FLAGS_VERS) > 1 ||	\
@@ -815,6 +816,20 @@ EXPORT_SYMBOL(pci_choose_state);
 		((flags & PCI_EXP_FLAGS_VERS) > 1)
 #define pcie_cap_has_sltctl2(type, flags)		\
 		((flags & PCI_EXP_FLAGS_VERS) > 1)
+=======
+
+static struct pci_cap_saved_state *pci_find_saved_cap(
+	struct pci_dev *pci_dev, char cap)
+{
+	struct pci_cap_saved_state *tmp;
+
+	hlist_for_each_entry(tmp, &pci_dev->saved_cap_space, next) {
+		if (tmp->cap.cap_nr == cap)
+			return tmp;
+	}
+	return NULL;
+}
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 static int pci_save_pcie_state(struct pci_dev *dev)
 {
@@ -995,7 +1010,6 @@ struct pci_saved_state *pci_store_saved_state(struct pci_dev *dev)
 	struct pci_saved_state *state;
 	struct pci_cap_saved_state *tmp;
 	struct pci_cap_saved_data *cap;
-	struct hlist_node *pos;
 	size_t size;
 
 	if (!dev->state_saved)
@@ -1003,7 +1017,7 @@ struct pci_saved_state *pci_store_saved_state(struct pci_dev *dev)
 
 	size = sizeof(*state) + sizeof(struct pci_cap_saved_data);
 
-	hlist_for_each_entry(tmp, pos, &dev->saved_cap_space, next)
+	hlist_for_each_entry(tmp, &dev->saved_cap_space, next)
 		size += sizeof(struct pci_cap_saved_data) + tmp->cap.size;
 
 	state = kzalloc(size, GFP_KERNEL);
@@ -1014,7 +1028,7 @@ struct pci_saved_state *pci_store_saved_state(struct pci_dev *dev)
 	       sizeof(state->config_space));
 
 	cap = state->cap;
-	hlist_for_each_entry(tmp, pos, &dev->saved_cap_space, next) {
+	hlist_for_each_entry(tmp, &dev->saved_cap_space, next) {
 		size_t len = sizeof(struct pci_cap_saved_data) + tmp->cap.size;
 		memcpy(cap, &tmp->cap, len);
 		cap = (struct pci_cap_saved_data *)((u8 *)cap + len);
@@ -1899,6 +1913,18 @@ void pci_allocate_cap_save_buffers(struct pci_dev *dev)
 			"unable to preallocate PCI-X save buffer\n");
 }
 
+<<<<<<< HEAD
+=======
+void pci_free_cap_save_buffers(struct pci_dev *dev)
+{
+	struct pci_cap_saved_state *tmp;
+	struct hlist_node *n;
+
+	hlist_for_each_entry_safe(tmp, n, &dev->saved_cap_space, next)
+		kfree(tmp);
+}
+
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 /**
  * pci_enable_ari - enable ARI forwarding if hardware support it
  * @dev: the PCI device

@@ -66,9 +66,9 @@ static inline struct mesh_table *resize_dereference_mpp_paths(void)
  * it's used twice. So it is illegal to do
  *	for_each_mesh_entry(rcu_dereference(...), ...)
  */
-#define for_each_mesh_entry(tbl, p, node, i) \
+#define for_each_mesh_entry(tbl, node, i) \
 	for (i = 0; i <= tbl->hash_mask; i++) \
-		hlist_for_each_entry_rcu(node, p, &tbl->hash_buckets[i], list)
+		hlist_for_each_entry_rcu(node, &tbl->hash_buckets[i], list)
 
 
 static struct mesh_table *mesh_table_alloc(int size_order)
@@ -129,6 +129,20 @@ static void mesh_table_free(struct mesh_table *tbl, bool free_leafs)
 		}
 		spin_unlock_bh(&tbl->hashwlock[i]);
 	}
+<<<<<<< HEAD
+=======
+	if (free_leafs) {
+		spin_lock_bh(&tbl->gates_lock);
+		hlist_for_each_entry_safe(gate, q,
+					 tbl->known_gates, list) {
+			hlist_del(&gate->list);
+			kfree(gate);
+		}
+		kfree(tbl->known_gates);
+		spin_unlock_bh(&tbl->gates_lock);
+	}
+
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	__mesh_table_free(tbl);
 }
 
@@ -245,7 +259,6 @@ struct mesh_path *mesh_path_lookup(u8 *dst, struct ieee80211_sub_if_data *sdata)
 struct mesh_path *mpp_path_lookup(u8 *dst, struct ieee80211_sub_if_data *sdata)
 {
 	struct mesh_path *mpath;
-	struct hlist_node *n;
 	struct hlist_head *bucket;
 	struct mesh_table *tbl;
 	struct mpath_node *node;
@@ -253,7 +266,7 @@ struct mesh_path *mpp_path_lookup(u8 *dst, struct ieee80211_sub_if_data *sdata)
 	tbl = rcu_dereference(mpp_paths);
 
 	bucket = &tbl->hash_buckets[mesh_table_hash(dst, sdata, tbl)];
-	hlist_for_each_entry_rcu(node, n, bucket, list) {
+	hlist_for_each_entry_rcu(node, bucket, list) {
 		mpath = node->mpath;
 		if (mpath->sdata == sdata &&
 		    memcmp(dst, mpath->dst, ETH_ALEN) == 0) {
@@ -283,11 +296,10 @@ struct mesh_path *mesh_path_lookup_by_idx(int idx, struct ieee80211_sub_if_data 
 {
 	struct mesh_table *tbl = rcu_dereference(mesh_paths);
 	struct mpath_node *node;
-	struct hlist_node *p;
 	int i;
 	int j = 0;
 
-	for_each_mesh_entry(tbl, p, node, i) {
+	for_each_mesh_entry(tbl, node, i) {
 		if (sdata && node->mpath->sdata != sdata)
 			continue;
 		if (j++ == idx) {
@@ -305,6 +317,86 @@ struct mesh_path *mesh_path_lookup_by_idx(int idx, struct ieee80211_sub_if_data 
 }
 
 /**
+<<<<<<< HEAD
+=======
+ * mesh_path_add_gate - add the given mpath to a mesh gate to our path table
+ * @mpath: gate path to add to table
+ */
+int mesh_path_add_gate(struct mesh_path *mpath)
+{
+	struct mesh_table *tbl;
+	struct mpath_node *gate, *new_gate;
+	int err;
+
+	rcu_read_lock();
+	tbl = rcu_dereference(mesh_paths);
+
+	hlist_for_each_entry_rcu(gate, tbl->known_gates, list)
+		if (gate->mpath == mpath) {
+			err = -EEXIST;
+			goto err_rcu;
+		}
+
+	new_gate = kzalloc(sizeof(struct mpath_node), GFP_ATOMIC);
+	if (!new_gate) {
+		err = -ENOMEM;
+		goto err_rcu;
+	}
+
+	mpath->is_gate = true;
+	mpath->sdata->u.mesh.num_gates++;
+	new_gate->mpath = mpath;
+	spin_lock_bh(&tbl->gates_lock);
+	hlist_add_head_rcu(&new_gate->list, tbl->known_gates);
+	spin_unlock_bh(&tbl->gates_lock);
+	mpath_dbg(mpath->sdata,
+		  "Mesh path: Recorded new gate: %pM. %d known gates\n",
+		  mpath->dst, mpath->sdata->u.mesh.num_gates);
+	err = 0;
+err_rcu:
+	rcu_read_unlock();
+	return err;
+}
+
+/**
+ * mesh_gate_del - remove a mesh gate from the list of known gates
+ * @tbl: table which holds our list of known gates
+ * @mpath: gate mpath
+ *
+ * Locking: must be called inside rcu_read_lock() section
+ */
+static void mesh_gate_del(struct mesh_table *tbl, struct mesh_path *mpath)
+{
+	struct mpath_node *gate;
+	struct hlist_node *q;
+
+	hlist_for_each_entry_safe(gate, q, tbl->known_gates, list) {
+		if (gate->mpath != mpath)
+			continue;
+		spin_lock_bh(&tbl->gates_lock);
+		hlist_del_rcu(&gate->list);
+		kfree_rcu(gate, rcu);
+		spin_unlock_bh(&tbl->gates_lock);
+		mpath->sdata->u.mesh.num_gates--;
+		mpath->is_gate = false;
+		mpath_dbg(mpath->sdata,
+			  "Mesh path: Deleted gate: %pM. %d known gates\n",
+			  mpath->dst, mpath->sdata->u.mesh.num_gates);
+		break;
+	}
+}
+
+/**
+ * mesh_gate_num - number of gates known to this interface
+ * @sdata: subif data
+ */
+int mesh_gate_num(struct ieee80211_sub_if_data *sdata)
+{
+	return sdata->u.mesh.num_gates;
+}
+
+/**
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
  * mesh_path_add - allocate and add a new path to the mesh path table
  * @addr: destination address of the path (ETH_ALEN length)
  * @sdata: local subif
@@ -321,7 +413,6 @@ int mesh_path_add(u8 *dst, struct ieee80211_sub_if_data *sdata)
 	struct mesh_path *mpath, *new_mpath;
 	struct mpath_node *node, *new_node;
 	struct hlist_head *bucket;
-	struct hlist_node *n;
 	int grow = 0;
 	int err = 0;
 	u32 hash_idx;
@@ -365,7 +456,7 @@ int mesh_path_add(u8 *dst, struct ieee80211_sub_if_data *sdata)
 	spin_lock_bh(&tbl->hashwlock[hash_idx]);
 
 	err = -EEXIST;
-	hlist_for_each_entry(node, n, bucket, list) {
+	hlist_for_each_entry(node, bucket, list) {
 		mpath = node->mpath;
 		if (mpath->sdata == sdata && memcmp(dst, mpath->dst, ETH_ALEN) == 0)
 			goto err_exists;
@@ -453,7 +544,6 @@ int mpp_path_add(u8 *dst, u8 *mpp, struct ieee80211_sub_if_data *sdata)
 	struct mesh_path *mpath, *new_mpath;
 	struct mpath_node *node, *new_node;
 	struct hlist_head *bucket;
-	struct hlist_node *n;
 	int grow = 0;
 	int err = 0;
 	u32 hash_idx;
@@ -492,7 +582,7 @@ int mpp_path_add(u8 *dst, u8 *mpp, struct ieee80211_sub_if_data *sdata)
 	spin_lock_bh(&tbl->hashwlock[hash_idx]);
 
 	err = -EEXIST;
-	hlist_for_each_entry(node, n, bucket, list) {
+	hlist_for_each_entry(node, bucket, list) {
 		mpath = node->mpath;
 		if (mpath->sdata == sdata && memcmp(dst, mpath->dst, ETH_ALEN) == 0)
 			goto err_exists;
@@ -536,13 +626,12 @@ void mesh_plink_broken(struct sta_info *sta)
 	static const u8 bcast[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 	struct mesh_path *mpath;
 	struct mpath_node *node;
-	struct hlist_node *p;
 	struct ieee80211_sub_if_data *sdata = sta->sdata;
 	int i;
 
 	rcu_read_lock();
 	tbl = rcu_dereference(mesh_paths);
-	for_each_mesh_entry(tbl, p, node, i) {
+	for_each_mesh_entry(tbl, node, i) {
 		mpath = node->mpath;
 		spin_lock_bh(&mpath->state_lock);
 		if (rcu_dereference(mpath->next_hop) == sta &&
@@ -577,12 +666,17 @@ void mesh_path_flush_by_nexthop(struct sta_info *sta)
 	struct mesh_table *tbl;
 	struct mesh_path *mpath;
 	struct mpath_node *node;
-	struct hlist_node *p;
 	int i;
 
 	rcu_read_lock();
+<<<<<<< HEAD
 	tbl = rcu_dereference(mesh_paths);
 	for_each_mesh_entry(tbl, p, node, i) {
+=======
+	read_lock_bh(&pathtbl_resize_lock);
+	tbl = resize_dereference_mesh_paths();
+	for_each_mesh_entry(tbl, node, i) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		mpath = node->mpath;
 		if (rcu_dereference(mpath->next_hop) == sta)
 			mesh_path_del(mpath->dst, mpath->sdata);
@@ -595,12 +689,16 @@ void mesh_path_flush(struct ieee80211_sub_if_data *sdata)
 	struct mesh_table *tbl;
 	struct mesh_path *mpath;
 	struct mpath_node *node;
-	struct hlist_node *p;
 	int i;
 
+<<<<<<< HEAD
 	rcu_read_lock();
 	tbl = rcu_dereference(mesh_paths);
 	for_each_mesh_entry(tbl, p, node, i) {
+=======
+	WARN_ON(!rcu_read_lock_held());
+	for_each_mesh_entry(tbl, node, i) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		mpath = node->mpath;
 		if (mpath->sdata == sdata)
 			mesh_path_del(mpath->dst, mpath->sdata);
@@ -633,7 +731,6 @@ int mesh_path_del(u8 *addr, struct ieee80211_sub_if_data *sdata)
 	struct mesh_path *mpath;
 	struct mpath_node *node;
 	struct hlist_head *bucket;
-	struct hlist_node *n;
 	int hash_idx;
 	int err = 0;
 
@@ -642,8 +739,13 @@ int mesh_path_del(u8 *addr, struct ieee80211_sub_if_data *sdata)
 	hash_idx = mesh_table_hash(addr, sdata, tbl);
 	bucket = &tbl->hash_buckets[hash_idx];
 
+<<<<<<< HEAD
 	spin_lock_bh(&tbl->hashwlock[hash_idx]);
 	hlist_for_each_entry(node, n, bucket, list) {
+=======
+	spin_lock(&tbl->hashwlock[hash_idx]);
+	hlist_for_each_entry(node, bucket, list) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		mpath = node->mpath;
 		if (mpath->sdata == sdata &&
 		    memcmp(addr, mpath->dst, ETH_ALEN) == 0) {
@@ -681,6 +783,61 @@ void mesh_path_tx_pending(struct mesh_path *mpath)
 }
 
 /**
+<<<<<<< HEAD
+=======
+ * mesh_path_send_to_gates - sends pending frames to all known mesh gates
+ *
+ * @mpath: mesh path whose queue will be emptied
+ *
+ * If there is only one gate, the frames are transferred from the failed mpath
+ * queue to that gate's queue.  If there are more than one gates, the frames
+ * are copied from each gate to the next.  After frames are copied, the
+ * mpath queues are emptied onto the transmission queue.
+ */
+int mesh_path_send_to_gates(struct mesh_path *mpath)
+{
+	struct ieee80211_sub_if_data *sdata = mpath->sdata;
+	struct mesh_table *tbl;
+	struct mesh_path *from_mpath = mpath;
+	struct mpath_node *gate = NULL;
+	bool copy = false;
+	struct hlist_head *known_gates;
+
+	rcu_read_lock();
+	tbl = rcu_dereference(mesh_paths);
+	known_gates = tbl->known_gates;
+	rcu_read_unlock();
+
+	if (!known_gates)
+		return -EHOSTUNREACH;
+
+	hlist_for_each_entry_rcu(gate, known_gates, list) {
+		if (gate->mpath->sdata != sdata)
+			continue;
+
+		if (gate->mpath->flags & MESH_PATH_ACTIVE) {
+			mpath_dbg(sdata, "Forwarding to %pM\n", gate->mpath->dst);
+			mesh_path_move_to_queue(gate->mpath, from_mpath, copy);
+			from_mpath = gate->mpath;
+			copy = true;
+		} else {
+			mpath_dbg(sdata,
+				  "Not forwarding %p (flags %#x)\n",
+				  gate->mpath, gate->mpath->flags);
+		}
+	}
+
+	hlist_for_each_entry_rcu(gate, known_gates, list)
+		if (gate->mpath->sdata == sdata) {
+			mpath_dbg(sdata, "Sending to %pM\n", gate->mpath->dst);
+			mesh_path_tx_pending(gate->mpath);
+		}
+
+	return (from_mpath == mpath) ? -EHOSTUNREACH : 0;
+}
+
+/**
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
  * mesh_path_discard_frame - discard a frame whose path could not be resolved
  *
  * @skb: frame to discard
@@ -819,12 +976,11 @@ void mesh_path_expire(struct ieee80211_sub_if_data *sdata)
 	struct mesh_table *tbl;
 	struct mesh_path *mpath;
 	struct mpath_node *node;
-	struct hlist_node *p;
 	int i;
 
 	rcu_read_lock();
 	tbl = rcu_dereference(mesh_paths);
-	for_each_mesh_entry(tbl, p, node, i) {
+	for_each_mesh_entry(tbl, node, i) {
 		if (node->mpath->sdata != sdata)
 			continue;
 		mpath = node->mpath;

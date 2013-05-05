@@ -31,11 +31,25 @@ extern struct timezone sys_tz;
 
 extern void map_vsyscall(void);
 
+<<<<<<< HEAD
 /*
  * Called on instruction fetch fault in vsyscall page.
  * Returns true if handled.
  */
 extern bool emulate_vsyscall(struct pt_regs *regs, unsigned long address);
+=======
+/* Emulation */
+
+static inline bool is_vsyscall_entry(unsigned long addr)
+{
+	return (addr & ~0xC00UL) == VSYSCALL_START;
+}
+
+static inline int vsyscall_entry_nr(unsigned long addr)
+{
+	return (addr & 0xC00UL) >> 10;
+}
+>>>>>>> 5cec93c... x86-64: Emulate legacy vsyscalls
 
 #endif /* __KERNEL__ */
 

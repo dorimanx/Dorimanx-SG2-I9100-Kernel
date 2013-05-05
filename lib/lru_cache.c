@@ -223,7 +223,6 @@ static struct hlist_head *lc_hash_slot(struct lru_cache *lc, unsigned int enr)
 	return  lc->lc_slot + (enr % lc->nr_elements);
 }
 
-
 /**
  * lc_find - find element by label, if present in the hash table
  * @lc: The lru_cache object

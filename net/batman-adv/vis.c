@@ -110,9 +110,14 @@ static struct vis_info *vis_hash_find(struct bat_priv *bat_priv,
 {
 	struct hashtable_t *hash = bat_priv->vis_hash;
 	struct hlist_head *head;
+<<<<<<< HEAD
 	struct hlist_node *node;
 	struct vis_info *vis_info, *vis_info_tmp = NULL;
 	int index;
+=======
+	struct batadv_vis_info *vis_info, *vis_info_tmp = NULL;
+	uint32_t index;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 	if (!hash)
 		return NULL;
@@ -121,8 +126,13 @@ static struct vis_info *vis_hash_find(struct bat_priv *bat_priv,
 	head = &hash->table[index];
 
 	rcu_read_lock();
+<<<<<<< HEAD
 	hlist_for_each_entry_rcu(vis_info, node, head, hash_entry) {
 		if (!vis_info_cmp(node, data))
+=======
+	hlist_for_each_entry_rcu(vis_info, head, hash_entry) {
+		if (!batadv_vis_info_cmp(&vis_info->hash_entry, data))
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			continue;
 
 		vis_info_tmp = vis_info;
@@ -139,11 +149,18 @@ static void vis_data_insert_interface(const uint8_t *interface,
 				      struct hlist_head *if_list,
 				      bool primary)
 {
+<<<<<<< HEAD
 	struct if_list_entry *entry;
 	struct hlist_node *pos;
 
 	hlist_for_each_entry(entry, pos, if_list, list) {
 		if (compare_eth(entry->addr, (void *)interface))
+=======
+	struct batadv_vis_if_list_entry *entry;
+
+	hlist_for_each_entry(entry, if_list, list) {
+		if (batadv_compare_eth(entry->addr, interface))
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			return;
 	}
 
@@ -158,11 +175,15 @@ static void vis_data_insert_interface(const uint8_t *interface,
 
 static ssize_t vis_data_read_prim_sec(char *buff, struct hlist_head *if_list)
 {
+<<<<<<< HEAD
 	struct if_list_entry *entry;
 	struct hlist_node *pos;
 	size_t len = 0;
+=======
+	struct batadv_vis_if_list_entry *entry;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
-	hlist_for_each_entry(entry, pos, if_list, list) {
+	hlist_for_each_entry(entry, if_list, list) {
 		if (entry->primary)
 			len += sprintf(buff + len, "PRIMARY, ");
 		else
@@ -235,6 +256,7 @@ int vis_seq_print_text(struct seq_file *seq, void *offset)
 	for (i = 0; i < hash->size; i++) {
 		head = &hash->table[i];
 
+<<<<<<< HEAD
 		rcu_read_lock();
 		hlist_for_each_entry_rcu(info, node, head, hash_entry) {
 			packet = (struct vis_packet *)info->skb_packet->data;
@@ -253,6 +275,18 @@ int vis_seq_print_text(struct seq_file *seq, void *offset)
 
 			hlist_for_each_entry(entry, pos, &vis_if_list, list) {
 				buf_size += 18 + 26 * packet->entries;
+=======
+static void batadv_vis_data_read_entries(struct seq_file *seq,
+					 struct hlist_head *list,
+					 struct batadv_vis_packet *packet,
+					 struct batadv_vis_info_entry *entries)
+{
+	int i;
+	struct batadv_vis_if_list_entry *entry;
+
+	hlist_for_each_entry(entry, list, list) {
+		seq_printf(seq, "%pM,", entry->addr);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 				/* add primary/secondary records */
 				if (compare_eth(entry->addr, packet->vis_orig))
@@ -271,6 +305,7 @@ int vis_seq_print_text(struct seq_file *seq, void *offset)
 		rcu_read_unlock();
 	}
 
+<<<<<<< HEAD
 	buff = kmalloc(buf_size, GFP_ATOMIC);
 	if (!buff) {
 		spin_unlock_bh(&bat_priv->vis_hash_lock);
@@ -279,10 +314,22 @@ int vis_seq_print_text(struct seq_file *seq, void *offset)
 	}
 	buff[0] = '\0';
 	buff_pos = 0;
+=======
+static void batadv_vis_seq_print_text_bucket(struct seq_file *seq,
+					     const struct hlist_head *head)
+{
+	struct batadv_vis_info *info;
+	struct batadv_vis_packet *packet;
+	uint8_t *entries_pos;
+	struct batadv_vis_info_entry *entries;
+	struct batadv_vis_if_list_entry *entry;
+	struct hlist_node *n;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 	for (i = 0; i < hash->size; i++) {
 		head = &hash->table[i];
 
+<<<<<<< HEAD
 		rcu_read_lock();
 		hlist_for_each_entry_rcu(info, node, head, hash_entry) {
 			packet = (struct vis_packet *)info->skb_packet->data;
@@ -298,6 +345,26 @@ int vis_seq_print_text(struct seq_file *seq, void *offset)
 							  &vis_if_list,
 							  compare);
 			}
+=======
+	hlist_for_each_entry_rcu(info, head, hash_entry) {
+		packet = (struct batadv_vis_packet *)info->skb_packet->data;
+		entries_pos = (uint8_t *)packet + sizeof(*packet);
+		entries = (struct batadv_vis_info_entry *)entries_pos;
+
+		batadv_vis_data_insert_interface(packet->vis_orig, &vis_if_list,
+						 true);
+		batadv_vis_data_insert_interfaces(&vis_if_list, packet,
+						  entries);
+		batadv_vis_data_read_entries(seq, &vis_if_list, packet,
+					     entries);
+
+		hlist_for_each_entry_safe(entry, n, &vis_if_list, list) {
+			hlist_del(&entry->list);
+			kfree(entry);
+		}
+	}
+}
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 			hlist_for_each_entry(entry, pos, &vis_if_list, list) {
 				buff_pos += sprintf(buff + buff_pos, "%pM,",
@@ -565,9 +632,14 @@ end:
 static int find_best_vis_server(struct bat_priv *bat_priv,
 				struct vis_info *info)
 {
+<<<<<<< HEAD
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct neigh_node *router;
 	struct hlist_node *node;
+=======
+	struct batadv_hashtable *hash = bat_priv->orig_hash;
+	struct batadv_neigh_node *router;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	struct orig_node *orig_node;
 	struct vis_packet *packet;
@@ -579,8 +651,13 @@ static int find_best_vis_server(struct bat_priv *bat_priv,
 		head = &hash->table[i];
 
 		rcu_read_lock();
+<<<<<<< HEAD
 		hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
 			router = orig_node_get_router(orig_node);
+=======
+		hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
+			router = batadv_orig_node_get_router(orig_node);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			if (!router)
 				continue;
 
@@ -614,8 +691,12 @@ static bool vis_packet_full(struct vis_info *info)
  * returns 0 on success, -1 if no packet could be generated */
 static int generate_vis_packet(struct bat_priv *bat_priv)
 {
+<<<<<<< HEAD
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_node *node;
+=======
+	struct batadv_hashtable *hash = bat_priv->orig_hash;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	struct orig_node *orig_node;
 	struct neigh_node *router;
@@ -645,8 +726,13 @@ static int generate_vis_packet(struct bat_priv *bat_priv)
 		head = &hash->table[i];
 
 		rcu_read_lock();
+<<<<<<< HEAD
 		hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
 			router = orig_node_get_router(orig_node);
+=======
+		hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
+			router = batadv_orig_node_get_router(orig_node);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			if (!router)
 				continue;
 
@@ -684,10 +770,18 @@ next:
 	for (i = 0; i < hash->size; i++) {
 		head = &hash->table[i];
 
+<<<<<<< HEAD
 		hlist_for_each_entry(tt_local_entry, node, head, hash_entry) {
 			entry = (struct vis_info_entry *)
 					skb_put(info->skb_packet,
 						sizeof(*entry));
+=======
+		rcu_read_lock();
+		hlist_for_each_entry_rcu(tt_common_entry, head,
+					 hash_entry) {
+			packet_pos = skb_put(info->skb_packet, sizeof(*entry));
+			entry = (struct batadv_vis_info_entry *)packet_pos;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			memset(entry->src, 0, ETH_ALEN);
 			memcpy(entry->dest, tt_local_entry->addr, ETH_ALEN);
 			entry->quality = 0; /* 0 means TT */
@@ -712,26 +806,40 @@ unlock:
  * held */
 static void purge_vis_packets(struct bat_priv *bat_priv)
 {
+<<<<<<< HEAD
 	int i;
 	struct hashtable_t *hash = bat_priv->vis_hash;
 	struct hlist_node *node, *node_tmp;
+=======
+	uint32_t i;
+	struct batadv_hashtable *hash = bat_priv->vis.hash;
+	struct hlist_node *node_tmp;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	struct vis_info *info;
 
 	for (i = 0; i < hash->size; i++) {
 		head = &hash->table[i];
 
-		hlist_for_each_entry_safe(info, node, node_tmp,
+		hlist_for_each_entry_safe(info, node_tmp,
 					  head, hash_entry) {
 			/* never purge own data. */
 			if (info == bat_priv->my_vis_info)
 				continue;
 
+<<<<<<< HEAD
 			if (time_after(jiffies,
 				       info->first_seen + VIS_TIMEOUT * HZ)) {
 				hlist_del(node);
 				send_list_del(info);
 				kref_put(&info->refcount, free_info);
+=======
+			if (batadv_has_timed_out(info->first_seen,
+						 BATADV_VIS_TIMEOUT)) {
+				hlist_del(&info->hash_entry);
+				batadv_send_list_del(info);
+				kref_put(&info->refcount, batadv_free_info);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 			}
 		}
 	}
@@ -740,9 +848,13 @@ static void purge_vis_packets(struct bat_priv *bat_priv)
 static void broadcast_vis_packet(struct bat_priv *bat_priv,
 				 struct vis_info *info)
 {
+<<<<<<< HEAD
 	struct neigh_node *router;
 	struct hashtable_t *hash = bat_priv->orig_hash;
 	struct hlist_node *node;
+=======
+	struct batadv_hashtable *hash = bat_priv->orig_hash;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	struct hlist_head *head;
 	struct orig_node *orig_node;
 	struct vis_packet *packet;
@@ -759,7 +871,7 @@ static void broadcast_vis_packet(struct bat_priv *bat_priv,
 		head = &hash->table[i];
 
 		rcu_read_lock();
-		hlist_for_each_entry_rcu(orig_node, node, head, hash_entry) {
+		hlist_for_each_entry_rcu(orig_node, head, hash_entry) {
 			/* if it's a vis server and reachable, send it. */
 			if (!(orig_node->flags & VIS_SERVER))
 				continue;

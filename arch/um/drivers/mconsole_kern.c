@@ -124,9 +124,7 @@ void mconsole_log(struct mc_request *req)
 #if 0
 void mconsole_proc(struct mc_request *req)
 {
-	struct vfsmount *mnt = task_active_pid_ns(current)->proc_mnt;
-	char *buf;
-	int len;
+	struct vfsmount *mnt = current->nsproxy->pid_ns->proc_mnt;
 	struct file *file;
 	int n;
 	char *ptr = req->request.data, *buf;

@@ -65,6 +65,9 @@ static int __init init_static_idmap(void)
 		(long long)idmap_start, (long long)idmap_end);
 	identity_mapping_add(idmap_pgd, idmap_start, idmap_end);
 
+	/* Flush L1 for the hardware to see this page table content */
+	flush_cache_louis();
+
 	return 0;
 }
 early_initcall(init_static_idmap);
@@ -81,6 +84,7 @@ void setup_mm_for_reboot(void)
 
 	/* Switch to the identity mapping. */
 	cpu_switch_mm(idmap_pgd, &init_mm);
+	local_flush_bp_all();
 
 	/* Flush the TLB. */
 	local_flush_tlb_all();

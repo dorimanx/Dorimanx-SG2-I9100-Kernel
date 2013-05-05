@@ -348,7 +348,7 @@ static int ion_exynos_heap_map_user(struct ion_heap *heap,
 	pgoff = vma->vm_pgoff;
 	start = vma->vm_start;
 	map_pages = (vma->vm_end - vma->vm_start) >> PAGE_SHIFT;
-	vma->vm_flags |= VM_RESERVED;
+	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
 
 	for_each_sg(sgt->sgl, sgl, sgt->orig_nents, i) {
 		unsigned long sg_pgnum = sg_dma_len(sgl) >> PAGE_SHIFT;

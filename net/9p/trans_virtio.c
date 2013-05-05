@@ -591,6 +591,10 @@ static struct p9_trans_module p9_virtio_trans = {
 	.create = p9_virtio_create,
 	.close = p9_virtio_close,
 	.request = p9_virtio_request,
+<<<<<<< HEAD
+=======
+	//.zc_request = p9_virtio_zc_request,
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	.cancel = p9_virtio_cancel,
 
 	/*

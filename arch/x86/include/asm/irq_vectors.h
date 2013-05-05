@@ -17,6 +17,10 @@
  *  Vectors   0 ...  31 : system traps and exceptions - hardcoded events
  *  Vectors  32 ... 127 : device interrupts
  *  Vector  128         : legacy int80 syscall interface
+<<<<<<< HEAD
+=======
+ *  Vector  204         : legacy x86_64 vsyscall emulation
+>>>>>>> 5cec93c... x86-64: Emulate legacy vsyscalls
  *  Vectors 129 ... INVALIDATE_TLB_VECTOR_START-1 except 204 : device interrupts
  *  Vectors INVALIDATE_TLB_VECTOR_START ... 255 : special interrupts
  *
@@ -49,6 +53,9 @@
 #define IA32_SYSCALL_VECTOR		0x80
 #ifdef CONFIG_X86_32
 # define SYSCALL_VECTOR			0x80
+#endif
+#ifdef CONFIG_X86_64
+# define VSYSCALL_EMU_VECTOR		0xcc
 #endif
 
 /*

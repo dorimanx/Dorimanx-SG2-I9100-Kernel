@@ -224,7 +224,6 @@ int jpeg_mmap(struct file *filp, struct vm_area_struct *vma)
 	ptr = (char *)jpeg_ctrl->mem.base;
 	start = 0;
 
-	vma->vm_flags |= VM_RESERVED | VM_IO;
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
 	while (size > 0) {
@@ -247,7 +246,6 @@ int jpeg_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	size = vma->vm_end - vma->vm_start;
 
-	vma->vm_flags |= VM_RESERVED | VM_IO;
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
 	page_frame_no = __phys_to_pfn(jpeg_ctrl->mem.base);

@@ -849,6 +849,10 @@ int tomoyo_path_number_perm(const u8 operation, struct path *path,
 int tomoyo_mkdev_perm(const u8 operation, struct path *path,
 		      const unsigned int mode, unsigned int dev);
 int tomoyo_path_perm(const u8 operation, struct path *path);
+int tomoyo_mount_permission(const char *dev_name, struct path *path,
+			    const char *type, unsigned long flags,
+			    void *data_page);
+int tomoyo_open_control(const u8 type, struct file *file);
 int tomoyo_path2_perm(const u8 operation, struct path *path1,
 		      struct path *path2);
 int tomoyo_find_next_domain(struct linux_binprm *bprm);

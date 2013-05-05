@@ -2076,7 +2076,6 @@ static void dlm_finish_local_lockres_recovery(struct dlm_ctxt *dlm,
 					      u8 dead_node, u8 new_master)
 {
 	int i;
-	struct hlist_node *hash_iter;
 	struct hlist_head *bucket;
 	struct dlm_lock_resource *res, *next;
 
@@ -2104,6 +2103,7 @@ static void dlm_finish_local_lockres_recovery(struct dlm_ctxt *dlm,
 	 * if necessary */
 	for (i = 0; i < DLM_HASH_BUCKETS; i++) {
 		bucket = dlm_lockres_hash(dlm, i);
+<<<<<<< HEAD
 		hlist_for_each_entry(res, hash_iter, bucket, hash_node) {
 			if (res->state & DLM_LOCK_RES_RECOVERING) {
 				if (res->owner == dead_node) {
@@ -2120,6 +2120,15 @@ static void dlm_finish_local_lockres_recovery(struct dlm_ctxt *dlm,
 					     res->lockname.name, new_master);
 				} else
 					continue;
+=======
+		hlist_for_each_entry(res, bucket, hash_node) {
+			if (!(res->state & DLM_LOCK_RES_RECOVERING))
+				continue;
+
+			if (res->owner != dead_node &&
+			    res->owner != dlm->node_num)
+				continue;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 				if (!list_empty(&res->recovering)) {
 					mlog(0, "%s:%.*s: lockres was "
@@ -2273,7 +2282,6 @@ static void dlm_free_dead_locks(struct dlm_ctxt *dlm,
 
 static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
 {
-	struct hlist_node *iter;
 	struct dlm_lock_resource *res;
 	int i;
 	struct hlist_head *bucket;
@@ -2299,7 +2307,7 @@ static void dlm_do_local_recovery_cleanup(struct dlm_ctxt *dlm, u8 dead_node)
 	 */
 	for (i = 0; i < DLM_HASH_BUCKETS; i++) {
 		bucket = dlm_lockres_hash(dlm, i);
-		hlist_for_each_entry(res, iter, bucket, hash_node) {
+		hlist_for_each_entry(res, bucket, hash_node) {
  			/* always prune any $RECOVERY entries for dead nodes,
  			 * otherwise hangs can occur during later recovery */
 			if (dlm_is_recovery_lock(res->lockname.name,

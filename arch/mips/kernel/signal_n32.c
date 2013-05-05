@@ -92,6 +92,7 @@ asmlinkage int sysn32_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
 	if (copy_from_user(&uset, unewset, sizeof(uset)))
 		return -EFAULT;
 	sigset_from_compat(&newset, &uset);
+<<<<<<< HEAD
 	sigdelsetmask(&newset, ~_BLOCKABLE);
 
 	spin_lock_irq(&current->sighand->siglock);
@@ -104,6 +105,9 @@ asmlinkage int sysn32_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
 	schedule();
 	set_thread_flag(TIF_RESTORE_SIGMASK);
 	return -ERESTARTNOHAND;
+=======
+	return sigsuspend(&newset);
+>>>>>>> 68f3f16... new helper: sigsuspend()
 }
 
 asmlinkage void sysn32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)

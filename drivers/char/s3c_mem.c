@@ -671,7 +671,7 @@ int s3c_mem_mmap(struct file *filp, struct vm_area_struct *vma)
 	if ((flag == MEM_ALLOC) || (flag == MEM_ALLOC_SHARE))
 		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
-	vma->vm_flags |= VM_RESERVED;
+	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
 
 	if (remap_pfn_range(vma, vma->vm_start, pageFrameNo,
 			    size, vma->vm_page_prot)) {

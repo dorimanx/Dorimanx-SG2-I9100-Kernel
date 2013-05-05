@@ -58,7 +58,7 @@ static inline void cpu_enter_lowpower_a15(void)
 	  : "Ir" (CR_C)
 	  : "cc");
 
-	flush_cache_all();
+	flush_cache_louis();
 
 	asm volatile(
 	/*

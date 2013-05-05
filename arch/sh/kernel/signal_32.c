@@ -58,6 +58,7 @@ sys_sigsuspend(old_sigset_t mask,
 	       unsigned long r5, unsigned long r6, unsigned long r7,
 	       struct pt_regs __regs)
 {
+<<<<<<< HEAD
 	mask &= _BLOCKABLE;
 	spin_lock_irq(&current->sighand->siglock);
 	current->saved_sigmask = current->blocked;
@@ -70,6 +71,11 @@ sys_sigsuspend(old_sigset_t mask,
 	set_restore_sigmask();
 
 	return -ERESTARTNOHAND;
+=======
+	sigset_t blocked;
+	siginitset(&blocked, mask);
+	return sigsuspend(&blocked);
+>>>>>>> 68f3f16... new helper: sigsuspend()
 }
 
 asmlinkage int

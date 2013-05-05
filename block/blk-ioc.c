@@ -369,9 +369,8 @@ struct io_cq *ioc_create_icq(struct request_queue *q, gfp_t gfp_mask)
 void ioc_set_changed(struct io_context *ioc, int which)
 {
 	struct io_cq *icq;
-	struct hlist_node *n;
 
-	hlist_for_each_entry(icq, n, &ioc->icq_list, ioc_node)
+	hlist_for_each_entry(icq, &ioc->icq_list, ioc_node)
 		set_bit(which, &icq->changed);
 }
 

@@ -31,14 +31,13 @@ int inet6_csk_bind_conflict(const struct sock *sk,
 			    const struct inet_bind_bucket *tb)
 {
 	const struct sock *sk2;
-	const struct hlist_node *node;
 
 	/* We must walk the whole port owner list in this case. -DaveM */
 	/*
 	 * See comment in inet_csk_bind_conflict about sock lookup
 	 * vs net namespaces issues.
 	 */
-	sk_for_each_bound(sk2, node, &tb->owners) {
+	sk_for_each_bound(sk2, &tb->owners) {
 		if (sk != sk2 &&
 		    (!sk->sk_bound_dev_if ||
 		     !sk2->sk_bound_dev_if ||
@@ -49,7 +48,7 @@ int inet6_csk_bind_conflict(const struct sock *sk,
 			break;
 	}
 
-	return node != NULL;
+	return sk2 != NULL;
 }
 
 EXPORT_SYMBOL_GPL(inet6_csk_bind_conflict);

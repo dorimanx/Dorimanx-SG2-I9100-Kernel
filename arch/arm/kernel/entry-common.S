@@ -10,8 +10,14 @@
 
 #include <asm/unistd.h>
 #include <asm/ftrace.h>
-#include <mach/entry-macro.S>
 #include <asm/unwind.h>
+
+#ifdef CONFIG_NEED_RET_TO_USER
+#include <mach/entry-macro.S>
+#else
+	.macro  arch_ret_to_user, tmp1, tmp2
+	.endm
+#endif
 
 #include "entry-header.S"
 
@@ -47,9 +53,13 @@ fast_work_pending:
 work_pending:
 	tst	r1, #_TIF_NEED_RESCHED
 	bne	work_resched
-	tst	r1, #_TIF_SIGPENDING|_TIF_NOTIFY_RESUME
-	beq	no_work_pending
+	/*
+	 * TIF_SIGPENDING or TIF_NOTIFY_RESUME must've been set if we got here
+	 */
+	ldr	r2, [sp, #S_PSR]
 	mov	r0, sp				@ 'regs'
+	tst	r2, #15				@ are we returning to user mode?
+	bne	no_work_pending			@ no?  just leave, then...
 	mov	r2, why				@ 'syscall'
 	tst	r1, #_TIF_SIGPENDING		@ delivering a signal?
 	movne	why, #0				@ prevent further restarts
@@ -85,13 +95,7 @@ ENDPROC(ret_to_user)
 ENTRY(ret_from_fork)
 	bl	schedule_tail
 	get_thread_info tsk
-	ldr	r1, [tsk, #TI_FLAGS]		@ check for syscall tracing
 	mov	why, #1
-	tst	r1, #_TIF_SYSCALL_TRACE		@ are we tracing syscalls?
-	beq	ret_slow_syscall
-	mov	r1, sp
-	mov	r0, #1				@ trace exit [IP = 1]
-	bl	syscall_trace
 	b	ret_slow_syscall
 ENDPROC(ret_from_fork)
 
@@ -149,6 +153,11 @@ ENDPROC(ret_from_fork)
 #endif
 #endif
 
+.macro mcount_adjust_addr rd, rn
+	bic	\rd, \rn, #1		@ clear the Thumb bit if present
+	sub	\rd, \rd, #MCOUNT_INSN_SIZE
+.endm
+
 .macro __mcount suffix
 	mcount_enter
 	ldr	r0, =ftrace_trace_function
@@ -173,8 +182,7 @@ ENDPROC(ret_from_fork)
 	mcount_exit
 
 1: 	mcount_get_lr	r1			@ lr of instrumented func
-	mov	r0, lr				@ instrumented function
-	sub	r0, r0, #MCOUNT_INSN_SIZE
+	mcount_adjust_addr	r0, lr		@ instrumented function
 	adr	lr, BSYM(2f)
 	mov	pc, r2
 2:	mcount_exit
@@ -184,8 +192,7 @@ ENDPROC(ret_from_fork)
 	mcount_enter
 
 	mcount_get_lr	r1			@ lr of instrumented func
-	mov	r0, lr				@ instrumented function
-	sub	r0, r0, #MCOUNT_INSN_SIZE
+	mcount_adjust_addr	r0, lr		@ instrumented function
 
 	.globl ftrace_call\suffix
 ftrace_call\suffix:
@@ -205,11 +212,11 @@ ftrace_graph_call\suffix:
 #ifdef CONFIG_DYNAMIC_FTRACE
 	@ called from __ftrace_caller, saved in mcount_enter
 	ldr	r1, [sp, #16]		@ instrumented routine (func)
+	mcount_adjust_addr	r1, r1
 #else
 	@ called from __mcount, untouched in lr
-	mov	r1, lr			@ instrumented routine (func)
+	mcount_adjust_addr	r1, lr	@ instrumented routine (func)
 #endif
-	sub	r1, r1, #MCOUNT_INSN_SIZE
 	mov	r2, fp			@ frame pointer
 	bl	prepare_ftrace_return
 	mcount_exit
@@ -443,7 +450,7 @@ ENTRY(vector_swi)
 1:
 #endif
 
-	tst	r10, #_TIF_SYSCALL_TRACE		@ are we tracing syscalls?
+	tst	r10, #_TIF_SYSCALL_WORK		@ are we tracing syscalls?
 	bne	__sys_trace
 
 	cmp	scno, #NR_syscalls		@ check upper syscall limit
@@ -463,10 +470,9 @@ ENDPROC(vector_swi)
 	 * context switches, and waiting for our parent to respond.
 	 */
 __sys_trace:
-	mov	r2, scno
-	add	r1, sp, #S_OFF
-	mov	r0, #0				@ trace entry [IP = 0]
-	bl	syscall_trace
+	mov	r1, scno
+	add	r0, sp, #S_OFF
+	bl	syscall_trace_enter
 
 	adr	lr, BSYM(__sys_trace_return)	@ return address
 	mov	scno, r0			@ syscall number (possibly new)
@@ -478,10 +484,9 @@ __sys_trace:
 
 __sys_trace_return:
 	str	r0, [sp, #S_R0 + S_OFF]!	@ save returned r0
-	mov	r2, scno
-	mov	r1, sp
-	mov	r0, #1				@ trace exit [IP = 1]
-	bl	syscall_trace
+	mov	r1, scno
+	mov	r0, sp
+	bl	syscall_trace_exit
 	b	ret_slow_syscall
 
 	.align	5

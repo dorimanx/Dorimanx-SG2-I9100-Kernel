@@ -23,21 +23,35 @@
  *	Jim Keniston
  */
 
+#include <linux/notifier.h>
+
 typedef u8 uprobe_opcode_t;
 
 #define MAX_UINSN_BYTES			  16
-#define UPROBES_XOL_SLOT_BYTES		 128	/* to keep it cache aligned */
+#define UPROBE_XOL_SLOT_BYTES		 128	/* to keep it cache aligned */
 
-#define UPROBES_BKPT_INSN		0xcc
-#define UPROBES_BKPT_INSN_SIZE		   1
+#define UPROBE_SWBP_INSN		0xcc
+#define UPROBE_SWBP_INSN_SIZE		   1
 
-struct uprobe_arch_info {
+struct arch_uprobe {
 	u16				fixups;
+	u8				insn[MAX_UINSN_BYTES];
 #ifdef CONFIG_X86_64
 	unsigned long			rip_rela_target_address;
 #endif
 };
 
-struct uprobe;
-extern int arch_uprobes_analyze_insn(struct mm_struct *mm, struct uprobe *uprobe);
+struct arch_uprobe_task {
+	unsigned long			saved_trap_nr;
+#ifdef CONFIG_X86_64
+	unsigned long			saved_scratch_register;
+#endif
+};
+
+extern int  arch_uprobe_analyze_insn(struct arch_uprobe *aup, struct mm_struct *mm);
+extern int  arch_uprobe_pre_xol(struct arch_uprobe *aup, struct pt_regs *regs);
+extern int  arch_uprobe_post_xol(struct arch_uprobe *aup, struct pt_regs *regs);
+extern bool arch_uprobe_xol_was_trapped(struct task_struct *tsk);
+extern int  arch_uprobe_exception_notify(struct notifier_block *self, unsigned long val, void *data);
+extern void arch_uprobe_abort_xol(struct arch_uprobe *aup, struct pt_regs *regs);
 #endif	/* _ASM_UPROBES_H */

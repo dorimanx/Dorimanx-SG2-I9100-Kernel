@@ -21,18 +21,18 @@
  * tunables
  */
 /* max queue in one round of service */
-static const int cfq_quantum = 8;
-static const int cfq_fifo_expire[2] = { HZ / 4, HZ / 8 };
+static const int cfq_quantum = 4;
+static const int cfq_fifo_expire[2] = { 42, 11};
 /* maximum backwards seek, in KiB */
-static const int cfq_back_max = 16 * 1024;
+static const int cfq_back_max = 12582912;
 /* penalty of a backwards seek */
-static const int cfq_back_penalty = 2;
-static const int cfq_slice_sync = HZ / 10;
-static int cfq_slice_async = HZ / 25;
+static const int cfq_back_penalty = 1;
+static const int cfq_slice_sync = 8;
+static int cfq_slice_async = 7;
 static const int cfq_slice_async_rq = 2;
-static int cfq_slice_idle = HZ / 125;
-static int cfq_group_idle = HZ / 125;
-static const int cfq_target_latency = HZ * 3/10; /* 300 ms */
+static int cfq_slice_idle = 0;
+static int cfq_group_idle = 0;
+static const int cfq_target_latency = 300; /* 300 ms */
 static const int cfq_hist_divisor = 4;
 
 /*
@@ -1227,10 +1227,10 @@ static void cfq_destroy_cfqg(struct cfq_data *cfqd, struct cfq_group *cfqg)
 
 static void cfq_release_cfq_groups(struct cfq_data *cfqd)
 {
-	struct hlist_node *pos, *n;
+	struct hlist_node *n;
 	struct cfq_group *cfqg;
 
-	hlist_for_each_entry_safe(cfqg, pos, n, &cfqd->cfqg_list, cfqd_node) {
+	hlist_for_each_entry_safe(cfqg, n, &cfqd->cfqg_list, cfqd_node) {
 		/*
 		 * If cgroup removal path got to blk_group first and removed
 		 * it from cgroup list, then it will take care of destroying
@@ -3946,20 +3946,6 @@ static int __init cfq_init(void)
 {
 	int ret;
 
-	/*
-	 * could be 0 on HZ < 1000 setups
-	 */
-	if (!cfq_slice_async)
-		cfq_slice_async = 1;
-	if (!cfq_slice_idle)
-		cfq_slice_idle = 1;
-
-#ifdef CONFIG_CFQ_GROUP_IOSCHED
-	if (!cfq_group_idle)
-		cfq_group_idle = 1;
-#else
-		cfq_group_idle = 0;
-#endif
 	cfq_pool = KMEM_CACHE(cfq_queue, 0);
 	if (!cfq_pool)
 		return -ENOMEM;

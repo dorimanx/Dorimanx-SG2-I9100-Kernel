@@ -80,8 +80,16 @@ static int pstore_unlink(struct inode *dir, struct dentry *dentry)
 
 static void pstore_evict_inode(struct inode *inode)
 {
-	end_writeback(inode);
-	kfree(inode->i_private);
+	struct pstore_private	*p = inode->i_private;
+	unsigned long		flags;
+
+	clear_inode(inode);
+	if (p) {
+		spin_lock_irqsave(&allpstore_lock, flags);
+		list_del(&p->list);
+		spin_unlock_irqrestore(&allpstore_lock, flags);
+		kfree(p);
+	}
 }
 
 static const struct inode_operations pstore_dir_inode_operations = {

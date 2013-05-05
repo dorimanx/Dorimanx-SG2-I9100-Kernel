@@ -163,6 +163,7 @@ int do_signal(void)
  */
 long sys_sigsuspend(int history0, int history1, old_sigset_t mask)
 {
+<<<<<<< HEAD
 	mask &= _BLOCKABLE;
 	spin_lock_irq(&current->sighand->siglock);
 	current->saved_sigmask = current->blocked;
@@ -174,6 +175,11 @@ long sys_sigsuspend(int history0, int history1, old_sigset_t mask)
 	schedule();
 	set_thread_flag(TIF_RESTORE_SIGMASK);
 	return -ERESTARTNOHAND;
+=======
+	sigset_t blocked;
+	siginitset(&blocked, mask);
+	return sigsuspend(&blocked);
+>>>>>>> 68f3f16... new helper: sigsuspend()
 }
 
 long sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss)

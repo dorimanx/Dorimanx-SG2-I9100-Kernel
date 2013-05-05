@@ -102,9 +102,16 @@ void gw_deselect(struct bat_priv *bat_priv)
 
 void gw_election(struct bat_priv *bat_priv)
 {
+<<<<<<< HEAD
 	struct hlist_node *node;
 	struct gw_node *gw_node, *curr_gw = NULL, *curr_gw_tmp = NULL;
 	struct neigh_node *router;
+=======
+	struct batadv_neigh_node *router;
+	struct batadv_gw_node *gw_node, *curr_gw = NULL;
+	uint32_t max_gw_factor = 0, tmp_gw_factor = 0;
+	uint32_t gw_divisor;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	uint8_t max_tq = 0;
 	uint32_t max_gw_factor = 0, tmp_gw_factor = 0;
 	int down, up;
@@ -123,6 +130,7 @@ void gw_election(struct bat_priv *bat_priv)
 		goto out;
 
 	rcu_read_lock();
+<<<<<<< HEAD
 	if (hlist_empty(&bat_priv->gw_list)) {
 		bat_dbg(DBG_BATMAN, bat_priv,
 			"Removing selected gateway - "
@@ -132,6 +140,9 @@ void gw_election(struct bat_priv *bat_priv)
 	}
 
 	hlist_for_each_entry_rcu(gw_node, node, &bat_priv->gw_list, list) {
+=======
+	hlist_for_each_entry_rcu(gw_node, &bat_priv->gw.list, list) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		if (gw_node->deleted)
 			continue;
 
@@ -299,8 +310,12 @@ static void gw_node_add(struct bat_priv *bat_priv,
 void gw_node_update(struct bat_priv *bat_priv,
 		    struct orig_node *orig_node, uint8_t new_gwflags)
 {
+<<<<<<< HEAD
 	struct hlist_node *node;
 	struct gw_node *gw_node, *curr_gw;
+=======
+	struct batadv_gw_node *gw_node, *curr_gw;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 	/**
 	 * Note: We don't need a NULL check here, since curr_gw never gets
@@ -311,7 +326,11 @@ void gw_node_update(struct bat_priv *bat_priv,
 	curr_gw = gw_get_selected_gw_node(bat_priv);
 
 	rcu_read_lock();
+<<<<<<< HEAD
 	hlist_for_each_entry_rcu(gw_node, node, &bat_priv->gw_list, list) {
+=======
+	hlist_for_each_entry_rcu(gw_node, &bat_priv->gw.list, list) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		if (gw_node->orig_node != orig_node)
 			continue;
 
@@ -358,17 +377,29 @@ void gw_node_delete(struct bat_priv *bat_priv, struct orig_node *orig_node)
 
 void gw_node_purge(struct bat_priv *bat_priv)
 {
+<<<<<<< HEAD
 	struct gw_node *gw_node, *curr_gw;
 	struct hlist_node *node, *node_tmp;
 	unsigned long timeout = 2 * PURGE_TIMEOUT * HZ;
 	char do_deselect = 0;
+=======
+	struct batadv_gw_node *gw_node, *curr_gw;
+	struct hlist_node *node_tmp;
+	unsigned long timeout = msecs_to_jiffies(2 * BATADV_PURGE_TIMEOUT);
+	int do_deselect = 0;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 	curr_gw = gw_get_selected_gw_node(bat_priv);
 
 	spin_lock_bh(&bat_priv->gw_list_lock);
 
+<<<<<<< HEAD
 	hlist_for_each_entry_safe(gw_node, node, node_tmp,
 				  &bat_priv->gw_list, list) {
+=======
+	hlist_for_each_entry_safe(gw_node, node_tmp,
+				  &bat_priv->gw.list, list) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		if (((!gw_node->deleted) ||
 		     (time_before(jiffies, gw_node->deleted + timeout))) &&
 		    atomic_read(&bat_priv->mesh_state) == MESH_ACTIVE)
@@ -430,6 +461,7 @@ out:
 int gw_client_seq_print_text(struct seq_file *seq, void *offset)
 {
 	struct net_device *net_dev = (struct net_device *)seq->private;
+<<<<<<< HEAD
 	struct bat_priv *bat_priv = netdev_priv(net_dev);
 	struct hard_iface *primary_if;
 	struct gw_node *gw_node;
@@ -443,6 +475,12 @@ int gw_client_seq_print_text(struct seq_file *seq, void *offset)
 				 net_dev->name);
 		goto out;
 	}
+=======
+	struct batadv_priv *bat_priv = netdev_priv(net_dev);
+	struct batadv_hard_iface *primary_if;
+	struct batadv_gw_node *gw_node;
+	int gw_count = 0;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 
 	if (primary_if->if_status != IF_ACTIVE) {
 		ret = seq_printf(seq, "BATMAN mesh %s disabled - "
@@ -459,7 +497,11 @@ int gw_client_seq_print_text(struct seq_file *seq, void *offset)
 		   primary_if->net_dev->dev_addr, net_dev->name);
 
 	rcu_read_lock();
+<<<<<<< HEAD
 	hlist_for_each_entry_rcu(gw_node, node, &bat_priv->gw_list, list) {
+=======
+	hlist_for_each_entry_rcu(gw_node, &bat_priv->gw.list, list) {
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		if (gw_node->deleted)
 			continue;
 

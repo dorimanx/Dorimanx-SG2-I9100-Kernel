@@ -253,6 +253,7 @@ asmlinkage int sys_sigsuspend(nabi_no_regargs struct pt_regs regs)
 	uset = (sigset_t __user *) regs.regs[4];
 	if (copy_from_user(&newset, uset, sizeof(sigset_t)))
 		return -EFAULT;
+<<<<<<< HEAD
 	sigdelsetmask(&newset, ~_BLOCKABLE);
 
 	spin_lock_irq(&current->sighand->siglock);
@@ -265,6 +266,9 @@ asmlinkage int sys_sigsuspend(nabi_no_regargs struct pt_regs regs)
 	schedule();
 	set_thread_flag(TIF_RESTORE_SIGMASK);
 	return -ERESTARTNOHAND;
+=======
+	return sigsuspend(&newset);
+>>>>>>> 68f3f16... new helper: sigsuspend()
 }
 #endif
 
@@ -282,6 +286,7 @@ asmlinkage int sys_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
 	unewset = (sigset_t __user *) regs.regs[4];
 	if (copy_from_user(&newset, unewset, sizeof(newset)))
 		return -EFAULT;
+<<<<<<< HEAD
 	sigdelsetmask(&newset, ~_BLOCKABLE);
 
 	spin_lock_irq(&current->sighand->siglock);
@@ -294,6 +299,9 @@ asmlinkage int sys_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
 	schedule();
 	set_thread_flag(TIF_RESTORE_SIGMASK);
 	return -ERESTARTNOHAND;
+=======
+	return sigsuspend(&newset);
+>>>>>>> 68f3f16... new helper: sigsuspend()
 }
 
 #ifdef CONFIG_TRAD_SIGNALS

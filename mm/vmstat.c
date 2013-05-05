@@ -52,7 +52,6 @@ void all_vm_events(unsigned long *ret)
 }
 EXPORT_SYMBOL_GPL(all_vm_events);
 
-#ifdef CONFIG_HOTPLUG
 /*
  * Fold the foreign cpu events into our own.
  *
@@ -69,7 +68,6 @@ void vm_events_fold_cpu(int cpu)
 		fold_state->event[i] = 0;
 	}
 }
-#endif /* CONFIG_HOTPLUG */
 
 #endif /* CONFIG_VM_EVENT_COUNTERS */
 
@@ -499,6 +497,10 @@ void refresh_cpu_vm_stats(int cpu)
 			atomic_long_add(global_diff[i], &vm_stat[i]);
 }
 
+/*
+ * this is only called if !populated_zone(zone), which implies no other users of
+ * pset->vm_stat_diff[] exsist.
+ */
 void drain_zonestat(struct zone *zone, struct per_cpu_pageset *pset)
 {
 	int i;
@@ -742,6 +744,9 @@ const char * const vmstat_text[] = {
 	"nr_anon_transparent_hugepages",
 #ifdef CONFIG_DMA_CMA
 	"nr_free_cma",
+#endif
+#ifdef CONFIG_UKSM
+	"nr_uksm_zero_pages",
 #endif
 	"nr_dirty_threshold",
 	"nr_dirty_background_threshold",

@@ -285,7 +285,14 @@ static struct sock *__sco_get_sock_by_addr(bdaddr_t *ba)
 	struct sock *sk;
 	struct hlist_node *node;
 
+<<<<<<< HEAD
 	sk_for_each(sk, node, &sco_sk_list.head)
+=======
+	sk_for_each(sk, &sco_sk_list.head) {
+		if (sk->sk_state != BT_LISTEN)
+			continue;
+
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 		if (!bacmp(&bt_sk(sk)->src, ba))
 			goto found;
 	sk = NULL;
@@ -299,11 +306,10 @@ found:
 static struct sock *sco_get_sock_listen(bdaddr_t *src)
 {
 	struct sock *sk = NULL, *sk1 = NULL;
-	struct hlist_node *node;
 
 	read_lock(&sco_sk_list.lock);
 
-	sk_for_each(sk, node, &sco_sk_list.head) {
+	sk_for_each(sk, &sco_sk_list.head) {
 		if (sk->sk_state != BT_LISTEN)
 			continue;
 
@@ -318,7 +324,7 @@ static struct sock *sco_get_sock_listen(bdaddr_t *src)
 
 	read_unlock(&sco_sk_list.lock);
 
-	return node ? sk : sk1;
+	return sk ? sk : sk1;
 }
 
 static void sco_sock_destruct(struct sock *sk)
@@ -381,6 +387,7 @@ static void __sco_sock_close(struct sock *sk)
 			sco_chan_del(sk, ECONNRESET);
 		break;
 
+	case BT_CONNECT2:
 	case BT_CONNECT:
 	case BT_DISCONN:
 		sco_chan_del(sk, ECONNRESET);
@@ -913,8 +920,12 @@ done:
 /* ----- SCO interface with lower layer (HCI) ----- */
 static int sco_connect_ind(struct hci_dev *hdev, bdaddr_t *bdaddr, __u8 type)
 {
+<<<<<<< HEAD
 	register struct sock *sk;
 	struct hlist_node *node;
+=======
+	struct sock *sk;
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	int lm = 0;
 
 	if (type != SCO_LINK && type != ESCO_LINK)
@@ -924,7 +935,7 @@ static int sco_connect_ind(struct hci_dev *hdev, bdaddr_t *bdaddr, __u8 type)
 
 	/* Find listening sockets */
 	read_lock(&sco_sk_list.lock);
-	sk_for_each(sk, node, &sco_sk_list.head) {
+	sk_for_each(sk, &sco_sk_list.head) {
 		if (sk->sk_state != BT_LISTEN)
 			continue;
 
@@ -992,13 +1003,18 @@ drop:
 static int sco_debugfs_show(struct seq_file *f, void *p)
 {
 	struct sock *sk;
-	struct hlist_node *node;
 
 	read_lock_bh(&sco_sk_list.lock);
 
+<<<<<<< HEAD
 	sk_for_each(sk, node, &sco_sk_list.head) {
 		seq_printf(f, "%s %s %d\n", batostr(&bt_sk(sk)->src),
 				batostr(&bt_sk(sk)->dst), sk->sk_state);
+=======
+	sk_for_each(sk, &sco_sk_list.head) {
+		seq_printf(f, "%pMR %pMR %d\n", &bt_sk(sk)->src,
+			   &bt_sk(sk)->dst, sk->sk_state);
+>>>>>>> b67bfe0... hlist: drop the node parameter from iterators
 	}
 
 	read_unlock_bh(&sco_sk_list.lock);

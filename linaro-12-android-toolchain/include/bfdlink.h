@@ -95,9 +95,6 @@ struct bfd_link_hash_entry
 
   unsigned int non_ir_ref : 1;
 
-  /* Set if it is a secondary symbol.  */
-  unsigned int secondary : 1;
-
   /* A union of information depending upon the type.  */
   union
     {
@@ -349,9 +346,6 @@ struct bfd_link_info
   /* TRUE if .gnu.hash section should be created.  */
   unsigned int emit_gnu_hash: 1;
 
-  /* TRUE if secondary symbols should be generated.  */
-  unsigned int emit_secondary: 1;
-
   /* If TRUE reduce memory overheads, at the expense of speed. This will
      cause map file generation to use an O(N^2) algorithm and disable
      caching ELF symbol buffer.  */
@@ -386,21 +380,12 @@ struct bfd_link_info
   /* TRUE if ok to have multiple definition.  */
   unsigned int allow_multiple_definition: 1;
 
-  /* TRUE if .gnu_object_only section should be created.  */
-  unsigned int emit_gnu_object_only: 1;
-
-  /* TRUE if .gnu_object_only section is being created.  */
-  unsigned int emitting_gnu_object_only: 1;
-
   /* TRUE if ok to have version with no definition.  */
   unsigned int allow_undefined_version: 1;
 
   /* TRUE if some symbols have to be dynamic, controlled by
      --dynamic-list command line options.  */
   unsigned int dynamic: 1;
-
-  /* TRUE if sharables sections may be created.  */
-  unsigned int sharable_sections: 1;
 
   /* TRUE if PT_GNU_STACK segment should be created with PF_R|PF_W|PF_X
      flags.  */
@@ -431,28 +416,6 @@ struct bfd_link_info
   /* Separator between archive and filename in linker script filespecs.  */
   char path_separator;
 
-  /* Default stack size.  Zero means default (often zero itself), -1
-     means explicitly zero-sized.  */
-  bfd_signed_vma stacksize;
-
-  /* Enable or disable target specific optimizations.
-
-     Not all targets have optimizations to enable.
-
-     Normally these optimizations are disabled by default but some targets
-     prefer to enable them by default.  So this field is a tri-state variable.
-     The values are:
-     
-     zero: Enable the optimizations (either from --relax being specified on
-       the command line or the backend's before_allocation emulation function.
-       
-     positive: The user has requested that these optimizations be disabled.
-       (Via the --no-relax command line option).
-
-     negative: The optimizations are disabled.  (Set when initializing the
-       args_type structure in ldmain.c:main.  */
-  signed int disable_target_specific_optimizations;
-
   /* Function callbacks.  */
   const struct bfd_link_callbacks *callbacks;
 
@@ -471,10 +434,6 @@ struct bfd_link_info
   /* Hash table of symbols which are being wrapped (the --wrap linker
      option).  If this is NULL, no symbols are being wrapped.  */
   struct bfd_hash_table *wrap_hash;
-
-  /* Hash table of symbols which may be left unresolved during
-     a link.  If this is NULL, no symbols can be left unresolved.  */
-  struct bfd_hash_table *ignore_hash;
 
   /* The output BFD.  */
   bfd *output_bfd;
