@@ -81,17 +81,16 @@ void __smp_call_function_single(int cpuid, struct call_single_data *data,
 int smp_call_function_any(const struct cpumask *mask,
 			  smp_call_func_t func, void *info, int wait);
 
+void kick_all_cpus_sync(void);
+
 /*
  * Generic and arch helpers
  */
 #ifdef CONFIG_USE_GENERIC_SMP_HELPERS
 void __init call_function_init(void);
 void generic_smp_call_function_single_interrupt(void);
-void generic_smp_call_function_interrupt(void);
-void ipi_call_lock(void);
-void ipi_call_unlock(void);
-void ipi_call_lock_irq(void);
-void ipi_call_unlock_irq(void);
+#define generic_smp_call_function_interrupt \
+	generic_smp_call_function_single_interrupt
 #else
 static inline void call_function_init(void) { }
 #endif
@@ -162,7 +161,6 @@ static inline int up_smp_call_function(smp_call_func_t func, void *info)
 			local_irq_enable();		\
 		}					\
 	} while (0)
-
 /*
  * Preemption is disabled here to make sure the cond_func is called under the
  * same condtions in UP and SMP.
@@ -192,6 +190,8 @@ smp_call_function_any(const struct cpumask *mask, smp_call_func_t func,
 {
 	return smp_call_function_single(0, func, info, wait);
 }
+
+static inline void kick_all_cpus_sync(void) {  }
 
 #endif /* !SMP */
 

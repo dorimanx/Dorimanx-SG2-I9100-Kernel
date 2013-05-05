@@ -108,6 +108,8 @@ ump_memory_backend * ump_block_allocator_create(u32 base_address, u32 size)
 				backend->stat = block_allocator_stat;
 				backend->pre_allocate_physical_check = NULL;
 				backend->adjust_to_mali_phys = NULL;
+				backend->get = NULL;
+				backend->set = NULL;
 
 				return backend;
 			}

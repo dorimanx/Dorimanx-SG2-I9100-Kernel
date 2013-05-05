@@ -283,8 +283,8 @@ static int mt_input_mapping(struct hid_device *hdev, struct hid_input *hi,
 		case HID_DG_CONTACTID:
 			if (!td->maxcontacts)
 				td->maxcontacts = MT_DEFAULT_MAXCONTACT;
-			input_mt_init_slots(hi->input, td->maxcontacts);
-			td->last_slot_field = usage->hid;
+			input_mt_init_slots(hi->input, td->maxcontacts, 0);
+			mt_store_field(usage, td, hi);
 			td->last_field_index = field->index;
 			td->last_mt_collection = usage->collection_index;
 			return 1;

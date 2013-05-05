@@ -125,7 +125,7 @@ static unsigned char anycall_progress_bar[] = {
 };
 
 static void progress_timer_handler(unsigned long data);
-static int show_progress = 1;
+static bool show_progress = 1;
 module_param_named(progress, show_progress, bool, 0);
 
 static void s3cfb_update_framebuffer( \

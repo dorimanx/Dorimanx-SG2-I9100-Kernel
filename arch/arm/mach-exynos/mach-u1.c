@@ -5140,7 +5140,7 @@ struct gpio_keys_button u1_buttons[] = {
 	},			/* power key */
 #if !defined(CONFIG_MACH_U1_NA_SPR) && !defined(CONFIG_MACH_U1_NA_USCC)
 	{
-		.code = KEY_HOMEPAGE,
+		.code = KEY_HOME,
 		.gpio = GPIO_OK_KEY,
 		.active_low = 1,
 		.type = EV_KEY,
@@ -7484,8 +7484,8 @@ static struct platform_device *smdkc210_devices[] __initdata = {
 /* below temperature base on the celcius degree */
 struct s5p_platform_tmu u1_tmu_data __initdata = {
 	.ts = {
-		.stop_1st_throttle  = 62,
-		.start_1st_throttle = 67,
+		.stop_1st_throttle  = 61,
+		.start_1st_throttle = 69,
 		.stop_2nd_throttle  = 80,
 		.start_2nd_throttle = 103,
 		.start_tripping     = 110,
@@ -7494,7 +7494,7 @@ struct s5p_platform_tmu u1_tmu_data __initdata = {
 		.start_mem_throttle = 85,
 	},
 	.cpufreq = {
-		.limit_1st_throttle  = 1000000, /* 1000MHz in KHz order */
+		.limit_1st_throttle  = 800000, /* 800MHz in KHz order */
 		.limit_2nd_throttle  = 200000, /* 200MHz in KHz order */
 	},
 };
@@ -7618,7 +7618,8 @@ static void __init exynos4_reserve_mem(void)
 			.start = 0,
 		},
 #endif
-/* #ifndef CONFIG_ION_EXYNOS_CONTIGHEAP_SIZE // removed to support AOKP NEW MALI + JB SAMMY, Dorimanx */
+/* Free FIMC1 allocation, to get more RAM for CM/AOKP builds, this define brake camera support for all JB/ICS SAMMY */
+#ifndef CONFIG_ION_EXYNOS_CONTIGHEAP_SIZE
 #ifdef CONFIG_VIDEO_SAMSUNG_MEMSIZE_FIMC1
 		{
 			.name = "fimc1",
@@ -7626,7 +7627,7 @@ static void __init exynos4_reserve_mem(void)
 			.start = 0,
 		},
 #endif
-/* #endif */
+#endif
 #ifdef CONFIG_VIDEO_SAMSUNG_MEMSIZE_FIMC2
 		{
 			.name = "fimc2",

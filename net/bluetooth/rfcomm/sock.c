@@ -25,7 +25,7 @@
  * RFCOMM sockets.
  */
 
-#include <linux/module.h>
+#include <linux/export.h>
 
 #include <linux/types.h>
 #include <linux/errno.h>

@@ -21,7 +21,7 @@
 
 #undef DEBUG
 
-#include <linux/module.h>
+#include <linux/export.h>
 #include <asm/spu.h>
 #include "spufs/spufs.h"
 

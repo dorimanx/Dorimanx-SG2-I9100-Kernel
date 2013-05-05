@@ -24,16 +24,21 @@ struct _ddebug {
 	const char *format;
 	unsigned int lineno:24;
 	/*
- 	 * The flags field controls the behaviour at the callsite.
- 	 * The bits here are changed dynamically when the user
+	 * The flags field controls the behaviour at the callsite.
+	 * The bits here are changed dynamically when the user
 	 * writes commands to <debugfs>/dynamic_debug/control
 	 */
-#define _DPRINTK_FLAGS_PRINT   (1<<0)  /* printk() a message using the format */
+#define _DPRINTK_FLAGS_NONE	0
+#define _DPRINTK_FLAGS_PRINT	(1<<0) /* printk() a message using the format */
 #define _DPRINTK_FLAGS_INCL_MODNAME	(1<<1)
 #define _DPRINTK_FLAGS_INCL_FUNCNAME	(1<<2)
 #define _DPRINTK_FLAGS_INCL_LINENO	(1<<3)
 #define _DPRINTK_FLAGS_INCL_TID		(1<<4)
+#if defined DEBUG
+#define _DPRINTK_FLAGS_DEFAULT _DPRINTK_FLAGS_PRINT
+#else
 #define _DPRINTK_FLAGS_DEFAULT 0
+#endif
 	unsigned int flags:8;
 	char enabled;
 } __attribute__((aligned(8)));
@@ -44,6 +49,10 @@ int ddebug_add_module(struct _ddebug *tab, unsigned int n,
 
 #if defined(CONFIG_DYNAMIC_DEBUG)
 extern int ddebug_remove_module(const char *mod_name);
+
+extern int ddebug_dyndbg_module_param_cb(char *param, char *val,
+					const char *modname);
+
 extern int __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...)
 	__attribute__ ((format (printf, 2, 3)));
 
@@ -70,9 +79,24 @@ extern int __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...)
 
 #else
 
+#include <linux/string.h>
+#include <linux/errno.h>
+
 static inline int ddebug_remove_module(const char *mod)
 {
 	return 0;
+}
+
+static inline int ddebug_dyndbg_module_param_cb(char *param, char *val,
+						const char *modname)
+{
+	if (strstr(param, "dyndbg")) {
+		/* avoid pr_warn(), which wants pr_fmt() fully defined */
+		printk(KERN_WARNING "dyndbg param is supported only in "
+			"CONFIG_DYNAMIC_DEBUG builds\n");
+		return 0; /* allow and ignore */
+	}
+	return -EINVAL;
 }
 
 #define dynamic_pr_debug(fmt, ...)					\

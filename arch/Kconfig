@@ -91,7 +91,7 @@ config UPROBES
 
 config HAVE_EFFICIENT_UNALIGNED_ACCESS
 	bool
-	def_bool y
+	def_bool n
 	help
 	  Some architectures are unable to perform unaligned accesses
 	  without the use of get_unaligned/put_unaligned. Others are
@@ -229,5 +229,24 @@ config HAVE_CMPXCHG_LOCAL
 
 config HAVE_CMPXCHG_DOUBLE
 	bool
+
+config HAVE_MOD_ARCH_SPECIFIC
+	bool
+	help
+	  The arch uses struct mod_arch_specific to store data.  Many arches
+	  just need a simple module loader without arch specific data - those
+	  should not enable this.
+
+config MODULES_USE_ELF_RELA
+	bool
+	help
+	  Modules only use ELF RELA relocations.  Modules with ELF REL
+	  relocations will give an error.
+
+config MODULES_USE_ELF_REL
+	bool
+	help
+	  Modules only use ELF REL relocations.  Modules with ELF RELA
+	  relocations will give an error.
 
 source "kernel/gcov/Kconfig"

@@ -19,7 +19,7 @@
 #include <linux/stacktrace.h>
 #include <linux/types.h>
 #include <linux/errno.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/io.h>
 #include <asm/sections.h>
 #include <asm/exceptions.h>

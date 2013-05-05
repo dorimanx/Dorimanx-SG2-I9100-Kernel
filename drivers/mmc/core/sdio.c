@@ -955,7 +955,7 @@ static int mmc_sdio_suspend(struct mmc_host *host)
 		mmc_release_host(host);
 	}
 #endif
-out:
+
 	return err;
 }
 
@@ -1003,7 +1003,7 @@ static int mmc_sdio_resume(struct mmc_host *host)
 			err = pmops->resume(&func->dev);
 		}
 	}
-out:
+
 	return err;
 }
 

@@ -6,7 +6,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/jiffies.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/smp.h>
 #include <linux/spinlock.h>
 #include <linux/irq.h>

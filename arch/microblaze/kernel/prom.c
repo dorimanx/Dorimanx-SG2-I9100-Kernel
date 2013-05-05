@@ -25,7 +25,7 @@
 #include <linux/delay.h>
 #include <linux/initrd.h>
 #include <linux/bitops.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/kexec.h>
 #include <linux/debugfs.h>
 #include <linux/irq.h>

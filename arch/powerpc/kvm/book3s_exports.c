@@ -17,7 +17,7 @@
  * Authors: Alexander Graf <agraf@suse.de>
  */
 
-#include <linux/module.h>
+#include <linux/export.h>
 #include <asm/kvm_book3s.h>
 
 EXPORT_SYMBOL_GPL(kvmppc_trampoline_enter);

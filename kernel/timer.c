@@ -20,7 +20,7 @@
  */
 
 #include <linux/kernel_stat.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/interrupt.h>
 #include <linux/percpu.h>
 #include <linux/init.h>
@@ -747,7 +747,7 @@ __mod_timer(struct timer_list *timer, unsigned long expires,
 		cpu = smp_processor_id();
 
 #if defined(CONFIG_NO_HZ) && defined(CONFIG_SMP)
-		if (!pinned && get_sysctl_timer_migration() && idle_cpu(cpu))
+		if (!pinned && get_sysctl_timer_migration())
 			cpu = get_nohz_timer_target();
 #endif
 		new_base = per_cpu(tvec_bases, cpu);

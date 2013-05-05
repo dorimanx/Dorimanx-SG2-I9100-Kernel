@@ -13,20 +13,6 @@
 #include <asm/smp_plat.h>
 #include <asm/tlbflush.h>
 
-#if 0
-static void on_each_cpu_mask(void (*func)(void *), void *info, int wait,
-	const struct cpumask *mask)
-{
-	preempt_disable();
-
-	smp_call_function_many(mask, func, info, wait);
-	if (cpumask_test_cpu(smp_processor_id(), mask))
-		func(info);
-
-	preempt_enable();
-}
-#endif
-
 /**********************************************************************/
 
 /*

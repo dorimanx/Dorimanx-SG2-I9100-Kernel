@@ -652,5 +652,14 @@ config MSM_SMD_PKT
 	  Enables userspace clients to read and write to some packet SMD
 	  ports via device interface for MSM chipset.
 
-endmenu
+config FRANDOM
+	tristate "Frandom: Fast random number generator support"
+	default y
+	help
+	  Frandom is a Linux kernel random number generator, which is 10-50
+	  times faster than what you get from Linux' built-in /dev/urandom.
+	  And it uses very little (/dev/frandom) or none (/dev/erandom) of
+	  the kernel's entropy pool, so it is very useful for applications
+	  that require a handy source for lots of random data.
 
+endmenu

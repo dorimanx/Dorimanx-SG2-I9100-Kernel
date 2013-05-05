@@ -114,6 +114,31 @@ struct input_keymap_entry {
 #define EVIOCGUNIQ(len)		_IOC(_IOC_READ, 'E', 0x08, len)		/* get unique identifier */
 #define EVIOCGPROP(len)		_IOC(_IOC_READ, 'E', 0x09, len)		/* get device properties */
 
+/**
+ * EVIOCGMTSLOTS(len) - get MT slot values
+ *
+ * The ioctl buffer argument should be binary equivalent to
+ *
+ * struct input_mt_request_layout {
+ *	__u32 code;
+ *	__s32 values[num_slots];
+ * };
+ *
+ * where num_slots is the (arbitrary) number of MT slots to extract.
+ *
+ * The ioctl size argument (len) is the size of the buffer, which
+ * should satisfy len = (num_slots + 1) * sizeof(__s32).  If len is
+ * too small to fit all available slots, the first num_slots are
+ * returned.
+ *
+ * Before the call, code is set to the wanted ABS_MT event type. On
+ * return, values[] is filled with the slot values for the specified
+ * ABS_MT code.
+ *
+ * If the request code is not an ABS_MT value, -EINVAL is returned.
+ */
+#define EVIOCGMTSLOTS(len)	_IOC(_IOC_READ, 'E', 0x0a, len)
+
 #define EVIOCGKEY(len)		_IOC(_IOC_READ, 'E', 0x18, len)		/* get global key state */
 #define EVIOCGLED(len)		_IOC(_IOC_READ, 'E', 0x19, len)		/* get all LEDs */
 #define EVIOCGSND(len)		_IOC(_IOC_READ, 'E', 0x1a, len)		/* get all sounds status */
@@ -131,6 +156,8 @@ struct input_keymap_entry {
 
 #define EVIOCGSUSPENDBLOCK	_IOR('E', 0x91, int)			/* get suspend block enable */
 #define EVIOCSSUSPENDBLOCK	_IOW('E', 0x91, int)			/* set suspend block enable */
+
+#define EVIOCSCLOCKID		_IOW('E', 0xa0, int)			/* Set clockid to be used for timestamps */
 
 /*
  * Device properties and quirks
@@ -514,6 +541,7 @@ struct input_keymap_entry {
 #define BTN_TOOL_FINGER		0x145
 #define BTN_TOOL_MOUSE		0x146
 #define BTN_TOOL_LENS		0x147
+#define BTN_TOOL_QUINTTAP	0x148	/* Five fingers on trackpad */
 #define BTN_TOUCH		0x14a
 #define BTN_STYLUS		0x14b
 #define BTN_STYLUS2		0x14c
@@ -1205,11 +1233,7 @@ struct input_value {
  *	software autorepeat
  * @timer: timer for software autorepeat
  * @rep: current values for autorepeat parameters (delay, rate)
- * @mt: pointer to array of struct input_mt_slot holding current values
- *	of tracked contacts
- * @mtsize: number of MT slots the device uses
- * @slot: MT slot currently being transmitted
- * @trkid: stores MT tracking ID for the current contact
+ * @mt: pointer to multitouch state
  * @absinfo: array of &struct input_absinfo elements holding information
  *	about absolute axes (current value, min, max, flat, fuzz,
  *	resolution)
@@ -1250,6 +1274,8 @@ struct input_value {
  * @h_list: list of input handles associated with the device. When
  *	accessing the list dev->mutex must be held
  * @node: used to place the device onto input_dev_list
+ * @devres_managed: indicates that devices is managed with devres framework
+ *	and needs not be explicitly unregistered or freed.
  */
 struct input_dev {
 	const char *name;
@@ -1288,10 +1314,7 @@ struct input_dev {
 
 	int rep[REP_CNT];
 
-	struct input_mt_slot *mt;
-	int mtsize;
-	int slot;
-	int trkid;
+	struct input_mt *mt;
 
 	struct input_absinfo *absinfo;
 
@@ -1321,6 +1344,8 @@ struct input_dev {
 	unsigned int num_vals;
 	unsigned int max_vals;
 	struct input_value *vals;
+
+	bool devres_managed;
 };
 #define to_input_dev(d) container_of(d, struct input_dev, dev)
 
@@ -1393,8 +1418,8 @@ struct input_handle;
  * @start: starts handler for given handle. This function is called by
  *	input core right after connect() method and also when a process
  *	that "grabbed" a device releases it
- * @fops: file operations this driver implements
- * @minor: beginning of range of 32 minors for devices this driver
+ * @legacy_minors: set to %true by drivers using legacy minor ranges
+ * @minor: beginning of range of 32 legacy minors for devices this driver
  *	can provide
  * @name: name of the handler, to be shown in /proc/bus/input/handlers
  * @id_table: pointer to a table of input_device_ids this driver can
@@ -1428,7 +1453,7 @@ struct input_handler {
 	void (*disconnect)(struct input_handle *handle);
 	void (*start)(struct input_handle *handle);
 
-	const struct file_operations *fops;
+	bool legacy_minors;
 	int minor;
 	const char *name;
 
@@ -1464,7 +1489,8 @@ struct input_handle {
 	struct list_head	h_node;
 };
 
-struct input_dev *input_allocate_device(void);
+struct input_dev __must_check *input_allocate_device(void);
+struct input_dev __must_check *devm_input_allocate_device(struct device *);
 void input_free_device(struct input_dev *dev);
 
 static inline struct input_dev *input_get_device(struct input_dev *dev)
@@ -1495,6 +1521,10 @@ void input_reset_device(struct input_dev *);
 
 int __must_check input_register_handler(struct input_handler *);
 void input_unregister_handler(struct input_handler *);
+
+int __must_check input_get_new_minor(int legacy_base, unsigned int legacy_num,
+				     bool allow_dynamic);
+void input_free_minor(unsigned int minor);
 
 int input_handler_for_each_handle(struct input_handler *, void *data,
 				  int (*fn)(struct input_handle *, void *));
@@ -1649,7 +1679,7 @@ struct ff_device {
 	struct file *effect_owners[];
 };
 
-int input_ff_create(struct input_dev *dev, int max_effects);
+int input_ff_create(struct input_dev *dev, unsigned int max_effects);
 void input_ff_destroy(struct input_dev *dev);
 
 int input_ff_event(struct input_dev *dev, unsigned int type, unsigned int code, int value);

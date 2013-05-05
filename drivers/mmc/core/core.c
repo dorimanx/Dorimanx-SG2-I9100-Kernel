@@ -148,12 +148,6 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 	struct scatterlist *sg;
 #endif
 
-	if (mrq->sbc) {
-		pr_debug("<%s: starting CMD%u arg %08x flags %08x>\n",
-			 mmc_hostname(host), mrq->sbc->opcode,
-			 mrq->sbc->arg, mrq->sbc->flags);
-	}
-
 	pr_debug("%s: starting CMD%u arg %08x flags %08x\n",
 		 mmc_hostname(host), mrq->cmd->opcode,
 		 mrq->cmd->arg, mrq->cmd->flags);
@@ -278,8 +272,7 @@ static void mmc_wait_for_req_done(struct mmc_host *host,
 
 	cmd = mrq->cmd;
 
-	if (!cmd->error || !cmd->retries ||
-		mmc_card_removed(host->card))
+	if (mmc_card_removed(host->card))
 		return;
 
 	/* if card is mmc type and nonremovable, and there are erros after
@@ -1490,7 +1483,7 @@ int mmc_resume_bus(struct mmc_host *host)
 		host->bus_ops->resume(host);
 	}
 
-	if (host->bus_ops->detect && !host->bus_dead)
+	if (host->bus_ops && host->bus_ops->detect && !host->bus_dead)
 		host->bus_ops->detect(host);
 
 	mmc_bus_put(host);
@@ -2229,7 +2222,7 @@ int mmc_card_sleep(struct mmc_host *host)
 
 	mmc_bus_get(host);
 
-	if (host->bus_ops && !host->bus_dead && host->bus_ops->awake)
+	if (host->bus_ops && !host->bus_dead && host->bus_ops->sleep)
 		err = host->bus_ops->sleep(host);
 
 	mmc_bus_put(host);
@@ -2378,12 +2371,6 @@ int mmc_suspend_host(struct mmc_host *host)
 		 */
 		if (mmc_try_claim_host(host)) {
 			if (host->bus_ops->suspend) {
-				/*
-				 * For eMMC 4.5 device send notify command
-				 * before sleep, because in sleep state eMMC 4.5
-				 * devices respond to only RESET and AWAKE cmd
-				 */
-				mmc_poweroff_notify(host);
 				err = host->bus_ops->suspend(host);
 			}
 			if (err == -ENOSYS || !host->bus_ops->resume) {
@@ -2400,8 +2387,6 @@ int mmc_suspend_host(struct mmc_host *host)
 				host->pm_flags = 0;
 				err = 0;
 			}
-			/* wait for a dwork to finish executing the last queueing */
-			flush_delayed_work(&host->disable);
 
 			mmc_do_release_host(host);
 		} else {

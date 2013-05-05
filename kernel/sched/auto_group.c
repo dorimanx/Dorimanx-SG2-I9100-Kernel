@@ -7,7 +7,7 @@
 #include <linux/kallsyms.h>
 #include <linux/utsname.h>
 #include <linux/security.h>
-#include <linux/module.h>
+#include <linux/export.h>
 
 unsigned int __read_mostly sysctl_sched_autogroup_enabled = 1;
 static struct autogroup autogroup_default;

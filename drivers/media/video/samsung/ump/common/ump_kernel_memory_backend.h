@@ -40,6 +40,8 @@ typedef struct ump_memory_backend
 	u32  (*stat)(struct ump_memory_backend *backend);
 	int  (*pre_allocate_physical_check)(void *ctx, u32 size);
 	u32  (*adjust_to_mali_phys)(void *ctx, u32 cpu_phys);
+	void *(*get)(ump_dd_mem *mem, void *args);
+	void (*set)(ump_dd_mem *mem, void *args);
 	void * ctx;
 } ump_memory_backend;
 

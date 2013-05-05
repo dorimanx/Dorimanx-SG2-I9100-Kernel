@@ -32,6 +32,20 @@ config IA64
 	select GENERIC_PENDING_IRQ if SMP
 	select IRQ_PER_CPU
 	select GENERIC_IRQ_SHOW
+<<<<<<< HEAD
+=======
+	select ARCH_WANT_OPTIONAL_GPIOLIB
+	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+	select GENERIC_IOMAP
+	select GENERIC_SMP_IDLE_THREAD
+	select ARCH_INIT_TASK
+	select ARCH_TASK_STRUCT_ALLOCATOR
+	select ARCH_THREAD_INFO_ALLOCATOR
+	select ARCH_CLOCKSOURCE_DATA
+	select GENERIC_TIME_VSYSCALL
+	select HAVE_MOD_ARCH_SPECIFIC
+	select MODULES_USE_ELF_RELA
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h
 	default y
 	help
 	  The Itanium Processor Family is Intel's 64-bit successor to

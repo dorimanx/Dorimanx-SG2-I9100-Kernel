@@ -521,7 +521,8 @@ static int cm3663_setup_irq(struct cm3663_data *cm3663)
 
 	irq = gpio_to_irq(cm3663->i2c_client->irq);
 	rc = request_threaded_irq(irq, NULL, cm3663_irq_thread_fn,
-			 IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+			 IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING |
+			 IRQF_ONESHOT,
 			 "proximity_int", cm3663);
 	if (rc < 0) {
 		pr_err("%s: request_irq(%d) failed for gpio %d (%d)\n",

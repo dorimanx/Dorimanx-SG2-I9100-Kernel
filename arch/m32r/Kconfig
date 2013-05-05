@@ -11,6 +11,12 @@ config M32R
 	select VIRT_TO_BUS
 	select GENERIC_IRQ_PROBE
 	select GENERIC_IRQ_SHOW
+<<<<<<< HEAD
+=======
+	select GENERIC_ATOMIC64
+	select ARCH_USES_GETTIMEOFFSET
+	select MODULES_USE_ELF_RELA
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h
 
 config SBUS
 	bool

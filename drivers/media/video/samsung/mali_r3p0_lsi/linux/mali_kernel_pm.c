@@ -265,3 +265,4 @@ void _mali_dev_platform_unregister(void)
 	platform_device_unregister(&mali_gpu_device);
 #endif
 }
+

@@ -240,10 +240,10 @@ struct ustat {
 };
 
 /**
-* struct rcu_head - callback structure for use with RCU
-* @next: next update requests in a list
-* @func: actual update function to call after the grace period.
-*/
+ * struct callback_head - callback structure for use with RCU and task_work
+ * @next: next update requests in a list
+ * @func: actual update function to call after the grace period.
+ */
 struct callback_head {
 	struct callback_head *next;
 	void (*func)(struct callback_head *head);

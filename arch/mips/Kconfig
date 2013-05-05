@@ -34,10 +34,15 @@ config MIPS
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_CMOS_UPDATE
 	select HAVE_MOD_ARCH_SPECIFIC
+<<<<<<< HEAD
 	select VIRT_TO_BUS
 	select MODULES_USE_ELF_REL if MODULES
 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
 	select CLONE_BACKWARDS
+=======
+	select MODULES_USE_ELF_REL
+	select MODULES_USE_ELF_RELA if 64BIT
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h
 
 menu "Machine selection"
 

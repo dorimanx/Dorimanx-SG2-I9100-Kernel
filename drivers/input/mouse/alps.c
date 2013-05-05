@@ -698,8 +698,29 @@ int alps_init(struct psmouse *psmouse)
 		BIT_MASK(BTN_LEFT) | BIT_MASK(BTN_RIGHT);
 
 	dev1->evbit[BIT_WORD(EV_ABS)] |= BIT_MASK(EV_ABS);
-	input_set_abs_params(dev1, ABS_X, 0, 1023, 0, 0);
-	input_set_abs_params(dev1, ABS_Y, 0, 767, 0, 0);
+
+	switch (model->proto_version) {
+	case ALPS_PROTO_V1:
+	case ALPS_PROTO_V2:
+		input_set_abs_params(dev1, ABS_X, 0, 1023, 0, 0);
+		input_set_abs_params(dev1, ABS_Y, 0, 767, 0, 0);
+		break;
+	case ALPS_PROTO_V3:
+	case ALPS_PROTO_V4:
+		set_bit(INPUT_PROP_SEMI_MT, dev1->propbit);
+		input_mt_init_slots(dev1, 2, 0);
+		input_set_abs_params(dev1, ABS_MT_POSITION_X, 0, ALPS_V3_X_MAX, 0, 0);
+		input_set_abs_params(dev1, ABS_MT_POSITION_Y, 0, ALPS_V3_Y_MAX, 0, 0);
+
+		set_bit(BTN_TOOL_DOUBLETAP, dev1->keybit);
+		set_bit(BTN_TOOL_TRIPLETAP, dev1->keybit);
+		set_bit(BTN_TOOL_QUADTAP, dev1->keybit);
+
+		input_set_abs_params(dev1, ABS_X, 0, ALPS_V3_X_MAX, 0, 0);
+		input_set_abs_params(dev1, ABS_Y, 0, ALPS_V3_Y_MAX, 0, 0);
+		break;
+	}
+
 	input_set_abs_params(dev1, ABS_PRESSURE, 0, 127, 0, 0);
 
 	if (model->flags & ALPS_WHEEL) {

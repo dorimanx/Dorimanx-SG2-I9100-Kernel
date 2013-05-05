@@ -653,7 +653,6 @@ static void exit_mm(struct task_struct * tsk)
 {
 	struct mm_struct *mm = tsk->mm;
 	struct core_state *core_state;
-	int mm_released;
 
 	mm_release(tsk, mm);
 	if (!mm)
@@ -698,10 +697,7 @@ static void exit_mm(struct task_struct * tsk)
 	enter_lazy_tlb(mm, current);
 	task_unlock(tsk);
 	mm_update_next_owner(mm);
-	mm_released = mmput(mm);
-
-	if (mm_released)
-		set_tsk_thread_flag(tsk, TIF_MM_RELEASED);
+	mmput(mm);
 }
 
 /*
@@ -949,8 +945,6 @@ NORET_TYPE void do_exit(long code)
 		schedule();
 	}
 
-	exit_irq_thread();
-
 	exit_signals(tsk);  /* sets PF_EXITING */
 	/*
 	 * tsk->flags are checked in the futex code to protect against
@@ -994,6 +988,7 @@ NORET_TYPE void do_exit(long code)
 	exit_shm(tsk);
 	exit_files(tsk);
 	exit_fs(tsk);
+	exit_task_work(tsk);
 	check_stack_usage();
 	exit_thread();
 

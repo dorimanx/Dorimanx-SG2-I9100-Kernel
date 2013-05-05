@@ -53,6 +53,11 @@ ifeq ($(CONFIG_VIDEO_MALI400MP_DEBUG),y)
 BUILD=debug
 endif
 
+ifeq ($(CONFIG_VIDEO_MALI400MP_STREAMLINE_PROFILING),y)
+USING_PROFILING=1
+USING_TRACEPOINTS=1
+endif
+
 # set up defaults if not defined by the user
 USE_UMPV2 ?= 0
 PANIC_ON_WATCHDOG_TIMEOUT ?= 1 
@@ -68,7 +73,7 @@ USING_MALI_RUN_TIME_PM ?= 0
 USING_MALI_PMM_TESTSUITE ?= 0
 USING_MALI_PMU ?= 0
 USING_GPU_UTILIZATION ?= 0
-OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB ?= 6
+OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB ?= 16
 USING_PROFILING ?= 0
 USING_INTERNAL_PROFILING ?= 0
 USING_TRACEPOINTS ?= 0
@@ -185,10 +190,9 @@ INCLUDES = \
 		-I$(MALI_INCLUDE_PREFIX)linux \
 		-I$(MALI_INCLUDE_PREFIX)platform\
 		-I$(MALI_INCLUDE_PREFIX)regs
-    
 
 EXTRA_CFLAGS += $(INCLUDES)\
-		$(DEFINES) 
+		$(DEFINES)
 
 EXTRA_CFLAGS += -I$(MALI_INCLUDE_PREFIX)linux/license/gpl
 EXTRA_CFLAGS += -I$(MALI_INCLUDE_PREFIX)common/pmm
@@ -272,7 +276,7 @@ mali-y := \
 	linux/mali_pmu_power_up_down.o \
 	$(MALI_PLATFORM_FILE) \
 	$(OSKFILES) \
-	$(UKKFILES) 
+	$(UKKFILES)
 #	__malidrv_build_info.c
 
 # Selecting files to compile by parsing the config file
@@ -285,7 +289,7 @@ EXTRA_CFLAGS += -I$(MALI_INCLUDE_PREFIX)timestamp-$(TIMESTAMP)
 else
 ifeq ($(USING_PROFILING),1)
 PROFILING_BACKEND_SOURCES = \
-	linux/mali_osk_profiling.o
+	linux/mali_osk_profiling_gator.o
 endif
 endif
 

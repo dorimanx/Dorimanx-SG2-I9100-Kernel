@@ -51,11 +51,13 @@ asynchronous and synchronous parts of the kernel.
 #include <linux/async.h>
 #include <linux/atomic.h>
 #include <linux/ktime.h>
-#include <linux/module.h>
+#include <linux/export.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
+
+#include "workqueue_internal.h"
 
 static async_cookie_t next_cookie = 1;
 
@@ -196,6 +198,9 @@ static async_cookie_t __async_schedule(async_func_ptr *ptr, void *data, struct l
 	atomic_inc(&entry_count);
 	spin_unlock_irqrestore(&async_lock, flags);
 
+	/* mark that this task has queued an async job, used by module init */
+	current->flags |= PF_USED_ASYNC;
+
 	/* schedule for execution */
 	queue_work(system_unbound_wq, &entry->work);
 
@@ -303,3 +308,15 @@ void async_synchronize_cookie(async_cookie_t cookie)
 	async_synchronize_cookie_domain(cookie, &async_running);
 }
 EXPORT_SYMBOL_GPL(async_synchronize_cookie);
+
+/**
+ * current_is_async - is %current an async worker task?
+ *
+ * Returns %true if %current is an async worker task.
+ */
+bool current_is_async(void)
+{
+	struct worker *worker = current_wq_worker();
+
+	return worker && worker->current_func == async_run_entry_fn;
+}

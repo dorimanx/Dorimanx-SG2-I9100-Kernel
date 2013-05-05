@@ -206,7 +206,7 @@ void mmc_host_clk_release(struct mmc_host *host)
 	if (mmc_host_may_gate_card(host->card) &&
 	    !host->clk_requests)
 		schedule_delayed_work(&host->clk_gate_work,
-				      msecs_to_jiffies(host->clkgate_delay));
+			msecs_to_jiffies(host->clkgate_delay));
 	spin_unlock_irqrestore(&host->clk_lock, flags);
 }
 

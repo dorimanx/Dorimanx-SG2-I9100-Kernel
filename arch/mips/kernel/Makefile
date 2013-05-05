@@ -29,6 +29,10 @@ obj-$(CONFIG_SYNC_R4K)		+= sync-r4k.o
 
 obj-$(CONFIG_STACKTRACE)	+= stacktrace.o
 obj-$(CONFIG_MODULES)		+= mips_ksyms.o module.o
+<<<<<<< HEAD
+=======
+obj-$(CONFIG_MODULES_USE_ELF_RELA) += module-rela.o
+>>>>>>> 786d35d... Make most arch asm/module.h files use asm-generic/module.h
 
 obj-$(CONFIG_FUNCTION_TRACER)	+= mcount.o ftrace.o
 

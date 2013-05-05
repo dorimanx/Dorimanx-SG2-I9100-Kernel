@@ -52,8 +52,6 @@ void *module_alloc(unsigned long size)
 	int i = 0;
 	int npages;
 
-	if (size == 0)
-		return NULL;
 	npages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
 	pages = kmalloc(npages * sizeof(struct page *), GFP_KERNEL);
 	if (pages == NULL)
@@ -96,25 +94,6 @@ void module_free(struct module *mod, void *module_region)
 	 * FIXME: If module_region == mod->module_init, trim exception
 	 * table entries.
 	 */
-}
-
-/* We don't need anything special. */
-int module_frob_arch_sections(Elf_Ehdr *hdr,
-			      Elf_Shdr *sechdrs,
-			      char *secstrings,
-			      struct module *mod)
-{
-	return 0;
-}
-
-int apply_relocate(Elf_Shdr *sechdrs,
-		   const char *strtab,
-		   unsigned int symindex,
-		   unsigned int relsec,
-		   struct module *me)
-{
-	pr_err("module %s: .rel relocation unsupported\n", me->name);
-	return -ENOEXEC;
 }
 
 #ifdef __tilegx__
@@ -248,16 +227,4 @@ int apply_relocate_add(Elf_Shdr *sechdrs,
 		}
 	}
 	return 0;
-}
-
-int module_finalize(const Elf_Ehdr *hdr,
-		    const Elf_Shdr *sechdrs,
-		    struct module *me)
-{
-	/* FIXME: perhaps remove the "writable" bit from the TLB? */
-	return 0;
-}
-
-void module_arch_cleanup(struct module *mod)
-{
 }
