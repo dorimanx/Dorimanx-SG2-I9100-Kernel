@@ -42,18 +42,7 @@
 #ifdef CONFIG_SEC_DEBUG_DCVS_LOG
 #include <mach/sec_debug.h>
 #endif
-
-#ifdef CONFIG_CPU_OVERCLOCK
-#define OVERCLOCK_EXTRA_FREQS	7
-#else
-#define OVERCLOCK_EXTRA_FREQS	0
-#endif
-
-#ifdef CONFIG_LOW_CPUCLOCKS
-#define FREQ_TABLE_SIZE		(39 + OVERCLOCK_EXTRA_FREQS)
-#else
-#define FREQ_TABLE_SIZE		(35 + OVERCLOCK_EXTRA_FREQS)
-#endif
+#include "krait-defines.h"
 
 /* MUX source selects. */
 #define PRI_SRC_SEL_SEC_SRC	0
