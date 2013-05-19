@@ -8,6 +8,9 @@
 **     to control PWM duty cycle, amp enable/disable, save IVT file, etc...
 **
 ** Portions Copyright (c) 2008-2010 Immersion Corporation. All Rights Reserved.
+**          Copyright (c) 2013 The CyanogenMod Project
+**                        Daniel Hillenbrand <codeworkx@cyanogenmod.com>
+**                        Dan Pasanen <dan.pasanen@gmail.com>
 **
 ** This file contains Original Code and/or Modifications of Original Code
 ** as defined in and that are subject to the GNU Public License v2 -
@@ -50,6 +53,8 @@ struct pm_gpio vib_pwm = {
 				.inv_int_pol = 0,
 			};
 
+
+unsigned long pwm_val = 100;
 
 static int32_t vibe_set_pwm_freq(int nForce)
 {
@@ -258,6 +263,8 @@ static int32_t ImmVibeSPI_ForceOut_SetSamples(u_int8_t nActuatorIndex,
 		return VIBE_E_FAIL;
 	}
 
+	nforce = nforce * pwm_val / 100;
+
 	if (nforce == 0) {
 		/* Set 50% duty cycle or disable amp */
 		ImmVibeSPI_ForceOut_AmpDisable(0);
@@ -277,6 +284,54 @@ static int32_t ImmVibeSPI_ForceOut_SetSamples(u_int8_t nActuatorIndex,
 		}
 	}
 	return VIBE_S_SUCCESS;
+}
+
+static ssize_t pwm_val_show(struct device *dev, struct device_attribute *attr,
+                              char *buf)
+{
+	int count;
+
+	count = sprintf(buf, "%lu\n", pwm_val);
+	pr_debug("[VIB] pwm_val: %lu\n", pwm_val);
+
+	return count;
+}
+
+ssize_t pwm_val_store(struct device *dev, struct device_attribute *attr,
+                        const char *buf, size_t size)
+{
+	if (kstrtoul(buf, 0, &pwm_val))
+
+	pr_err("[VIB] %s: error on storing pwm_val\n", __func__);
+	pr_info("[VIB] %s: pwm_val=%lu\n", __func__, pwm_val);
+
+	/* make sure new pwm duty is in range */
+	if(pwm_val > 100)
+		pwm_val = 100;
+	else if (pwm_val < 0)
+		pwm_val = 0;
+
+	return size;
+}
+
+static DEVICE_ATTR(pwm_val, S_IRUGO | S_IWUSR,
+    pwm_val_show, pwm_val_store);
+
+static int create_vibrator_sysfs(void)
+{
+	int ret;
+	struct kobject *vibrator_kobj;
+	vibrator_kobj = kobject_create_and_add("vibrator", NULL);
+	if (unlikely(!vibrator_kobj))
+		return -ENOMEM;
+
+	ret = sysfs_create_file(vibrator_kobj, &dev_attr_pwm_val.attr);
+	if (unlikely(ret < 0)) {
+		pr_err("[VIB] sysfs_create_file failed: %d\n", ret);
+		return ret;
+	}
+
+	return 0;
 }
 
 /*
