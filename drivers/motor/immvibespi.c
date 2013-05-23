@@ -134,7 +134,7 @@ static int32_t ImmVibeSPI_ForceOut_AmpDisable(u_int8_t nActuatorIndex)
 			gpio_set_value(vibrator_drvdata.vib_pwm_gpio, \
 			    VIBRATION_OFF);
 		}
-		printk(KERN_DEBUG "tspdrv: %s\n", __func__);
+		//printk(KERN_DEBUG "tspdrv: %s\n", __func__);
 #if defined(CONFIG_MOTOR_DRV_MAX77693)
 		max77693_vibtonz_en(0);
 #endif
@@ -157,7 +157,7 @@ static int32_t ImmVibeSPI_ForceOut_AmpEnable(u_int8_t nActuatorIndex)
 			vib_pwm_gpio, 2, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, \
 			GPIO_CFG_2MA), 1);
 		}
-		printk(KERN_DEBUG "tspdrv: %s\n", __func__);
+		//printk(KERN_DEBUG "tspdrv: %s\n", __func__);
 #if defined(CONFIG_MOTOR_DRV_MAX77693)
 		max77693_vibtonz_en(1);
 #endif
