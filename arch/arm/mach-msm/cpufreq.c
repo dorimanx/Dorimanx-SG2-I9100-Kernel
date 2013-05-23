@@ -254,9 +254,9 @@ int msm_cpufreq_set_freq_limits(uint32_t cpu, uint32_t min, uint32_t max)
 	else
 		limit->allowed_max = limit->max;
 
-	pr_debug("%s: Limiting cpu %d min = %d, max = %d\n",
-			__func__, cpu,
-			limit->allowed_min, limit->allowed_max);
+	//pr_debug("%s: Limiting cpu %d min = %d, max = %d\n",
+	//		__func__, cpu,
+	//		limit->allowed_min, limit->allowed_max);
 
 	return 0;
 }
