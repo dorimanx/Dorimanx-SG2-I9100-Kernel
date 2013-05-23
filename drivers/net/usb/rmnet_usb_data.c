@@ -111,7 +111,7 @@ static int rmnet_usb_resume(struct usb_interface *iface)
 	struct usbnet		*unet;
 	struct rmnet_ctrl_dev	*dev;
 
-	pr_info("%s", __func__);
+	//pr_info("%s", __func__);
 	unet = usb_get_intfdata(iface);
 
 	dev = (struct rmnet_ctrl_dev *)unet->data[1];
