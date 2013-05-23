@@ -88,7 +88,7 @@ static int rmnet_usb_suspend(struct usb_interface *iface, pm_message_t message)
 	struct usbnet		*unet;
 	struct rmnet_ctrl_dev	*dev;
 
-	pr_info("%s", __func__);
+	//pr_info("%s", __func__);
 
 	unet = usb_get_intfdata(iface);
 
