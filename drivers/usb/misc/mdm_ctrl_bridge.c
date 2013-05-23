@@ -262,7 +262,7 @@ static void notification_available_cb(struct urb *urb)
 	switch (ctrl->bNotificationType) {
 	case USB_CDC_NOTIFY_RESPONSE_AVAILABLE:
 		dev->resp_avail++;
-		pr_info("GOT notification \n");
+		//pr_info("GOT notification \n");
 		usb_mark_last_busy(dev->udev);
 		if (urb->status == -ENOENT)
 			pr_info("URB status is ENOENT");
