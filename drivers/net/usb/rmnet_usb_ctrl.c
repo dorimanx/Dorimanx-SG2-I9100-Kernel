@@ -336,7 +336,7 @@ resubmit_int_urb:
 			dev_err(dev->devicep, "%s: Error re-submitting Int URB %d\n",
 					__func__, status);
 		}
-		pr_info("[CHKRA:%d]>", iface_num);
+		//pr_info("[CHKRA:%d]>", iface_num);
 	}
 }
 
@@ -353,8 +353,8 @@ int rmnet_usb_ctrl_start_rx(struct rmnet_ctrl_dev *dev)
 		usb_unanchor_urb(dev->inturb);
 		dev_err(dev->devicep, "%s Intr submit %d\n", __func__,
 				retval);
-	} else
-		pr_info("[CHKRA:%d]>", iface_num);
+	} //else
+	//	pr_info("[CHKRA:%d]>", iface_num);
 
 	return retval;
 }
