@@ -59,7 +59,7 @@
 #define BOOSTED_SAMPLING_RATE			(15000)
 #define DBS_INPUT_EVENT_MIN_FREQ		(1026000)
 #define DBS_SYNC_FREQ				(702000)
-#define DBS_OPTIMAL_FREQ			(1296000)
+#define DBS_OPTIMAL_FREQ			(1566000)
 
 static u64 freq_boosted_time;
 /*
