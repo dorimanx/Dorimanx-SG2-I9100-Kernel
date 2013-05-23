@@ -583,8 +583,8 @@ int set_freq_limit(unsigned long id, unsigned int freq)
 	set_min_lock(min);
 	set_max_lock(max);
 
-	pr_info("%s: 0x%lu %d, min %d, max %d\n",
-				__func__, id, freq, min, max);
+	//pr_info("%s: 0x%lu %d, min %d, max %d\n",
+	//			__func__, id, freq, min, max);
 
 	/* need to update now */
 	if (id & UPDATE_NOW_BITS) {
