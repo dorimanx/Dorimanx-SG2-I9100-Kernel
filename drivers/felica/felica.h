@@ -51,7 +51,7 @@
 /******************************************************************************
  * config option
  ******************************************************************************/
-
+#define P2P_FPGA_ALWAYS_ON
 
 
 
@@ -573,6 +573,17 @@ enum {
     UARTCC_NFC_START_AUTOPOLLING = 1,
     UARTCC_NFC_START_ENDPROC = 0xFF,
 };
+
+#ifdef P2P_FPGA_ALWAYS_ON
+enum {
+	SNFC_START_SETTING = 0,
+	SNFC_START_AUTOPOLL,
+	SNFC_START_RW,
+	SNFC_START_TARGET,
+	SNFC_START_INTU,
+	SNFC_START_WAITSIMBOOT,
+};
+#endif
 
 /* function prototype */
 static void uartcc_init(void);

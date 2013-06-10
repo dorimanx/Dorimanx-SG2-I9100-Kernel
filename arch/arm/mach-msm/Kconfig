@@ -485,6 +485,12 @@ config MSM_REMOTE_SPINLOCK_SFPB
 config MSM_ADM3
 	bool
 
+config MACH_JACTIVE
+	default n
+	bool "APQ8064 Samsung JACTIVE"
+	help
+	  Support for the Samsung J ACTIVE device.
+
 menu "MSM Board Selection"
 
 config MACH_HALIBUT
@@ -1010,6 +1016,7 @@ config MACH_JACTIVE_EUR
 config MACH_JACTIVE_ATT
 	depends on ARCH_APQ8064
 	default n
+	select MACH_JACTIVE
 	bool "APQ8064 Samsung JACTIVE_ATT"
 	help
 	  Support for the Samsung J ACTIVE ATT device.

@@ -580,24 +580,10 @@ static inline void msmsdcc_delay(struct msmsdcc_host *host)
 	udelay(host->reg_write_delay);
 
 }
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-static void msmsdcc_do_cmdirq(struct msmsdcc_host *host, uint32_t status);
-static void msmsdcc_sps_exit_curr_xfer(struct msmsdcc_host *host);
-static void msmsdcc_start_data(struct msmsdcc_host *host,
-							   struct mmc_data *data,
-							   struct mmc_command *cmd, u32 c);
-static void msmsdcc_irq_dummy(struct msmsdcc_host *host, u32 mask);
-#endif
 
 static inline void
 msmsdcc_start_command_exec(struct msmsdcc_host *host, u32 arg, u32 c)
 {
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	volatile u32 status;
-
-	u32 mask = MCI_CMDCRCFAIL|MCI_CMDTIMEOUT|MCI_CMDRESPEND|MCI_CMDSENT;
-
-#endif
 	writel_relaxed(arg, host->base + MMCIARGUMENT);
 	writel_relaxed(c, host->base + MMCICOMMAND);
 	/*
@@ -607,17 +593,6 @@ msmsdcc_start_command_exec(struct msmsdcc_host *host, u32 arg, u32 c)
 	 * from Controller.
 	 */
 	mb();
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	/* For data write command on sdc3, poll for CMD response end */
-	if (host->mmc->index == 1) {
-		do {
-			status = readl_relaxed(host->base + MMCISTATUS);
-			if (status & mask)
-					break;
-		} while (1);
-		msmsdcc_irq_dummy(host, mask);
-	}
-#endif
 }
 
 static void
@@ -1878,91 +1853,12 @@ static void msmsdcc_do_cmdirq(struct msmsdcc_host *host, uint32_t status)
 			msmsdcc_start_data(host, cmd->data, NULL, 0);
 	}
 }
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-static void
-msmsdcc_irq_dummy(struct msmsdcc_host *host, u32 mask)
-{
-	u32			status;
-	int			timer = 0;
-	int			count = 0;
-	ktime_t start = ktime_get();
-
-	do {
-		struct mmc_command *cmd;
-		struct mmc_data *data;
-
-		if (timer) {
-			timer = 0;
-			msmsdcc_delay(host);
-		}
-
-		status = readl_relaxed(host->base + MMCISTATUS);
-
-		if ((mask & status) == 0)
-			break;
-
-		status &= mask;
-		writel_relaxed(status, host->base + MMCICLEAR);
-		/* Allow clear to take effect*/
-		if (host->clk_rate <=
-				msmsdcc_get_min_sup_clk_rate(host))
-			msmsdcc_sync_reg_wr(host);
-
-		data = host->curr.data;
-
-		if (host->dummy_52_sent) {
-			if (status & (MCI_PROGDONE | MCI_CMDCRCFAIL |
-					  MCI_CMDTIMEOUT)) {
-				if (status & MCI_CMDTIMEOUT)
-					pr_debug("%s: dummy CMD52 timeout\n",
-						mmc_hostname(host->mmc));
-				if (status & MCI_CMDCRCFAIL)
-					pr_debug("%s: dummy CMD52 CRC failed\n",
-						mmc_hostname(host->mmc));
-				host->dummy_52_sent = 0;
-				host->dummy_52_needed = 0;
-				if (data) {
-					msmsdcc_stop_data(host);
-					msmsdcc_request_end(host, data->mrq);
-				}
-				WARN(!data, "No data cmd for dummy CMD52\n");
-				return;
-			}
-			break;
-		}
-
-		/*
-		 * Check for proper command response
-		 */
-		cmd = host->curr.cmd;
-		if ((status & (MCI_CMDSENT | MCI_CMDRESPEND | MCI_CMDCRCFAIL |
-			MCI_CMDTIMEOUT | MCI_PROGDONE |
-			MCI_AUTOCMD19TIMEOUT)) && host->curr.cmd) {
-			msmsdcc_do_cmdirq(host, status);
-		}
-
-		if (ktime_to_ms(ktime_sub(ktime_get(), start)) > 1000)// 1sec
-		{
-			printk("%s: status: (0x%.8x), loop in %d sec.\n",
-				mmc_hostname(host->mmc),status,count);
-			if(count > 5)
-				break;
-			start = ktime_get();
-			count++;
-		}
-
-	} while (status);
-}
-#endif
 
 static irqreturn_t
 msmsdcc_irq(int irq, void *dev_id)
 {
 	struct msmsdcc_host	*host = dev_id;
 	u32			status;
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	u32			mask;
-#endif
 	int			ret = 0;
 	int			timer = 0;
 
@@ -2066,20 +1962,11 @@ msmsdcc_irq(int irq, void *dev_id)
 		 */
 		cmd = host->curr.cmd;
 
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-		mask = MCI_CMDSENT | MCI_CMDCRCFAIL | MCI_CMDTIMEOUT |
-				   MCI_PROGDONE | MCI_AUTOCMD19TIMEOUT;
-		if (!(host->mmc->index == 1 && (cmd && cmd->data)))
-				mask |= MCI_CMDRESPEND;
-		if ((status & mask) && host->curr.cmd)
-				msmsdcc_do_cmdirq(host, status);
-#else
 		if ((status & (MCI_CMDSENT | MCI_CMDRESPEND | MCI_CMDCRCFAIL |
 			MCI_CMDTIMEOUT | MCI_PROGDONE |
 			MCI_AUTOCMD19TIMEOUT)) && host->curr.cmd) {
 			msmsdcc_do_cmdirq(host, status);
 		}
-#endif
 
 		if (host->curr.data) {
 			/* Check for data errors */
@@ -2618,7 +2505,7 @@ static int msmsdcc_setup_vreg(struct msmsdcc_host *host, bool enable,
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
 	if (!enable) {
 #if defined(CONFIG_MACH_JF_ATT) || defined(CONFIG_MACH_JF_TMO) || defined(CONFIG_MACH_JF_EUR) || \
-	defined(CONFIG_MACH_JACTIVE_ATT)
+	defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
 		if (system_rev != BOARD_REV07) { /* TI Level Shifter */
 			if (system_rev < BOARD_REV08 && host->pdev_id == 4)
 #else /* VZW/SPT/USCC */
@@ -2628,7 +2515,7 @@ static int msmsdcc_setup_vreg(struct msmsdcc_host *host, bool enable,
 				/* Disable level shifter */
 				gpio_set_value(60, 0); /* TFLASH_LS_EN */
 #if defined(CONFIG_MACH_JF_ATT) || defined(CONFIG_MACH_JF_TMO) || defined(CONFIG_MACH_JF_EUR) || \
-	defined(CONFIG_MACH_JACTIVE_ATT)
+	defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
 			else if (system_rev >= BOARD_REV08 && host->pdev_id == 2)
 #else /* VZW/SPT/USCC/KOR */
 			else if (system_rev >= BOARD_REV09 && host->pdev_id == 2)
@@ -2664,7 +2551,7 @@ static int msmsdcc_setup_vreg(struct msmsdcc_host *host, bool enable,
 	if (enable) {
 		mdelay(1);
 #if defined(CONFIG_MACH_JF_ATT) || defined(CONFIG_MACH_JF_TMO) || defined(CONFIG_MACH_JF_EUR) || \
-	defined(CONFIG_MACH_JACTIVE_ATT)
+	defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
 		if (system_rev < BOARD_REV08 && host->pdev_id == 4)
 #else /* VZW/SPT/USCC */
 		if (system_rev < BOARD_REV09 && host->pdev_id == 4)
@@ -2672,7 +2559,7 @@ static int msmsdcc_setup_vreg(struct msmsdcc_host *host, bool enable,
 			/* Enable level shifter */
 			gpio_set_value(60, 1); /* TFLASH_LS_EN */
 #if defined(CONFIG_MACH_JF_ATT) || defined(CONFIG_MACH_JF_TMO) || defined(CONFIG_MACH_JF_EUR) || \
-	defined(CONFIG_MACH_JACTIVE_ATT)
+	defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
 		else if (system_rev >= BOARD_REV08 && host->pdev_id == 2)
 #else /* VZW/SPT/USCC/KOR */
 		else if (system_rev >= BOARD_REV09 && host->pdev_id == 2)
@@ -2688,7 +2575,7 @@ static int msmsdcc_setup_vreg(struct msmsdcc_host *host, bool enable,
 	} else {
 		mdelay(1);
 #if defined(CONFIG_MACH_JF_ATT) || defined(CONFIG_MACH_JF_TMO) || defined(CONFIG_MACH_JF_EUR) || \
-	defined(CONFIG_MACH_JACTIVE_ATT)
+	defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
 		if (system_rev == BOARD_REV07) { /* Toshiba Level Shifter */
 			if (system_rev < BOARD_REV08 && host->pdev_id == 4)
 #else /* VZW/SPT/USCC */
@@ -5906,9 +5793,6 @@ msmsdcc_probe(struct platform_device *pdev)
 	struct resource *dmares = NULL;
 	struct resource *dma_crci_res = NULL;
 	int ret = 0;
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	u32 reg;
-#endif
 
 	if (pdev->dev.of_node) {
 		plat = msmsdcc_populate_pdata(&pdev->dev);
@@ -6197,20 +6081,9 @@ msmsdcc_probe(struct platform_device *pdev)
 	writel_relaxed(MCI_CLEAR_STATIC_MASK, host->base + MMCICLEAR);
 	msmsdcc_sync_reg_wr(host);
 
-#if defined(CONFIG_BCM4335) || defined(CONFIG_BCM4335_MODULE)
-	if (host->mmc->index != 1)
-		reg = MCI_IRQENABLE;
-	else
-		reg = MCI_IRQENABLE_SDC3;
-	writel_relaxed(reg, host->base + MMCIMASK0);
-
-	mb();
-	host->mci_irqenable = reg;
-#else
 	writel_relaxed(MCI_IRQENABLE, host->base + MMCIMASK0);
 	mb();
 	host->mci_irqenable = MCI_IRQENABLE;
-#endif
 
 	ret = request_irq(core_irqres->start, msmsdcc_irq, IRQF_SHARED,
 			  DRIVER_NAME " (cmd)", host);
@@ -6302,7 +6175,7 @@ msmsdcc_probe(struct platform_device *pdev)
 #else
 
 #if defined(CONFIG_MACH_JF_ATT) || defined(CONFIG_MACH_JF_TMO) || defined(CONFIG_MACH_JF_EUR) || \
-	defined(CONFIG_MACH_JACTIVE_ATT)
+	defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
 	if (t_flash_detect_dev == NULL && 
 		(((host->pdev_id == 4) && (system_rev < BOARD_REV08)) ||
 		((host->pdev_id == 2) && (system_rev >= BOARD_REV08)))) {

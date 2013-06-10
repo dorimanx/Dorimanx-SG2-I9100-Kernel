@@ -1174,35 +1174,6 @@ static struct i2c_board_info touchkey_i2c_devices_info[] __initdata = {
 	},
 };
 
-
-static struct i2c_gpio_platform_data  cypress_touchkey_i2c_gpio_data = {
-	.sda_pin		= GPIO_TOUCHKEY_SDA,	
-	.scl_pin		= GPIO_TOUCHKEY_SCL,
-	.udelay			= 0,
-	.sda_is_open_drain	= 0,
-	.scl_is_open_drain	= 0,
-	.scl_is_output_only	= 0,
-};
-static struct platform_device touchkey_i2c_gpio_device = {
-	.name			= "i2c-gpio",
-	.id			= MSM_TOUCHKEY_I2C_BUS_ID,
-	.dev.platform_data	= &cypress_touchkey_i2c_gpio_data,
-};
-
-static struct i2c_gpio_platform_data  cypress_touchkey_i2c_gpio_data_2 = {
-	.sda_pin		= GPIO_TOUCHKEY_SDA,	
-	.scl_pin		= GPIO_TOUCHKEY_SCL_2,
-	.udelay			= 0,
-	.sda_is_open_drain	= 0,
-	.scl_is_open_drain	= 0,
-	.scl_is_output_only	= 0,
-};
-static struct platform_device touchkey_i2c_gpio_device_2 = {
-	.name			= "i2c-gpio",
-	.id			= MSM_TOUCHKEY_I2C_BUS_ID,
-	.dev.platform_data	= &cypress_touchkey_i2c_gpio_data_2,
-};
-
 #endif
 
 static int apq8064_change_memory_power(u64 start, u64 size,
@@ -2167,6 +2138,7 @@ static void bcm2079x_sw_i2c_config(void)
 		GPIO_CFG_NO_PULL, GPIO_CFG_2MA), 1);
 }
 #endif
+#define GPIO_NFC_FIRMWARE_REV2	PM8921_GPIO_PM_TO_SYS(12)
 static int __init bcm2079x_init(void)
 {
 	struct pm_gpio nfc_irq_cfg = {
@@ -2192,7 +2164,10 @@ static int __init bcm2079x_init(void)
 	};
 	pm8xxx_gpio_config(GPIO_NFC_IRQ, &nfc_irq_cfg);
 	pm8xxx_gpio_config(GPIO_NFC_EN, &nfc_en_cfg);
-	pm8xxx_gpio_config(GPIO_NFC_FIRMWARE, &nfc_firmware_cfg);
+	if (system_rev > BOARD_REV07)
+		pm8xxx_gpio_config(GPIO_NFC_FIRMWARE_REV2, &nfc_firmware_cfg);
+	else
+		pm8xxx_gpio_config(GPIO_NFC_FIRMWARE, &nfc_firmware_cfg);
 #ifdef NFC_SW_I2C
 	bcm2079x_sw_i2c_config();
 #endif
@@ -2217,7 +2192,7 @@ static struct platform_device bcm2079x_i2c_gpio_device = {
 static struct bcm2079x_platform_data bcm2079x_i2c_pdata = {
 	.irq_gpio = GPIO_NFC_IRQ,
 	.en_gpio = GPIO_NFC_EN,
-	.wake_gpio = GPIO_NFC_FIRMWARE,
+	.wake_gpio = GPIO_NFC_FIRMWARE_REV2,
 };
 
 static struct i2c_board_info nfc_bcm2079x_info[] __initdata = {
@@ -3248,6 +3223,29 @@ static struct platform_device msm8064_device_saw_regulator_core3 = {
 	},
 };
 
+#ifdef CONFIG_CAMERA_SW_I2C_ACT
+static struct i2c_gpio_platform_data hvca_i2c_gpio_data = {
+	.sda_pin = 71,
+	.scl_pin = 70,
+	.udelay = 5,
+};
+struct platform_device hvca_i2c_gpio_device = {
+	.name = "i2c-gpio",
+	.id = MSM_CAMERA_SW_I2C_BUS_ID, // 27
+	.dev = {
+		.platform_data  = &hvca_i2c_gpio_data,
+	},
+};
+#endif
+static struct spi_board_info eeprom_spi_info[] __initdata = {
+    {
+        .modalias               = "imx175_spi",
+        .max_speed_hz           = 9963243,
+        .bus_num                = 0,
+        .chip_select            = 0,
+        .mode                   = SPI_MODE_0,
+    },
+};
 static struct msm_rpmrs_level msm_rpmrs_levels[] = {
 	{
 		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT,
@@ -3861,7 +3859,7 @@ static struct platform_device *common_not_mpq_devices[] __initdata = {
 static struct platform_device *early_common_devices[] __initdata = {
 	&apq8064_device_acpuclk,
 	&apq8064_device_dmov,
-	&apq8064_device_qup_spi_gsbi5,
+	//&apq8064_device_qup_spi_gsbi5,
 };
 
 static struct platform_device *pm8921_common_devices[] __initdata = {
@@ -3891,6 +3889,10 @@ static struct platform_device *common_devices[] __initdata = {
 	&apq8064_device_hsusb_host,
 	&android_usb_device,
 	&msm_device_wcnss_wlan,
+	&apq8064_device_qup_spi_gsbi5, // Fortius AF
+#if 0 
+    &msm8930_device_qup_spi_gsbi1,
+#endif
 	&msm_device_iris_fm,
 	&apq8064_fmem_device,
 #ifdef CONFIG_ANDROID_PMEM
@@ -4030,6 +4032,9 @@ static struct platform_device *common_devices[] __initdata = {
 #endif
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 	&ram_console_device,
+#endif
+#ifdef CONFIG_CAMERA_SW_I2C_ACT
+	&hvca_i2c_gpio_device,
 #endif
 };
 
@@ -4181,20 +4186,24 @@ static struct spi_board_info spi_board_info[] __initdata = {
 #ifdef CONFIG_SND_SOC_ES325
 static int  es325_enable_VDD_CORE(void)
 {
-	static struct regulator *l18;
+	static struct regulator *es325_vdd_core;
 	int ret;
 
-	l18 = regulator_get(NULL, "8921_l18");
-	if (IS_ERR(l18)) {
+	if (system_rev >= BOARD_REV12)
+		es325_vdd_core = regulator_get(NULL, "8921_l27");
+	else 
+		es325_vdd_core = regulator_get(NULL, "8921_l18");
+
+	if (IS_ERR(es325_vdd_core)) {
 		pr_err("%s: error regulator_get\n", __func__);
 		return -1;
 	}
-	ret = regulator_set_voltage(l18, 1100000, 1100000);
+	ret = regulator_set_voltage(es325_vdd_core, 1100000, 1100000);
 	if (ret)
 		pr_err("%s: error set voltage ret=%d\n", __func__, ret);
-	ret = regulator_enable(l18);
+	ret = regulator_enable(es325_vdd_core);
 	if (ret) {
-		pr_err("%s: error enable l18 ret=%d\n", __func__, ret);
+		pr_err("%s: error enable es325_vdd_core ret=%d\n", __func__, ret);
 		return -1;
 	}
 	return 0;
@@ -5173,8 +5182,6 @@ static void __init apq8064_common_init(void)
 	apq8064_i2c_init();
 	register_i2c_devices();
 
-	apq8064_device_qup_spi_gsbi5.dev.platform_data =
-						&apq8064_qup_spi_gsbi5_pdata;
 	apq8064_init_pmic();
 	if (machine_is_apq8064_liquid())
 		msm_otg_pdata.mhl_enable = true;
@@ -5200,13 +5207,6 @@ static void __init apq8064_common_init(void)
 		platform_add_devices(common_not_mpq_devices,
 			ARRAY_SIZE(common_not_mpq_devices));
 	
-#ifdef CONFIG_KEYBOARD_CYPRESS_TOUCH_236
-	if (system_rev < 9)
-		platform_device_register(&touchkey_i2c_gpio_device);
-	else
-		platform_device_register(&touchkey_i2c_gpio_device_2);
-#endif
-
 	enable_ddr3_regulator();
 	msm_hsic_pdata.swfi_latency =
 		msm_rpmrs_levels[0].latency_us;
@@ -5314,8 +5314,15 @@ static void __init apq8064_gpio_keys_init(void)
 	pm8xxx_gpio_config(GPIO_KEY_BACK, &param);
 }
 
+static void __init nfc_gpio_rev_init(void)
+{
+	if (system_rev < BOARD_REV08)
+		bcm2079x_i2c_pdata.wake_gpio = GPIO_NFC_FIRMWARE;
+}
+
 static void __init samsung_jf_init(void)
 {
+	int ret = -1;
 #ifdef CONFIG_SEC_DEBUG
 	sec_debug_init();
 #endif
@@ -5345,6 +5352,12 @@ static void __init samsung_jf_init(void)
 						ARRAY_SIZE(spi_board_info));
 #endif
 	}
+#if 1
+	apq8064_device_qup_spi_gsbi5.dev.platform_data =
+						&apq8064_qup_spi_gsbi5_pdata;
+    ret = spi_register_board_info(eeprom_spi_info,
+		ARRAY_SIZE(eeprom_spi_info));
+#endif
 	apq8064_init_fb();
 	apq8064_init_gpu();
 	platform_add_devices(apq8064_footswitch, apq8064_num_footswitch);
@@ -5371,6 +5384,7 @@ static void __init samsung_jf_init(void)
 #endif
 #ifdef CONFIG_BCM2079X_NFC_I2C
 	bcm2079x_init();
+	nfc_gpio_rev_init();
 #endif
 	change_memory_power = &apq8064_change_memory_power;
 

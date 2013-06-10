@@ -717,14 +717,14 @@ static struct msm_gpiomux_config apq8064_hdmi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &hdmi_active_1_cfg,
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
-	},*/
+	},
 	{
 		.gpio = 70,
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &hdmi_active_1_cfg,
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
-	},
+	},*/
 	{
 		.gpio = 71,
 		.settings = {
@@ -747,6 +747,13 @@ static struct msm_gpiomux_config sensorhub_configs[] __initdata = {
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &mcu_chg_cfg,
 			[GPIOMUX_ACTIVE] = &mcu_chg_cfg,
+		},
+	},
+	{
+		.gpio = 70,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &mcu_chg_cfg,
+			[GPIOMUX_SUSPENDED] = &mcu_chg_cfg,
 		},
 	},
 };

@@ -237,6 +237,11 @@
 #define VFE_CMD_COLORXFORM_ENC_UPDATE                   160
 #define VFE_CMD_COLORXFORM_VIEW_UPDATE                  161
 #define VFE_CMD_TEST_GEN_CFG                            162
+#define VFE_CMD_SELECT_RDI                              163
+#define VFE_CMD_SET_STATS_VER                           164
+#define VFE_CMD_STOP_RECORDING_DONE                     165
+#define VFE_CMD_RGB_ALL_CFG                             166
+#define VFE_CMD_RGB_ALL_UPDATE                          167
 
 struct msm_isp_cmd {
 	int32_t  id;
@@ -347,6 +352,10 @@ struct msm_vpe_clock_rate {
 #define VFE_OUTPUTS_RDI1                BIT(12)
 #define VFE_OUTPUTS_RDI2                BIT(13)
 
+#define	VFE_RDI_COMPOSITE				(1 << 0)
+#define	VFE_RDI_NON_COMPOSITE			(1 << 1)
+#define VFE_STATS_TYPE_LEGACY		0
+#define VFE_STATS_TYPE_BAYER		(1 << 2)
 struct msm_frame_info {
 	uint32_t inst_handle;
 	uint32_t path;

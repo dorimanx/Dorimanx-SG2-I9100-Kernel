@@ -39,6 +39,11 @@ extern int ISSP_main(void);
 #define TK_INFORM_CHARGER
 #define TK_BIT_TA_ON		0x10
 
+#define CYPRESS_55_IC_MASK	0x20
+#define CYPRESS_65_IC_MASK	0x04
+/*
+u32 ic_fw_id;
+*/
 struct touchkey_callbacks {
 	void (*inform_charger)(struct touchkey_callbacks *, bool);
 };

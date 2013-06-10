@@ -104,17 +104,25 @@ void Delay(unsigned int n)
  The demo does it this way because there is no comm link to get data.
  ****************************************************************************
 */
+extern u32 ic_fw_id;
 void LoadProgramData(unsigned char bBlockNum, unsigned char bBankNum)
 {
  /*   >>> The following call is for demo use only. <<<
      Function InitTargetTestData fills buffer for demo
 */
 	int dataNum;
-	for (dataNum = 0; dataNum < TARGET_DATABUFF_LEN; dataNum++) {
-		abTargetDataOUT[dataNum] =
-		 firmware_data[bBlockNum * TARGET_DATABUFF_LEN + dataNum];
-	}
 
+	if (ic_fw_id & CYPRESS_55_IC_MASK) {
+		for (dataNum = 0; dataNum < TARGET_DATABUFF_LEN; dataNum++) {
+			abTargetDataOUT[dataNum] =
+				firmware_data_20055[bBlockNum * TARGET_DATABUFF_LEN + dataNum];
+		}
+	} else {
+		for (dataNum = 0; dataNum < TARGET_DATABUFF_LEN; dataNum++) {
+			abTargetDataOUT[dataNum] =
+				firmware_data[bBlockNum * TARGET_DATABUFF_LEN + dataNum];
+		}
+	}
 }
 
 

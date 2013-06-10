@@ -20,6 +20,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#define PM8921_GPIO_BASE        NR_GPIO_IRQS
+#define PM8921_GPIO_PM_TO_SYS(pm_gpio)  (pm_gpio - 1 + PM8921_GPIO_BASE)
+#define PM8921_MPP_BASE         (PM8921_GPIO_BASE + PM8921_NR_GPIOS)
+#define PM8921_MPP_PM_TO_SYS(pm_mpp)    (pm_mpp - 1 + PM8921_MPP_BASE)
+#define PM8921_IRQ_BASE         (NR_MSM_IRQS + NR_GPIO_IRQS)
 /* APQ8064 GPIO */
 #define GPIO_S_LED_I2C_SDA		 6
 #define GPIO_S_LED_I2C_SCL		 7
@@ -67,6 +72,11 @@
 #define GPIO_MHL_INT                    77
 #define GPIO_MHL_VSIL                    PM8921_GPIO_PM_TO_SYS(32)
 #endif
+#define GPIO_CAM_IO_EN			PM8921_GPIO_PM_TO_SYS(32) 
+#define GPIO_MAIN_CAM_MCLK      5
+#define GPIO_CAM1_RST_N			PM8921_GPIO_PM_TO_SYS(6)
+#define GPIO_I2C_CLK_AF			70
+#define GPIO_I2C_DATA_AF		71
 
 /* PM8921 GPIO */
 #define PMIC_GPIO_VPS_SOUND_EN		9

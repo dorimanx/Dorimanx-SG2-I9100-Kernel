@@ -69,7 +69,7 @@ static const sromvar_t pci_sromvars[] = {
 	{"devid",	0xffffff00,	SRFL_PRHEX,	PCI_F0DEVID,	0xffff},
 #else
 	{"devid",	0xffffff00,	SRFL_PRHEX|SRFL_NOVAR,	PCI_F0DEVID,	0xffff},
-#endif 
+#endif
 	{"boardrev",	0x0000000e,	SRFL_PRHEX,	SROM_AABREV,		SROM_BR_MASK},
 	{"boardrev",	0x000000f0,	SRFL_PRHEX,	SROM4_BREV,		0xffff},
 	{"boardrev",	0xffffff00,	SRFL_PRHEX,	SROM8_BREV,		0xffff},
@@ -494,7 +494,7 @@ static const sromvar_t pci_sromvars[] = {
 	{"tempsense_slope",	0xfffff800,	SRFL_PRHEX, 	SROM11_TS_SLP_OPT_CORRX, 0x00ff},
 	{"tempcorrx",		0xfffff800,	SRFL_PRHEX, 	SROM11_TS_SLP_OPT_CORRX, 0xfc00},
 	{"tempsense_option",	0xfffff800,	SRFL_PRHEX,	SROM11_TS_SLP_OPT_CORRX, 0x0300},
-	{"xtalfreq",		0xfffff800,	0,		SROM11_XTAL_FREQ, 	0xffff},
+	{"xtalfreq",		0xfffff800,	0,		SROM11_XTAL_FREQ,	0xffff},
 	{"phycal_tempdelta",	0xfffff800,	0,		SROM11_PHYCAL_TEMPDELTA, 0x00ff},
 	{"temps_period",	0xfffff800,	0,		SROM11_PHYCAL_TEMPDELTA, 0x0f00},
 	{"temps_hysteresis",	0xfffff800,	0,		SROM11_PHYCAL_TEMPDELTA, 0xf000},
@@ -544,7 +544,7 @@ static const sromvar_t pci_sromvars[] = {
 	{"mcslr5glpo",		0xfffff800,	0,		SROM11_MCSLR5GLPO, 	0xffff},
 	{"mcslr5gmpo",		0xfffff800,	0,		SROM11_MCSLR5GMPO, 	0xffff},
 	{"mcslr5ghpo",		0xfffff800,	0,		SROM11_MCSLR5GHPO, 	0xffff},
-	{"sb20in40hrpo", 	0xfffff800,	0,	SROM11_SB20IN40HRPO,		0xffff},
+	{"sb20in40hrpo",	0xfffff800,	0,	SROM11_SB20IN40HRPO,		0xffff},
 	{"sb20in80and160hr5glpo", 0xfffff800, 	0, 	SROM11_SB20IN80AND160HR5GLPO, 	0xffff},
 	{"sb40and80hr5glpo",	  0xfffff800, 	0,	SROM11_SB40AND80HR5GLPO,	0xffff},
 	{"sb20in80and160hr5gmpo", 0xfffff800, 	0,	SROM11_SB20IN80AND160HR5GMPO, 	0xffff},
@@ -596,11 +596,11 @@ static const sromvar_t pci_sromvars[] = {
 	{"",      		0xfffff800, 	SRFL_ARRAY,    	SROM11_RXGAINERR_5GM,   0xf800},
 	{"",      		0xfffff800, 	SRFL_ARRAY,    	SROM11_RXGAINERR_5GH,   0xf800},
 	{"",      		0xfffff800, 	0,    		SROM11_RXGAINERR_5GU,   0xf800},
-	{"rpcal2g",      	0xfffff800, 	0,		SROM11_RPCAL_2G,    0xffff},
-	{"rpcal5gb0",      	0xfffff800, 	0,		SROM11_RPCAL_5GL,   0xffff},
-	{"rpcal5gb1",      	0xfffff800, 	0,		SROM11_RPCAL_5GM,   0xffff},
-	{"rpcal5gb2",      	0xfffff800, 	0,		SROM11_RPCAL_5GH,   0xffff},
-	{"rpcal5gb3",      	0xfffff800, 	0,		SROM11_RPCAL_5GU,   0xffff},
+	{"rpcal2g",		0xfffff800,	0,		SROM11_RPCAL_2G,    0xffff},
+	{"rpcal5gb0",		0xfffff800,	0,		SROM11_RPCAL_5GL,   0xffff},
+	{"rpcal5gb1",		0xfffff800,	0,		SROM11_RPCAL_5GM,   0xffff},
+	{"rpcal5gb2",		0xfffff800,	0,		SROM11_RPCAL_5GH,   0xffff},
+	{"rpcal5gb3",		0xfffff800,	0,		SROM11_RPCAL_5GU,   0xffff},
 
 	{NULL,		0,		0,		0,			0}
 };
@@ -903,7 +903,7 @@ static const cis_tuple_t cis_hnbuvars[] = {
 	"0rxgains5gelnagaina2 0rxgains2gtrelnabypa2 0rxgains2gtrisoa2 0rxgains2gelnagaina2 "
 	"0rxgains5ghtrelnabypa2 0rxgains5ghtrisoa2 0rxgains5ghelnagaina2 0rxgains5gmtrelnabypa2 "
 	"0rxgains5gmtrisoa2 0rxgains5gmelnagaina2"},	/* special case */
-	{HNBU_TXDUTY, 		0xfffff800, 9,	"2tx_duty_cycle_ofdm_40_5g "
+	{HNBU_TXDUTY,		0xfffff800, 9,	"2tx_duty_cycle_ofdm_40_5g "
 	"2tx_duty_cycle_thresh_40_5g 2tx_duty_cycle_ofdm_80_5g 2tx_duty_cycle_thresh_80_5g"},
 	{HNBU_PDOFF_2G,		0xfffff800, 3,	"0pdoffset2g40ma0 0pdoffset2g40ma1 "
 	"0pdoffset2g40ma2 0pdoffset2g40mvalid"},

@@ -119,7 +119,7 @@
 							 */
 #define SBSDIO_DEVCTL_EN_F2_BLK_WATERMARK 0x10  /* Enable function 2 tx for each block */
 #define SBSDIO_DEVCTL_F2WM_ENAB		0x10		/* Enable F2 Watermark */
-#define SBSDIO_DEVCTL_NONDAT_PADS_ISO 	0x20		/* Isolate sdio clk and cmd (non-data) */
+#define SBSDIO_DEVCTL_NONDAT_PADS_ISO	0x20		/* Isolate sdio clk and cmd (non-data) */
 
 /* SBSDIO_FUNC1_CHIPCLKCSR */
 #define SBSDIO_FORCE_ALP		0x01		/* Force ALP request to backplane */

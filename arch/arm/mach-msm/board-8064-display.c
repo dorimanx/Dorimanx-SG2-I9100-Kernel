@@ -423,7 +423,7 @@ static int gpio27;	/* LED_DRIVER */
 static int gpio33;
 #endif
 static struct regulator *reg_L15;
-#if defined(CONFIG_MACH_JACTIVE_EUR)
+#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE)
 static struct regulator *reg_LVS1;
 #endif
 #else
@@ -461,6 +461,44 @@ static struct pm8xxx_mpp_config_data MLCD_RESET_LOW_CONFIG = {
 	.level		= PM8XXX_MPP_DIG_LEVEL_VIO_1,
 	.control		= PM8XXX_MPP_DOUT_CTRL_LOW,
 };
+
+static int mipi_dsi_power(int enable)
+{
+	int rc = 0;
+
+	if (enable) {
+
+		pr_info("[lcd] DSI ON\n");
+		rc = regulator_set_optimum_mode(reg_l2, 100000);
+		if (rc < 0) {
+			pr_err("set_optimum_mode L2 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+		rc = regulator_enable(reg_l2);
+		if (rc) {
+			pr_err("enable L2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+	} else {
+
+		pr_info("[lcd] DSI OFF\n");
+		rc = regulator_set_optimum_mode(reg_l2, 100);
+		if (rc < 0) {
+			pr_err("set_optimum_mode L2 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
+		rc = regulator_disable(reg_l2);
+		if (rc) {
+			pr_err("disable reg_L2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+	}
+
+	return rc;
+
+}
 
 #if defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
 static int mipi_dsi_power_tft_request(void)
@@ -570,10 +608,11 @@ static int mipi_dsi_power_tft_request(void)
 	return rc;
 }
 
-static int mipi_dsi_power_tft(int enable)
+static int mipi_panel_power_tft(int enable)
 {
 	int rc = 0;
 
+	pr_info("%s %d", __func__, enable);
 	if (enable) {
 #if defined(CONFIG_MACH_JACTIVE_EUR)
 		rc = regulator_set_optimum_mode(reg_LVS1, 100000); /*IOVDD */
@@ -585,6 +624,19 @@ static int mipi_dsi_power_tft(int enable)
 		if (rc) {
 			pr_err("enable LVS1 failed, rc=%d\n", rc);
 			return -ENODEV;
+		}
+#elif defined(CONFIG_MACH_JACTIVE)
+		if (system_rev >= 11) {
+			rc = regulator_set_optimum_mode(reg_LVS1, 100000); /*IOVDD */
+			if (rc < 0) {
+				pr_err("set_optimum_mode LVS1 failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+			rc = regulator_enable(reg_LVS1);
+			if (rc) {
+				pr_err("enable LVS1 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
 		}
 #endif
 
@@ -599,20 +651,6 @@ static int mipi_dsi_power_tft(int enable)
 			return -ENODEV;
 		}
 
-		rc = regulator_set_optimum_mode(reg_l2, 100000);
-		if (rc < 0) {
-			pr_err("set_optimum_mode L2 failed, rc=%d\n", rc);
-			return -EINVAL;
-		}
-
-		rc = regulator_enable(reg_l2);
-		if (rc) {
-			pr_err("enable L2 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-
-
-		msleep(20);
 #if defined(CONFIG_MACH_JACTIVE_ATT)
 	if(system_rev < 10)
 		gpio_direction_output(gpio33, 1);
@@ -621,7 +659,6 @@ static int mipi_dsi_power_tft(int enable)
 #else
 		gpio_direction_output(LCD_22V_EN, 1);
 #endif
-		msleep(20);
 
 		/*active_reset_ldi(gpio43);*/
 		if (system_rev == 0)
@@ -641,20 +678,15 @@ static int mipi_dsi_power_tft(int enable)
 			pm8xxx_mpp_config(
 				PM8921_MPP_PM_TO_SYS(MLCD_RST_MPP2),
 				&MLCD_RESET_LOW_CONFIG);
-
-		msleep(200);
-
-		rc = regulator_set_optimum_mode(reg_l2, 100);
-		if (rc < 0) {
-			pr_err("set_optimum_mode L2 failed, rc=%d\n", rc);
-			return -EINVAL;
-		}
-
-		rc = regulator_disable(reg_l2);
-		if (rc) {
-			pr_err("disable reg_L2 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
+#if defined(CONFIG_MACH_JACTIVE_ATT)
+		if(system_rev < 10)
+			gpio_direction_output(gpio33, 0);
+		else
+			gpio_direction_output(LCD_22V_EN, 0);	
+#else
+		gpio_direction_output(LCD_22V_EN, 0);
+#endif
+		usleep(2000); /*1ms delay(minimum) required between VDD off and AVDD off*/
 
 		rc = regulator_set_optimum_mode(reg_L15, 100);
 		if (rc < 0) {
@@ -668,17 +700,7 @@ static int mipi_dsi_power_tft(int enable)
 			return -ENODEV;
 		}
 
-		msleep(20);
-
 		gpio_direction_output(gpio27, 0);/*LED_DRIVER(gpio27);*/
-#if defined(CONFIG_MACH_JACTIVE_ATT)
-	if(system_rev < 10)
-		gpio_direction_output(gpio33, 0);
-	else
-		gpio_direction_output(LCD_22V_EN, 0);	
-#else
-		gpio_direction_output(LCD_22V_EN, 0);
-#endif
 
 #if defined(CONFIG_MACH_JACTIVE_EUR)
 		rc = regulator_set_optimum_mode(reg_LVS1, 100);
@@ -691,8 +713,21 @@ static int mipi_dsi_power_tft(int enable)
 			pr_err("disable reg_LVS1 failed, rc=%d\n", rc);
 			return -ENODEV;
 		}
-		msleep(20);
+#elif defined(CONFIG_MACH_JACTIVE)
+		if (system_rev >= 11) {
+			rc = regulator_set_optimum_mode(reg_LVS1, 100);
+			if (rc < 0) {
+				pr_err("set_optimum_mode LVS1 failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+			rc = regulator_disable(reg_LVS1);
+			if (rc) {
+				pr_err("disable reg_LVS1 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
+		}
 #endif
+		msleep(20);
 	}
 
 	return rc;
@@ -722,44 +757,6 @@ static int mipi_dsi_power_octa_request(void)
 	msleep(100);
 
 	return rc;
-}
-
-static int mipi_dsi_power_oled(int enable)
-{
-	int rc = 0;
-
-	if (enable) {
-
-		pr_info("[lcd] DSI ON\n");
-		rc = regulator_set_optimum_mode(reg_l2, 100000);
-		if (rc < 0) {
-			pr_err("set_optimum_mode L2 failed, rc=%d\n", rc);
-			return -EINVAL;
-		}
-
-		rc = regulator_enable(reg_l2);
-		if (rc) {
-			pr_err("enable L2 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-	} else {
-
-		pr_info("[lcd] DSI OFF\n");
-		rc = regulator_set_optimum_mode(reg_l2, 100);
-		if (rc < 0) {
-			pr_err("set_optimum_mode L2 failed, rc=%d\n", rc);
-			return -EINVAL;
-		}
-
-		rc = regulator_disable(reg_l2);
-		if (rc) {
-			pr_err("disable reg_L2 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-	}
-
-	return rc;
-
 }
 
 static int mipi_panel_power_oled(int enable)
@@ -914,6 +911,15 @@ static int mipi_oled_power_set(void)
 					PTR_ERR(reg_LVS1));
 			return -ENODEV;
 		}
+#elif defined(CONFIG_MACH_JACTIVE)
+		if (system_rev >=11) {
+			reg_LVS1 = regulator_get(NULL, "8921_lvs1");
+			if (IS_ERR_OR_NULL(reg_LVS1)) {
+				pr_err("could not get 8917_LVS1, rc = %ld\n",
+						PTR_ERR(reg_LVS1));
+				return -ENODEV;
+			}
+		}
 #endif
 #endif
 
@@ -948,41 +954,35 @@ static int mipi_power_samsung_common(void)
 	return 0;
 }
 
-static int mipi_dsi_power_samsung_oled(int on)
+static int mipi_dsi_power_samsung(int on)
 {
-	if (on) {
-#if defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
-		mipi_dsi_power_tft(1);
-#else
-		mipi_dsi_power_oled(1);
-#endif
-	} else {
-#if defined(CONFIG_SUPPORT_DISPLAY_OCTA_TFT)
-		mipi_dsi_power_tft(0);
-#else
-		mipi_dsi_power_oled(0);
-#endif
-	}
+	if (on)
+		mipi_dsi_power(1);
+	else
+		mipi_dsi_power(0);
 
 	return 0;
 }
 
 #if defined(CONFIG_SUPPORT_SECOND_POWER)
-static int mipi_panel_power_samsung_oled(int on)
+static int mipi_panel_power_samsung(int on)
 {
 	int rc;
 	rc = 0;
 
 #ifdef CONFIG_SUPPORT_DISPLAY_OCTA_TFT
-	return rc;
+	if (on)
+		rc = mipi_panel_power_tft(1);
+	else
+		rc = mipi_panel_power_tft(0);
 #else
-	if (on) {
-		mipi_panel_power_oled(1);
-	} else {
-		mipi_panel_power_oled(0);
-	}
-	return rc;
+	if (on)
+		rc = mipi_panel_power_oled(1);
+	else
+		rc = mipi_panel_power_oled(0);
+	
 #endif
+	return rc;
 }
 #endif
 
@@ -990,9 +990,9 @@ static char mipi_dsi_splash_is_enabled(void);
 
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
 	.power_common = mipi_power_samsung_common,
-	.dsi_power_save = mipi_dsi_power_samsung_oled,
+	.dsi_power_save = mipi_dsi_power_samsung,
 #if defined(CONFIG_SUPPORT_SECOND_POWER)
-	.panel_power_save = mipi_panel_power_samsung_oled,
+	.panel_power_save = mipi_panel_power_samsung,
 #endif
 	.splash_is_enabled = mipi_dsi_splash_is_enabled,
 	.active_reset = active_reset,

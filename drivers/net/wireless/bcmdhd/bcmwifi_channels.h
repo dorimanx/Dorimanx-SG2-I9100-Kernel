@@ -86,7 +86,7 @@ typedef uint16 chanspec_t;
 				((channel) + CH_10MHZ_APART) : 0)
 
 #define LL_20_SB(channel) (((channel) > 3 * CH_10MHZ_APART) ? ((channel) - 3 * CH_10MHZ_APART) : 0)
-#define UU_20_SB(channel) 	(((channel) < (MAXCHANNEL - 3 * CH_10MHZ_APART)) ? \
+#define UU_20_SB(channel)	(((channel) < (MAXCHANNEL - 3 * CH_10MHZ_APART)) ? \
 				((channel) + 3 * CH_10MHZ_APART) : 0)
 #define LU_20_SB(channel) LOWER_20_SB(channel)
 #define UL_20_SB(channel) UPPER_20_SB(channel)
@@ -191,7 +191,7 @@ typedef uint16 chanspec_t;
 					((channel) + CH_10MHZ_APART) : 0)
 
 #define LL_20_SB(channel) (((channel) > 3 * CH_10MHZ_APART) ? ((channel) - 3 * CH_10MHZ_APART) : 0)
-#define UU_20_SB(channel) 	(((channel) < (MAXCHANNEL - 3 * CH_10MHZ_APART)) ? \
+#define UU_20_SB(channel)	(((channel) < (MAXCHANNEL - 3 * CH_10MHZ_APART)) ? \
 				((channel) + 3 * CH_10MHZ_APART) : 0)
 #define LU_20_SB(channel) LOWER_20_SB(channel)
 #define UL_20_SB(channel) UPPER_20_SB(channel)

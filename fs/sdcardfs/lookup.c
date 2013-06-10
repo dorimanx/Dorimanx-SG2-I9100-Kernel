@@ -193,134 +193,6 @@ out:
 	return err;
 }
 
-#ifdef SDCARDFS_CASE_INSENSITIVE_MATCH_SUPPORT
-struct sdcardfs_dirent {
-	unsigned long	d_ino;
-	unsigned long	d_off;
-	unsigned short	d_type;  
-	char		d_name[SDCARDFS_DIRENT_SIZE];
-};
-
-struct sdcardfs_getdents_callback {
-	struct sdcardfs_dirent * dirent;
-	int result; 
-};
-
-static int sdcardfs_fillonedir(void * __buf, const char * name, int namlen, 
-			loff_t offset, u64 ino, unsigned int d_type)
-{
-	/* This function is copy of fillonedir */
-	struct sdcardfs_dirent * dirent;
-	struct sdcardfs_getdents_callback * buf;  
-	unsigned long d_ino;
-
-	buf = (struct sdcardfs_getdents_callback *) __buf;
-
-	if (buf->result) 
-		return -EINVAL; 
-	d_ino = ino; 
-
-	if (sizeof(d_ino) < sizeof(ino) && d_ino != ino) {
-		buf->result = -EOVERFLOW;
-		return -EOVERFLOW;
-	}
-
-	buf->result++; 
-	dirent = buf->dirent; 
-
-	dirent->d_ino = d_ino;
-	dirent->d_off = offset; 
-	dirent->d_type = d_type; 
-	memcpy(dirent->d_name, name, namlen);
-	dirent->d_name[namlen] = 0;
-
-	return 0;
-}
-
-static int sdcardfs_getdents(struct file * file, struct sdcardfs_dirent * dirent) 
-{
-	/* This function is copy old_readdir */
-	int error;
-	struct sdcardfs_getdents_callback buf;
-
-	error = -EBADF;
-
-	if (!file)
-		goto out;
-
-	buf.result = 0; 
-	buf.dirent = dirent; 
-
-	error = vfs_readdir(file, sdcardfs_fillonedir, &buf);
-	if (buf.result)
-		error = buf.result;
-out:
-	return error;
-}
-
-/* 
- * look for case-insensitive matching entry name. 
- * Returns :
- *	- char * of matching entry if found. 
- *	- NULL if no matching entry 
- * 	- ERR_PTR on error 
- *
- */
-static void * find_case_insensitive(struct path * lower_parent_path, const char * name)
-{
-	void * ret = NULL; 
-	struct file *lower_dirp = NULL; 
-	struct sdcardfs_dirent dirent; 
-
-	int err; 
-
-	/* 
-	 * At the end of this function, filp_close or dentry_open (if fails)
-	 * will decrease refernce count of lower_parent_path. 
-	 * (ie, path->dentry->d_count and path->mnt->mnt_count)
-	 * To prevent those counter from dropping to zero, 
-	 * we increase the counters in advance. 
-	 */
-	path_get(lower_parent_path); 
-
-	lower_dirp = dentry_open(lower_parent_path->dentry, 
-			lower_parent_path->mnt, O_RDONLY, current_cred()); 
-	if (IS_ERR(lower_dirp)) {
-		return (void *)lower_dirp; 
-	} 
-
-	while (1) {
-		err = sdcardfs_getdents(lower_dirp, &dirent);  
-		if (likely(err > 0)) { 
-			/* we got a direntry */
-			if (unlikely(!strcasecmp(dirent.d_name, name))) {
-				int len; 
-				len = strlen(dirent.d_name) + 1; 
-				ret = kmalloc(len, GFP_KERNEL);
-				if (ret == NULL) 
-					ret = ERR_PTR(-ENOMEM);
-				else 
-					strcpy(ret, dirent.d_name); 
-				break; 
-			}
-		} else if (err == 0) { 	
-			/* end of directory */
-			ret = NULL;
-			break;
-		} else {
-			/* err < 0 : error */
-			ret = ERR_PTR(err); 
-			break;
-		} 
-	}
-
-	filp_close(lower_dirp, NULL); 
-	
-	return ret; 
-}
-
-#endif
-
 /*
  * Main driver function for sdcardfs's lookup.
  *
@@ -351,40 +223,22 @@ static struct dentry *__sdcardfs_lookup(struct dentry *dentry,
 	lower_dir_mnt = lower_parent_path->mnt;
 
 	/* Use vfs_path_lookup to check if the dentry exists or not */
+#ifdef CONFIG_SDCARD_FS_CI_SEARCH
+	err = vfs_path_lookup(lower_dir_dentry, lower_dir_mnt, name,
+			LOOKUP_CASE_INSENSITIVE, &lower_path);
+#else
 	err = vfs_path_lookup(lower_dir_dentry, lower_dir_mnt, name, 0,
 			&lower_path);
+#endif
 
 	/* no error: handle positive dentries */
 	if (!err) {
-#ifdef SDCARDFS_CASE_INSENSITIVE_MATCH_SUPPORT
-dentry_found:
-#endif
 		sdcardfs_set_lower_path(dentry, &lower_path);
 		err = sdcardfs_interpose(dentry, dentry->d_sb, &lower_path);
 		if (err) /* path_put underlying path on error */
 			sdcardfs_put_reset_lower_path(dentry);
 		goto out;
 	}
-
-#ifdef SDCARDFS_CASE_INSENSITIVE_MATCH_SUPPORT
-	if (err == -ENOENT) {
-		/* try case insensetive match */
-		char * match_name = NULL; 
-
-		match_name = find_case_insensitive(lower_parent_path, name);
-		if (unlikely(IS_ERR(match_name))) {
-			err = PTR_ERR(match_name); 
-		} else if (match_name) {
-			/* found */
-			err = vfs_path_lookup(lower_dir_dentry, lower_dir_mnt, 
-					match_name, 0, &lower_path);
-			kfree(match_name); 
-			if (!err) 
-				goto dentry_found;
-		}
-		/* no match */
-	}
-#endif
 
 	/*
 	 * We don't consider ENOENT an error, and we want to return a

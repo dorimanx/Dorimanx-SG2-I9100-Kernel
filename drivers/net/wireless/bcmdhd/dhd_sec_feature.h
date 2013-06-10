@@ -63,12 +63,6 @@
 #define WIFI_TURNOFF_DELAY	200
 #endif /* CONFIG_ARCH_MSM8960 */
 
-#ifdef CONFIG_MACH_JF
-#undef CUSTOM_TXGLOM_SIZE
-#define CUSTOM_TXGLOM_SIZE 32
-#define DHD_TXBOUND 32
-#endif /* CONFIG_MACH_JF */
-
 #if defined(CONFIG_BCM4335) || defined (CONFIG_BCM4335_MODULE)
 #define POWERUP_MAX_RETRY 5 /* Due to late start-up of FPGA in JF project */
 #endif /* CONFIG_BCM4335 || CONFIG_BCM4335_MODULE */
@@ -114,15 +108,32 @@
 #endif /* CONFIG_BCM4334 || CONFIG_BCM4335 */
 
 #if (CONFIG_WLAN_REGION_CODE == 201)     /* SKT */
+
+#ifdef CONFIG_MACH_UNIVERSAL5410
+// Make CPU core clock 300MHz & assign dpc thread workqueue to CPU1
+#define FIX_CPU_MIN_CLOCK
+#endif /* CONFIG_MACH_UNIVERSAL5410 */
+
 #endif /* CONFIG_WLAN_REGION_CODE == 201 */
 
 #if (CONFIG_WLAN_REGION_CODE == 202)     /* KTT */
 #define VLAN_MODE_OFF
 #define CUSTOM_KEEP_ALIVE_SETTING   30000 /* JBP type KOR KTT only. do not correct here */
 #define FULL_ROAMING_SCAN_PERIOD_60_SEC
+
+#ifdef CONFIG_MACH_UNIVERSAL5410
+// Make CPU core clock 300MHz & assign dpc thread workqueue to CPU1
+#define FIX_CPU_MIN_CLOCK
+#endif /* CONFIG_MACH_UNIVERSAL5410 */
+
 #endif /* CONFIG_WLAN_REGION_CODE == 202 */
 
 #if (CONFIG_WLAN_REGION_CODE == 203)     /* LGT */
+#ifdef CONFIG_MACH_UNIVERSAL5410
+// Make CPU core clock 300MHz & assign dpc thread workqueue to CPU1
+#define FIX_CPU_MIN_CLOCK
+#define FIX_BUS_MIN_CLOCK
+#endif /* CONFIG_MACH_UNIVERSAL5410 */
 #endif /* CONFIG_WLAN_REGION_CODE == 203 */
 #endif /* CONFIG_WLAN_REGION_CODE >= 200 && CONFIG_WLAN_REGION_CODE < 300 */
 
@@ -134,10 +145,6 @@
 #define BCMWAPI_WAI
 #endif
 #endif /* CONFIG_WLAN_REGION_CODE >= 300 && CONFIG_WLAN_REGION_CODE < 400 */
-
-#if (CONFIG_WLAN_REGION_CODE >= 400) && (CONFIG_WLAN_REGION_CODE < 500)     /* JPN */
-#define DISABLE_11AC
-#endif /* CONFIG_WLAN_REGION_CODE >= 400 && CONFIG_WLAN_REGION_CODE < 500 */
 
 #if !defined(READ_MACADDR) && !defined(WRITE_MACADDR) \
 	&& !defined(RDWR_KORICS_MACADDR) && !defined(RDWR_MACADDR)

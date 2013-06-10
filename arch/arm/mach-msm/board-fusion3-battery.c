@@ -627,13 +627,13 @@ sec_battery_platform_data_t sec_battery_pdata = {
 	.temp_low_threshold_event = -30,
 	.temp_low_recovery_event = 0,
 
-	.temp_high_threshold_normal = 480,
-	.temp_high_recovery_normal = 430,
+	.temp_high_threshold_normal = 510,
+	.temp_high_recovery_normal = 445,
 	.temp_low_threshold_normal = -30,
 	.temp_low_recovery_normal = 0,
 
-	.temp_high_threshold_lpm = 480,
-	.temp_high_recovery_lpm = 430,
+	.temp_high_threshold_lpm = 510,
+	.temp_high_recovery_lpm = 445,
 	.temp_low_threshold_lpm = -30,
 	.temp_low_recovery_lpm = 0,
 #elif defined(CONFIG_MACH_JF_CRI)

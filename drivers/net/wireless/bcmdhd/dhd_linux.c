@@ -110,6 +110,10 @@ extern bool ap_cfg_running;
 extern bool ap_fw_loaded;
 #endif
 
+#ifdef FIX_CPU_MIN_CLOCK
+#include <linux/pm_qos.h>
+#endif /* FIX_CPU_MIN_CLOCK */
+
 /* enable HOSTIP cache update from the host side when an eth0:N is up */
 #define AOE_IP_ALIAS_SUPPORT 1
 
@@ -366,6 +370,15 @@ typedef struct dhd_info {
 #ifdef DHDTCPACK_SUPPRESS
 	spinlock_t	tcpack_lock;
 #endif /* DHDTCPACK_SUPPRESS */
+
+#ifdef FIX_CPU_MIN_CLOCK
+	bool cpufreq_lock_status;
+	struct mutex cpufreq_lock;
+	struct pm_qos_request dhd_cpu_qos;
+#ifdef FIX_BUS_MIN_CLOCK
+	struct pm_qos_request dhd_bus_qos;
+#endif /* FIX_BUS_MIN_CLOCK */
+#endif /* FIX_CPU_MIN_CLOCK */
 } dhd_info_t;
 
 /* Flag to indicate if we should download firmware on driver load */
@@ -2290,7 +2303,12 @@ dhd_dpc_thread(void *data)
 #endif
 
 #ifdef CUSTOM_DPC_CPUCORE
-	set_cpus_allowed_ptr(current, cpumask_of(CUSTOM_DPC_CPUCORE));
+#ifdef CONFIG_MACH_UNIVERSAL5410
+	if (strstr(fw_path, "_apsta")) {
+		set_cpus_allowed_ptr(current, cpumask_of(1));
+	} else
+#endif
+		set_cpus_allowed_ptr(current, cpumask_of(CUSTOM_DPC_CPUCORE));
 #endif
 
 	/* Run until signal received */
@@ -3005,6 +3023,58 @@ dhd_cleanup_virt_ifaces(dhd_info_t *dhd)
 int trigger_deep_sleep = 0;
 #endif /* WL_CFG80211 && SUPPORT_DEEP_SLEEP */
 
+#ifdef FIX_CPU_MIN_CLOCK
+static int dhd_init_cpufreq_lock(dhd_info_t *dhd)
+{
+	if (dhd) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
+		mutex_init( &(dhd->cpufreq_lock) );
+#endif
+		dhd->cpufreq_lock_status = false;
+	}
+	return 0;
+}
+
+static void dhd_cpu_lock(dhd_info_t *dhd)
+{
+	if (dhd && !dhd->cpufreq_lock_status) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
+		mutex_lock(&dhd->cpufreq_lock);
+#endif
+		pm_qos_add_request(&dhd->dhd_cpu_qos, PM_QOS_CPU_FREQ_MIN, 300000);
+#ifdef FIX_BUS_MIN_CLOCK
+		pm_qos_add_request(&dhd->dhd_bus_qos, PM_QOS_BUS_THROUGHPUT, 400000);
+#endif /* FIX_BUS_MIN_CLOCK */
+		DHD_ERROR(("pm_qos_add_requests called\n"));
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
+		mutex_unlock(&dhd->cpufreq_lock);
+#endif
+		dhd->cpufreq_lock_status = true;
+	}
+}
+
+static void dhd_cpu_unlock(dhd_info_t *dhd)
+{
+	if (dhd && dhd->cpufreq_lock_status != true)
+		return ;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
+	mutex_lock( &(dhd ->cpufreq_lock) );
+#endif
+
+	pm_qos_remove_request(&dhd->dhd_cpu_qos);
+#ifdef FIX_BUS_MIN_CLOCK
+	pm_qos_remove_request(&dhd->dhd_bus_qos);
+#endif /* FIX_BUS_MIN_CLOCK */
+	DHD_ERROR(("pm_qos_add_requests called\n"));
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)) && 1
+	mutex_unlock(&dhd->cpufreq_lock);
+#endif
+	dhd->cpufreq_lock_status = false;
+}
+
+#endif /* FIX_CPU_MIN_CLOCK */
 static int
 dhd_stop(struct net_device *net)
 {
@@ -3012,6 +3082,11 @@ dhd_stop(struct net_device *net)
 	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(net);
 	DHD_OS_WAKE_LOCK(&dhd->pub);
 	DHD_TRACE(("%s: Enter %p\n", __FUNCTION__, net));
+
+#ifdef FIX_CPU_MIN_CLOCK
+	dhd_cpu_unlock(dhd);
+#endif /* FIX_CPU_MIN_CLOCK */
+
 	if (dhd->pub.up == 0) {
 		goto exit;
 	}
@@ -3025,14 +3100,15 @@ dhd_stop(struct net_device *net)
 #ifdef WL_CFG80211
 	if (ifidx == 0) {
 		wl_cfg80211_down(NULL);
-
-		/*
-		 * For CFG80211: Clean up all the left over virtual interfaces
-		 * when the primary Interface is brought down. [ifconfig wlan0 down]
-		 */
-		if ((dhd->dhd_state & DHD_ATTACH_STATE_ADD_IF) &&
-			(dhd->dhd_state & DHD_ATTACH_STATE_CFG80211)) {
-			dhd_cleanup_virt_ifaces(dhd);
+		if (!dhd_download_fw_on_driverload) {
+			/*
+			 * For CFG80211: Clean up all the left over virtual interfaces
+			 * when the primary Interface is brought down. [ifconfig wlan0 down]
+			 */
+			if ((dhd->dhd_state & DHD_ATTACH_STATE_ADD_IF) &&
+				(dhd->dhd_state & DHD_ATTACH_STATE_CFG80211)) {
+				dhd_cleanup_virt_ifaces(dhd);
+			}
 		}
 	}
 #endif
@@ -3089,6 +3165,13 @@ dhd_open(struct net_device *net)
 	}
 	mutex_lock(&_dhd_sdio_mutex_lock_);
 #endif
+
+#ifdef FIX_CPU_MIN_CLOCK
+	if (strstr(fw_path, "_apsta")) {
+		dhd_init_cpufreq_lock(dhd);
+		dhd_cpu_lock(dhd);
+	}
+#endif /* FIX_CPU_MIN_CLOCK */
 
 	DHD_OS_WAKE_LOCK(&dhd->pub);
 	/* Update FW path if it was changed */
@@ -3999,10 +4082,6 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	uint32 nmode = 0;
 #endif /* DISABLE_11N */
 
-#ifdef DISABLE_11AC
-	uint32 vhtmode = 0;
-#endif /* DISABLE_11AC */
-
 #if defined(VSDB) && defined(CUSTOMER_HW4)
 	int interference_mode = 3;
 #endif
@@ -4154,10 +4233,6 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 		if ((ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0)) < 0)
 			DHD_ERROR(("%s: country code setting failed\n", __FUNCTION__));
 	}
-#ifdef DISABLE_11AC
-	bcm_mkiovar("vhtmode", (char *)&vhtmode, 4, iovbuf, sizeof(iovbuf));
-	dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0);
-#endif
 
 	/* Set Listen Interval */
 	bcm_mkiovar("assoc_listen", (char *)&listen_interval, 4, iovbuf, sizeof(iovbuf));
@@ -5922,7 +5997,7 @@ int dhd_os_send_hang_message(dhd_pub_t *dhdp)
 		if (!dhdp->hang_was_sent) {
 			dhdp->hang_was_sent = 1;
 			ret = schedule_work(&dhdp->info->work_hang);
-			if(!ret)
+			if (!ret)
 				DHD_ERROR(("%s : schedule_task fail \n",__FUNCTION__));
 			else
 				DHD_ERROR(("%s : schedule_task success \n",__FUNCTION__));

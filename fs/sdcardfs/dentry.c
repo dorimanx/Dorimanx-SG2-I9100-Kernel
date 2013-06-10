@@ -19,22 +19,74 @@
  */
 static int sdcardfs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 {
-	struct path lower_path, saved_path;
-	struct dentry *lower_dentry;
+	struct path parent_lower_path, lower_path;
+	struct dentry *parent_dentry = NULL;
+	struct dentry *parent_lower_dentry = NULL;
+	struct dentry *lower_cur_parent_dentry = NULL;
+	struct dentry *lower_dentry = NULL;
 	int err = 1;
 
 	if (nd && nd->flags & LOOKUP_RCU)
 		return -ECHILD;
 
+	spin_lock(&dentry->d_lock);
+	if (IS_ROOT(dentry)) {
+		spin_unlock(&dentry->d_lock);
+		return 1;
+	}
+	spin_unlock(&dentry->d_lock);
+
+	parent_dentry = dget_parent(dentry);
+	sdcardfs_get_lower_path(parent_dentry, &parent_lower_path);
 	sdcardfs_get_lower_path(dentry, &lower_path);
+	parent_lower_dentry = parent_lower_path.dentry;
 	lower_dentry = lower_path.dentry;
-	if (!lower_dentry->d_op || !lower_dentry->d_op->d_revalidate)
+	lower_cur_parent_dentry = dget_parent(lower_dentry);
+
+	spin_lock(&lower_dentry->d_lock);
+	if (d_unhashed(lower_dentry)) {
+		spin_unlock(&lower_dentry->d_lock);
+		d_drop(dentry);
+		err = 0;
 		goto out;
-	pathcpy(&saved_path, &nd->path);
-	pathcpy(&nd->path, &lower_path);
-	err = lower_dentry->d_op->d_revalidate(lower_dentry, nd);
-	pathcpy(&nd->path, &saved_path);
+	}
+	spin_unlock(&lower_dentry->d_lock);
+
+	if (parent_lower_dentry != lower_cur_parent_dentry) {
+		d_drop(dentry);
+		err = 0;
+		goto out;
+	}
+
+	if (dentry < lower_dentry) {
+		spin_lock(&dentry->d_lock);
+		spin_lock(&lower_dentry->d_lock);
+	} else {
+		spin_lock(&lower_dentry->d_lock);
+		spin_lock(&dentry->d_lock);
+	}
+
+	if (dentry->d_name.len != lower_dentry->d_name.len) {
+		__d_drop(dentry);
+		err = 0;
+	} else if (strncasecmp(dentry->d_name.name, lower_dentry->d_name.name,
+				dentry->d_name.len) != 0) {
+		__d_drop(dentry);
+		err = 0;
+	}
+
+	if (dentry < lower_dentry) {
+		spin_unlock(&lower_dentry->d_lock);
+		spin_unlock(&dentry->d_lock);
+	} else {
+		spin_unlock(&dentry->d_lock);
+		spin_unlock(&lower_dentry->d_lock);
+	}
+
 out:
+	dput(parent_dentry);
+	dput(lower_cur_parent_dentry);
+	sdcardfs_put_lower_path(parent_dentry, &parent_lower_path);
 	sdcardfs_put_lower_path(dentry, &lower_path);
 	return err;
 }
@@ -47,7 +99,7 @@ static void sdcardfs_d_release(struct dentry *dentry)
 	return;
 }
 
-#ifdef SDCARDFS_CASE_INSENSITIVE_MATCH_SUPPORT
+#ifdef CONFIG_SDCARD_FS_CI_SEARCH
 static int sdcardfs_hash_ci(const struct dentry *dentry, 
 				const struct inode *inode, struct qstr *qstr)
 {
@@ -110,10 +162,10 @@ const struct dentry_operations sdcardfs_dops = {
 	.d_compare	= sdcardfs_cmp_ci,
 };
 
-#else /* SDCARDFS_CASE_INSENSITIVE_MATCH_SUPPORT */
+#else /* CONFIG_SDCARD_FS_CI_SEARCH */
 const struct dentry_operations sdcardfs_dops = {
 	.d_revalidate	= sdcardfs_d_revalidate,
 	.d_release	= sdcardfs_d_release,
 };
 
-#endif /* SDCARDFS_CASE_INSENSITIVE_MATCH_SUPPORT */
+#endif /* CONFIG_SDCARD_FS_CI_SEARCH */

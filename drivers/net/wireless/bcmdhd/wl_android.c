@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_android.c 390499 2013-03-12 11:38:47Z $
+ * $Id: wl_android.c 393894 2013-03-29 07:14:35Z $
  */
 
 #include <linux/module.h>
@@ -1649,7 +1649,7 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 #define PRIVATE_COMMAND_MAX_LEN	16384
 #else
 #define PRIVATE_COMMAND_MAX_LEN	8192
-#endif
+#endif /* CUSTOMER_HW4 */
 	int ret = 0;
 	char *command = NULL;
 	int bytes_written = 0;

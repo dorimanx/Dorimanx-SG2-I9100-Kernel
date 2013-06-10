@@ -429,6 +429,7 @@ static int msm_mainmic_bias_event(struct snd_soc_dapm_widget *w,
 	gpio_set_value_cansleep(
 		PM8921_GPIO_PM_TO_SYS(PMIC_MAIN_MICBIAS_EN),
 			SND_SOC_DAPM_EVENT_ON(event));
+#endif
         if(main_mic_delay) {
 			if(main_mic_delay != 100)
 				main_mic_delay *= 50;
@@ -436,7 +437,6 @@ static int msm_mainmic_bias_event(struct snd_soc_dapm_widget *w,
 			pr_info("%s: main_mic_delay = %d\n", __func__, main_mic_delay);
 			main_mic_delay = 0;
         }
-#endif
 	return 0;
 }
 

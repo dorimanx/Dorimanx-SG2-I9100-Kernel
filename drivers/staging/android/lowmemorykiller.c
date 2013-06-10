@@ -344,7 +344,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 #ifdef CONFIG_ZRAM_FOR_ANDROID
 void could_cswap(void)
 {
-	struct sysinfo i;
 
 	if (atomic_read(&s_reclaim.need_to_reclaim) != 1)
 		return;
@@ -355,8 +354,7 @@ void could_cswap(void)
 	if (atomic_read(&s_reclaim.lmk_running) == 1 || atomic_read(&kswapd_thread_on) == 1) 
 		return;
 
-	si_swapinfo(&i);
-	if (i.freeswap < minimum_freeswap_pages)
+	if (nr_swap_pages < minimum_freeswap_pages)
 		return;
 
 	if (unlikely(s_reclaim.kcompcached == NULL))
@@ -472,7 +470,7 @@ static int __init lowmem_init(void)
 		/* failure at boot is fatal */
 		BUG_ON(system_state == SYSTEM_BOOTING);
 	}
-	set_user_nice(s_reclaim.kcompcached, 15);
+	set_user_nice(s_reclaim.kcompcached, 0);
 	atomic_set(&s_reclaim.need_to_reclaim, 0);
 	atomic_set(&s_reclaim.kcompcached_running, 0);
 	enable_soft_reclaim();

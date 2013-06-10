@@ -122,7 +122,7 @@ static void fpga_enable(int enable, int bdelay)
 			Is_clk_enabled = 1;
 		}
 	} else {
-		if (Is_clk_enabled && !Is_beaming) {
+		if (Is_clk_enabled && !Is_beaming && !g_pdata->get_fpga_felica_flag()) {
 
 			if(bdelay)
 				usleep_range(20000, 25000);

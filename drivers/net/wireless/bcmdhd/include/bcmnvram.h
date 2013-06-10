@@ -129,7 +129,7 @@ extern int nvram_space;
 #endif
 #define MAX_NVRAM_SPACE		NVRAM_SPACE
 #define ROM_ENVRAM_SPACE	0x1000
-#define NVRAM_LZMA_MAGIC	0x4c5a4d41	
+#define NVRAM_LZMA_MAGIC	0x4c5a4d41
 
 #define NVRAM_MAX_VALUE_LEN 255
 #define NVRAM_MAX_PARAM_LEN 64

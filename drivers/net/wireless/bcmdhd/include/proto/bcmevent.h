@@ -188,23 +188,23 @@ typedef BWL_PRE_PACKED_STRUCT struct bcm_event {
 #define WLC_E_AUTH_REQ		91	
 #define WLC_E_TDLS_PEER_EVENT 	92	
 #define WLC_E_SPEEDY_RECREATE_FAIL	93	
-#define WLC_E_NATIVE			94	
-#define WLC_E_PKTDELAY_IND		95	
-#define WLC_E_AWDL_AW			96	
-#define WLC_E_AWDL_ROLE			97	
-#define WLC_E_AWDL_EVENT		98	
+#define WLC_E_NATIVE			94
+#define WLC_E_PKTDELAY_IND		95
+#define WLC_E_AWDL_AW			96
+#define WLC_E_AWDL_ROLE			97
+#define WLC_E_AWDL_EVENT		98
 #ifdef WLNIC
-#define WLC_E_NIC_AF_TXS		99	
-#define WLC_E_NIC_NIC_REPORT		100	
+#define WLC_E_NIC_AF_TXS		99
+#define WLC_E_NIC_NIC_REPORT		100
 #endif
 #define WLC_E_BEACON_FRAME_RX		101
-#define WLC_E_SERVICE_FOUND		102	
-#define WLC_E_GAS_FRAGMENT_RX	103	
-#define WLC_E_GAS_COMPLETE		104	
-#define WLC_E_P2PO_ADD_DEVICE	105	
-#define WLC_E_P2PO_DEL_DEVICE	106 
-#define WLC_E_IBSS_COALESCE		107	
-#define WLC_E_LAST              108     
+#define WLC_E_SERVICE_FOUND		102
+#define WLC_E_GAS_FRAGMENT_RX	103
+#define WLC_E_GAS_COMPLETE		104
+#define WLC_E_P2PO_ADD_DEVICE	105
+#define WLC_E_P2PO_DEL_DEVICE	106
+#define WLC_E_IBSS_COALESCE		107
+#define WLC_E_LAST              108
 
 
 typedef struct {
@@ -231,8 +231,8 @@ extern const int		bcmevent_names_size;
 #define WLC_E_STATUS_SUPPRESS		12	
 #define WLC_E_STATUS_NOCHANS		13	
 #ifdef BCMCCX
-#define WLC_E_STATUS_CCXFASTRM		14	
-#endif 
+#define WLC_E_STATUS_CCXFASTRM		14
+#endif
 #define WLC_E_STATUS_CS_ABORT		15	
 #define WLC_E_STATUS_ERROR		16	
 
@@ -266,20 +266,20 @@ extern const int		bcmevent_names_size;
 #define WLC_E_PRUNE_NO_COMMON_RATES	9	
 #define WLC_E_PRUNE_BASIC_RATES		10	
 #ifdef BCMCCX
-#define WLC_E_PRUNE_CCXFAST_PREVAP	11	
-#endif 
+#define WLC_E_PRUNE_CCXFAST_PREVAP	11
+#endif
 #define WLC_E_PRUNE_CIPHER_NA		12	
 #define WLC_E_PRUNE_KNOWN_STA		13	
 #ifdef BCMCCX
-#define WLC_E_PRUNE_CCXFAST_DROAM	14	
-#endif 
+#define WLC_E_PRUNE_CCXFAST_DROAM	14
+#endif
 #define WLC_E_PRUNE_WDS_PEER		15	
 #define WLC_E_PRUNE_QBSS_LOAD		16	
 #define WLC_E_PRUNE_HOME_AP		17	
 #ifdef BCMCCX
-#define WLC_E_PRUNE_AP_BLOCKED		18	
-#define WLC_E_PRUNE_NO_DIAG_SUPPORT	19	
-#endif 
+#define WLC_E_PRUNE_AP_BLOCKED		18
+#define WLC_E_PRUNE_NO_DIAG_SUPPORT	19
+#endif
 
 
 #define WLC_E_SUP_OTHER			0	
@@ -336,7 +336,7 @@ typedef struct wl_event_data_if {
 #define WLC_E_IF_ROLE_BTA_ACCEPTOR	6	
 #endif
 
-#define WLC_E_IF_FLAGS_BSSCFG_NOIF  0x1     
+#define WLC_E_IF_FLAGS_BSSCFG_NOIF  0x1
 
 #define WLC_E_LINK_BCN_LOSS	1	
 #define WLC_E_LINK_DISASSOC	2	
@@ -354,23 +354,23 @@ typedef struct wl_event_data_if {
 
 
 typedef BWL_PRE_PACKED_STRUCT struct wl_event_gas {
-	uint16  channel;                
-	uint8   dialog_token;   
-	uint8   fragment_id;    
-	uint16  status_code;    
-	uint16  data_len;               
-	uint8   data[1];                
+	uint16  channel;
+	uint8   dialog_token;
+	uint8   fragment_id;
+	uint16  status_code;
+	uint16  data_len;
+	uint8   data[1];
 } BWL_POST_PACKED_STRUCT wl_event_gas_t;
 
 
 typedef BWL_PRE_PACKED_STRUCT struct wl_event_sd {
-	uint8	protocol;		
-	uint16	channel;		
-	uint8	dialog_token;		
-	uint8	fragment_id;		
-	uint16	status_code;		
-	uint16	data_len;		
-	uint8	data[1];		
+	uint8	protocol;
+	uint16	channel;
+	uint8	dialog_token;
+	uint8	fragment_id;
+	uint16	status_code;
+	uint16	data_len;
+	uint8	data[1];
 } BWL_POST_PACKED_STRUCT wl_event_sd_t;
 
 

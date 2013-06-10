@@ -729,10 +729,16 @@ static int sec_chg_set_property(struct power_supply *psy,
 				cancel_delayed_work_sync(&charger->wpc_work);
 				/* recheck after cancel_delayed_work_sync */
 				if (charger->wc_w_state) {
+					union power_supply_propval cable_type;
+					psy_do_property("battery", get,
+						POWER_SUPPLY_PROP_ONLINE, cable_type);
 					wake_lock(&charger->wpc_wake_lock);
 					queue_delayed_work(charger->wqueue, &charger->wpc_work,
-							msecs_to_jiffies(0));
-					charger->wc_w_state = 0;
+							msecs_to_jiffies(500));
+					if (cable_type.intval != POWER_SUPPLY_TYPE_WIRELESS) {
+						charger->wc_w_state = 0;
+						pr_err("%s:cable removed,wireless connected\n", __func__);
+					}
 				}
 			}
 		} else {

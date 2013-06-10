@@ -145,7 +145,7 @@ static void mdm_power_down_common(struct mdm_modem_drv *mdm_drv)
 	 * hold PS_HOLD low for longer thatn the SMPL timer setting. Since the
 	 * SMPL timer is 1000ms which is greater thant the maximum t(pshold)
 	 * timer, we just need to hold PS_HOLD low for longer than the SMPL
-	 * timer to shut down the device with WDOG and SMPL. 
+	 * timer to shut down the device with WDOG and SMPL.
 	 * We added 500ms duration for margin of safety.
 	 */
 	gpio_direction_output(mdm_drv->ap2mdm_soft_reset_gpio,
@@ -335,6 +335,9 @@ static int __init mdm_modem_init(void)
 #ifdef CONFIG_SAMSUNG_LPM_MODE
 	if (poweroff_charging)
 		return 0;
+#endif
+#ifdef CONFIG_WIFI_NOMODEM
+	return 0;
 #endif
 	return platform_driver_probe(&mdm_modem_driver, mdm_modem_probe);
 }

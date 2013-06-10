@@ -49,6 +49,9 @@ struct barcode_emul_platform_data {
 	void(*ir_vdd_onoff)(bool onoff);
 	void(*ir_led_poweron)(int);
 #endif
+#if defined(CONFIG_MACH_JF_DCM)
+	int(*get_fpga_felica_flag)(void);
+#endif	
 };
 
 #define GPIO_LEVEL_LOW        0

@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: hndpmu.h 241182 2011-02-17 21:50:03Z $
+ * $Id: hndpmu.h 344142 2012-07-11 10:50:39Z $
  */
 
 #ifndef _hndpmu_h_

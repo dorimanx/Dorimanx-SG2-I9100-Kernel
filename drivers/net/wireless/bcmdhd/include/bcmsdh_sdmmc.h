@@ -34,6 +34,11 @@
 #define sd_data(x)
 #define sd_ctrl(x)
 
+#ifdef CUSTOMER_HW4
+#undef sd_err
+#define sd_err(x) do {printf x;} while (0)
+#endif
+
 #define sd_sync_dma(sd, read, nbytes)
 #define sd_init_dma(sd)
 #define sd_ack_intr(sd)

@@ -264,7 +264,7 @@ typedef volatile struct {
 #define	D64_XP_LD_MASK		0x00001fff	
 
 
-#define	D64_XS0_CD_MASK		(di->d64_xs0_cd_mask)	
+#define	D64_XS0_CD_MASK		(di->d64_xs0_cd_mask)
 #define	D64_XS0_XS_MASK		0xf0000000     	
 #define	D64_XS0_XS_SHIFT		28
 #define	D64_XS0_XS_DISABLED	0x00000000	
@@ -273,7 +273,7 @@ typedef volatile struct {
 #define	D64_XS0_XS_STOPPED	0x30000000	
 #define	D64_XS0_XS_SUSP		0x40000000	
 
-#define	D64_XS1_AD_MASK		(di->d64_xs1_ad_mask)	
+#define	D64_XS1_AD_MASK		(di->d64_xs1_ad_mask)
 #define	D64_XS1_XE_MASK		0xf0000000     	
 #define	D64_XS1_XE_SHIFT		28
 #define	D64_XS1_XE_NOERR	0x00000000	
@@ -312,7 +312,7 @@ typedef volatile struct {
 #define	D64_RP_LD_MASK		0x00001fff	
 
 
-#define	D64_RS0_CD_MASK		(di->d64_rs0_cd_mask)	
+#define	D64_RS0_CD_MASK		(di->d64_rs0_cd_mask)
 #define	D64_RS0_RS_MASK		0xf0000000     	
 #define	D64_RS0_RS_SHIFT		28
 #define	D64_RS0_RS_DISABLED	0x00000000	

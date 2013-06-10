@@ -22,3 +22,7 @@
 #include "fusion3_tkey_fw.h"
 #endif
 #endif
+#define BIN_FW_VERSION_20055	0x0D
+#ifdef _CYPRESS_TKEY_FW_H
+#include "fusion3_tkey_fw_20055.h"
+#endif

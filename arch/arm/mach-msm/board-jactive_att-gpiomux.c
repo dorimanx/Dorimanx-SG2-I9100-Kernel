@@ -27,12 +27,14 @@
 #include "board-8064.h"
 #include <mach/apq8064-gpio.h>
 
+#if 0
 /* The SPI configurations apply to GSBI 5*/
 static struct gpiomux_setting gpio_spi_config = {
 	.func = GPIOMUX_FUNC_2,
 	.drv = GPIOMUX_DRV_12MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
+#endif
 
 #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
 static struct gpiomux_setting gpio_eth_config = {
@@ -442,11 +444,13 @@ static struct gpiomux_setting hdmi_suspend_cfg = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+#if 0
 static struct gpiomux_setting hdmi_active_1_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_UP,
 };
+#endif
 
 static struct gpiomux_setting hdmi_active_2_cfg = {
 	.func = GPIOMUX_FUNC_1,
@@ -675,7 +679,7 @@ static struct msm_gpiomux_config apq8064_hdmi_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
 	},*/
-	{
+	/*{
 		.gpio = 70,
 		.settings = {
 			[GPIOMUX_ACTIVE]    = &hdmi_active_1_cfg,
@@ -688,7 +692,7 @@ static struct msm_gpiomux_config apq8064_hdmi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &hdmi_active_1_cfg,
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
-	},
+	},*/
 	{
 		.gpio = 72,
 		.settings = {
@@ -736,6 +740,20 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
 		},
 	},
 	{
+		.gpio      = 21,		/* GSBI1 QUP I2C_CLK */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gpio_i2c_config_sus,
+			[GPIOMUX_ACTIVE] = &gpio_i2c_config,
+		},
+	},
+	{
+		.gpio      = 20,		/* GSBI1 QUP I2C_DATA */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gpio_i2c_config_sus,
+			[GPIOMUX_ACTIVE] = &gpio_i2c_config,
+		},
+	},
+	{
 		.gpio      = 24,	/* GSBI2 I2C QUP SDA */
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &gsbi2_suspend_cfg,
@@ -752,35 +770,33 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
 	{
 		.gpio      = 51,		/* GSBI5 QUP SPI_DATA_MOSI */
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_spi_config,
+			[GPIOMUX_SUSPENDED] = &gsbi5_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi5_active_cfg,
 		},
 	},
 	{
 		.gpio      = 52,		/* GSBI5 QUP SPI_DATA_MISO */
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_spi_config,
+			[GPIOMUX_SUSPENDED] = &gsbi5_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi5_active_cfg,
 		},
 	},
 	{
 		.gpio      = 53,		/* Funny CS0 */
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_spi_config,
+			[GPIOMUX_SUSPENDED] = &gsbi5_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi5_active_cfg,
 		},
 	},
 	{
 		.gpio      = 54,		/* GSBI5 QUP SPI_CLK */
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_spi_config,
+			[GPIOMUX_SUSPENDED] = &gsbi5_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi5_active_cfg,
 		},
 	},
 	{
 		.gpio      = 30,		/* FP CS */
-		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_spi_cs_config,
-		},
-	},
-	{
-		.gpio      = 53,		/* NOR CS */
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_cs_config,
 		},
@@ -795,20 +811,6 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
 		.gpio      = 83,	/* GSBI7 UART2 RX */
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &gsbi7_func1_cfg,
-		},
-	},
-	{
-		.gpio      = 21,		/* GSBI1 QUP I2C_CLK */
-		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_i2c_config_sus,
-			[GPIOMUX_ACTIVE] = &gpio_i2c_config,
-		},
-	},
-	{
-		.gpio      = 20,		/* GSBI1 QUP I2C_DATA */
-		.settings = {
-			[GPIOMUX_SUSPENDED] = &gpio_i2c_config_sus,
-			[GPIOMUX_ACTIVE] = &gpio_i2c_config,
 		},
 	},
 };
@@ -1525,9 +1527,8 @@ void __init apq8064_init_gpiomux(void)
 		msm_gpiomux_install(mpq8064_ir_configs,
 				ARRAY_SIZE(mpq8064_ir_configs));
 
-	if (system_rev < BOARD_REV09)
-		msm_gpiomux_install(msm8064_sd_det_config,
-				ARRAY_SIZE(msm8064_sd_det_config));
+	msm_gpiomux_install(msm8064_sd_det_config,
+			ARRAY_SIZE(msm8064_sd_det_config));
 
 #if defined(CONFIG_VIDEO_MHL_V2)
 	msm_gpiomux_install(msm8960_mhl_configs,

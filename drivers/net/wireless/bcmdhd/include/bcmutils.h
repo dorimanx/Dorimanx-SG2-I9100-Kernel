@@ -121,8 +121,8 @@ typedef struct {
 	uint32 max_avail;    
 	uint32 max_used;     
 	uint32 queue_capacity; 
-	uint32 rtsfail;        
-	uint32 acked;          
+	uint32 rtsfail;
+	uint32 acked;
 } pktq_counters_t;
 #endif 
 
@@ -139,9 +139,9 @@ struct pktq {
 	
 	struct pktq_prec q[PKTQ_MAX_PREC];
 #ifdef PKTQ_LOG
-	pktq_counters_t	_prec_cnt[PKTQ_MAX_PREC];     
-	pktq_counters_t _prec_bytes[PKTQ_MAX_PREC];   
-	uint32 _logtime;                   
+	pktq_counters_t	_prec_cnt[PKTQ_MAX_PREC];
+	pktq_counters_t _prec_bytes[PKTQ_MAX_PREC];
+	uint32 _logtime;
 #endif
 };
 
@@ -578,19 +578,19 @@ extern int bcm_format_ssid(char* buf, const uchar ssid[], uint ssid_len);
 #ifndef LIMIT_TO_RANGE
 #define LIMIT_TO_RANGE(x, min, max) \
 	((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
-#endif 
+#endif
 
 
 #ifndef LIMIT_TO_MAX
 #define LIMIT_TO_MAX(x, max) \
 	(((x) > (max) ? (max) : (x)))
-#endif 
+#endif
 
 
 #ifndef LIMIT_TO_MIN
 #define LIMIT_TO_MIN(x, min) \
 	(((x) < (min) ? (min) : (x)))
-#endif 
+#endif
 
 #define CEIL(x, y)		(((x) + ((y) - 1)) / (y))
 #define	ROUNDUP(x, y)		((((x) + ((y) - 1)) / (y)) * (y))
@@ -622,7 +622,7 @@ extern void *_bcmutils_dummy_fn;
 
 
 #ifndef setbit
-#ifndef NBBY		  
+#ifndef NBBY
 #define	NBBY	8	
 #endif 
 #define	setbit(a, i)	(((uint8 *)a)[(i) / NBBY] |= 1 << ((i) % NBBY))
@@ -689,7 +689,7 @@ extern void *_bcmutils_dummy_fn;
 #else
 #define MACDBG				"%02x:%02x:%02x"
 #define MAC2STRDBG(ea) (ea)[0], (ea)[4], (ea)[5]
-#endif 
+#endif
 
 
 typedef struct bcm_bit_desc {

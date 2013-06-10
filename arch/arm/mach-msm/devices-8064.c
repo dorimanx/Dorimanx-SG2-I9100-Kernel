@@ -539,6 +539,32 @@ static struct resource resources_qup_spi_gsbi5[] = {
 		.end    = GSBI5_QUP_IRQ,
 		.flags  = IORESOURCE_IRQ,
 	},
+#if defined(CONFIG_MACH_JACTIVE_ATT)	
+	{
+		.name   = "spi_clk",
+		.start  = 54,
+		.end    = 54,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_cs",
+		.start  = 53,
+		.end    = 53,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_miso",
+		.start  = 52,
+		.end    = 52,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_mosi",
+		.start  = 51,
+		.end    = 51,
+		.flags  = IORESOURCE_IO,
+	},
+#else
 	{
 		.name   = "spidm_channels",
 		.start  = 3,
@@ -551,6 +577,7 @@ static struct resource resources_qup_spi_gsbi5[] = {
 		.end    = 10,
 		.flags  = IORESOURCE_DMA,
 	},
+#endif
 };
 
 struct platform_device apq8064_device_qup_spi_gsbi5 = {

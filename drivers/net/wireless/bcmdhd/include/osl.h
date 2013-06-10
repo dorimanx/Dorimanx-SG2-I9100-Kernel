@@ -87,7 +87,7 @@ typedef void  (*osl_wreg_fn_t)(void *ctx, volatile void *reg, unsigned int val, 
 #define FOREACH_CHAINED_PKT(skb, nskb) \
 	for ((nskb) = NULL; (skb) != NULL; (skb) = (nskb))
 #define	PKTCFREE		PKTFREE
-#endif 
+#endif
 
 #ifndef HNDCTF
 #define PKTSETCHAINED(osh, skb)

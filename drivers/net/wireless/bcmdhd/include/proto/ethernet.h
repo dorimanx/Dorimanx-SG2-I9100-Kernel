@@ -24,7 +24,7 @@
  * $Id: ethernet.h 354714 2012-09-03 03:12:21Z $
  */
 
-#ifndef _NET_ETHERNET_H_	  
+#ifndef _NET_ETHERNET_H_
 #define _NET_ETHERNET_H_
 
 #ifndef _TYPEDEFS_H_
@@ -68,10 +68,10 @@
 #define	ETHER_TYPE_BRCM		0x886c		
 #define	ETHER_TYPE_802_1X	0x888e		
 #ifdef PLC
-#define	ETHER_TYPE_88E1		0x88e1		
-#define	ETHER_TYPE_8912		0x8912		
-#define ETHER_TYPE_GIGLED	0xffff		
-#endif 
+#define	ETHER_TYPE_88E1		0x88e1
+#define	ETHER_TYPE_8912		0x8912
+#define ETHER_TYPE_GIGLED	0xffff
+#endif
 #define	ETHER_TYPE_802_1X_PREAUTH 0x88c7	
 #define ETHER_TYPE_WAI		0x88b4		
 #define ETHER_TYPE_89_0D	0x890d		
@@ -99,7 +99,7 @@
 		((uint8 *)ea)[5] = ((mgrp_ip) >>  0) & 0xff;	\
 }
 
-#ifndef __INCif_etherh   
+#ifndef __INCif_etherh
 
 BWL_PRE_PACKED_STRUCT struct ether_header {
 	uint8	ether_dhost[ETHER_ADDR_LEN];

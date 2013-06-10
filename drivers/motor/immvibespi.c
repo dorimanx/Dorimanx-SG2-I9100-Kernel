@@ -69,7 +69,15 @@ static int32_t vibe_set_pwm_freq(int nForce)
 	HWIO_OUTM(GP_MD_REG, HWIO_GP_MD_REG_M_VAL_BMSK,
 	 g_nlra_gp_clk_m << HWIO_GP_MD_REG_M_VAL_SHFT);
 	if (nForce > 0)
+#if defined(CONFIG_MOTOR_DRV_MAX77693)
+#if defined(CONFIG_MACH_JF_DCM)
+		g_nforce_32 = ((nForce * g_nlra_gp_clk_pwm_mul) >> 8) + 22;
+#else
+		g_nforce_32 = ((nForce * g_nlra_gp_clk_pwm_mul) >> 8) + 10;
+#endif
+#else
 		g_nforce_32 = ((nForce * g_nlra_gp_clk_pwm_mul) >> 8) + 1;
+#endif
 	else
 		g_nforce_32 = ((nForce * g_nlra_gp_clk_pwm_mul) >> 8)
 			+ g_nlra_gp_clk_d;

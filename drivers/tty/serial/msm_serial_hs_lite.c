@@ -57,8 +57,12 @@ static inline int mako_console_stopped(void) { return 0; }
 #endif
 
 extern int max77693_get_jig_state(void);
-
+#if defined(CONFIG_MACH_JF_DCM)
+/* Felica P2P fail issue, try to reduce every possible delays */
+#define DUMP_UART_PACKET 0
+#else
 #define DUMP_UART_PACKET 1
+#endif
 #define FULL_DUMP_UART_PACKET 0
 
 #if DUMP_UART_PACKET

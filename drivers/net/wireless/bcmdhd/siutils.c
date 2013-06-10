@@ -343,7 +343,7 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 	char *pvars = NULL;
 	uint origidx;
 #if !defined(_CFEZ_) || defined(CFG_WL)
-#endif 
+#endif
 	ASSERT(GOODREGS(regs));
 
 	bzero((uchar*)sii, sizeof(si_info_t));
@@ -469,7 +469,7 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 	if (bustype == PCI_BUS) {
 
 	}
-#endif 
+#endif
 
 	pvars = NULL;
 	BCM_REFERENCE(pvars);
@@ -1133,7 +1133,7 @@ si_watchdog(si_t *sih, uint ticks)
 			si_core_disable(sih, 1);
 			si_setcore(sih, CC_CORE_ID, 0);
 		}
-#endif 
+#endif
 
 			nb = (sih->ccrev < 26) ? 16 : ((sih->ccrev >= 37) ? 32 : 24);
 		/* The mips compiler uses the sllv instruction,
@@ -2281,7 +2281,7 @@ si_chipcontrl_epa4331_wowl(si_t *sih, bool enter_wowl)
 	}
 	si_setcoreidx(sih, origidx);
 }
-#endif 
+#endif
 
 uint
 si_pll_reset(si_t *sih)

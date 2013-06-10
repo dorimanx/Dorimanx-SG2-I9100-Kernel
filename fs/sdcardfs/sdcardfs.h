@@ -40,7 +40,6 @@
 /* useful for tracking code reachability */
 #define UDBG printk(KERN_DEFAULT "DBG:%s:%s:%d\n", __FILE__, __func__, __LINE__)
 
-#define SDCARDFS_CASE_INSENSITIVE_MATCH_SUPPORT
 #define SDCARDFS_DIRENT_SIZE 256
 
 /* ######## ATTENTION ########

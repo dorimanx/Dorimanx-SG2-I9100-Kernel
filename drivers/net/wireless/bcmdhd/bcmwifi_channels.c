@@ -884,7 +884,7 @@ wf_channel2chspec(uint ctl_ch, uint bw)
 		}
 	}
 
-	
+
 	if (sb < 0) {
 		return 0;
 	}

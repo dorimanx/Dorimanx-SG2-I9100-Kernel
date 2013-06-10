@@ -22,7 +22,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: linuxver.h 367714 2012-11-09 03:26:01Z $
+ * $Id: linuxver.h 387186 2013-02-24 08:45:22Z $
  */
 
 #ifndef _linuxver_h_
@@ -95,20 +95,20 @@
 #ifndef flush_scheduled_work
 #define flush_scheduled_work() flush_scheduled_tasks()
 #endif
-#endif	
+#endif
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0))
 #define DAEMONIZE(a) daemonize(a); \
 	allow_signal(SIGKILL); \
 	allow_signal(SIGTERM);
-#else 
+#else
 #define RAISE_RX_SOFTIRQ() \
 	cpu_raise_softirq(smp_processor_id(), NET_RX_SOFTIRQ)
 #define DAEMONIZE(a) daemonize(); \
 	do { if (a) \
 		strncpy(current->comm, a, MIN(sizeof(current->comm), (strlen(a)))); \
 	} while (0);
-#endif 
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 #define	MY_INIT_WORK(_work, _func)	INIT_WORK(_work, _func)
@@ -465,9 +465,11 @@ pci_restore_state(struct pci_dev *dev, u32 *buffer)
 #define SET_NETDEV_DEV(net, pdev)	do {} while (0)
 #endif
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 1, 0))
 #ifndef HAVE_FREE_NETDEV
 #define free_netdev(dev)		kfree(dev)
 #endif
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 1, 0) */
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0))
 
@@ -509,7 +511,6 @@ typedef struct {
 #else
 #define SMP_RD_BARRIER_DEPENDS(x) smp_rmb(x)
 #endif
-
 
 #ifdef USE_KTHREAD_API
 #define PROC_START(thread_func, owner, tsk_ctl, flags, name) \

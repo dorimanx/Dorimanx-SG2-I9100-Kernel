@@ -634,7 +634,7 @@ void __init apq8064_init_mmc(void)
 #if defined(CONFIG_MACH_JF_ATT) || defined(CONFIG_MACH_JF_TMO) || defined(CONFIG_MACH_JF_EUR) || \
 	defined(CONFIG_MACH_JF_DCM)
 	if (system_rev >= BOARD_REV09 && apq8064_sdc2_pdata) {
-#elif defined(CONFIG_MACH_JACTIVE_EUR)
+#elif defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
 	if (system_rev < BOARD_REV05 && apq8064_sdc2_pdata) {
 #else /* VZW/SPT/USCC */
 	if (system_rev >= BOARD_REV10 && apq8064_sdc2_pdata) {
@@ -644,7 +644,7 @@ void __init apq8064_init_mmc(void)
 	}
 
 #if defined(CONFIG_MACH_JF_ATT) || defined(CONFIG_MACH_JF_TMO) || defined(CONFIG_MACH_JF_EUR) || \
-	defined(CONFIG_MACH_JACTIVE_ATT)
+	defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
 	if (system_rev < BOARD_REV08 && apq8064_sdc4_pdata)
 #else /* VZW/SPT/USCC */
 	if (system_rev < BOARD_REV09 && apq8064_sdc4_pdata)

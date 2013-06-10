@@ -176,12 +176,13 @@ sdioh_attach(osl_t *osh, void *bar0, uint irq)
 
 		sd->client_block_size[1] = 64;
 		err_ret = sdio_set_block_size(gInstance->func[1], 64);
-		if (err_ret) {
-			sd_err(("bcmsdh_sdmmc: Failed to set F1 blocksize\n"));
-		}
 
 		/* Release host controller F1 */
 		sdio_release_host(gInstance->func[1]);
+		if (err_ret) {
+			sd_err(("bcmsdh_sdmmc: Failed to set F1 blocksize\n"));
+			return NULL;
+		}
 	} else {
 		sd_err(("%s:gInstance->func[1] is null\n", __FUNCTION__));
 		MFREE(sd->osh, sd, sizeof(sdioh_info_t));
@@ -194,13 +195,14 @@ sdioh_attach(osl_t *osh, void *bar0, uint irq)
 
 		sd->client_block_size[2] = sd_f2_blocksize;
 		err_ret = sdio_set_block_size(gInstance->func[2], sd_f2_blocksize);
-		if (err_ret) {
-			sd_err(("bcmsdh_sdmmc: Failed to set F2 blocksize to %d\n",
-				sd_f2_blocksize));
-		}
 
 		/* Release host controller F2 */
 		sdio_release_host(gInstance->func[2]);
+		if (err_ret) {
+			sd_err(("bcmsdh_sdmmc: Failed to set F2 blocksize to %d\n",
+						sd_f2_blocksize));
+			return NULL;
+		}
 	} else {
 		sd_err(("%s:gInstance->func[2] is null\n", __FUNCTION__));
 		MFREE(sd->osh, sd, sizeof(sdioh_info_t));

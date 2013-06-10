@@ -229,16 +229,16 @@ ai_scan(si_t *sih, void *regs, uint devid)
 			         (mpd & MPD_MUI_MASK) >> MPD_MUI_SHIFT));
 		}
 
-		
+
 		asd = get_asd(sih, &eromptr, 0, 0, AD_ST_SLAVE, &addrl, &addrh, &sizel, &sizeh);
 		if (asd == 0) {
 			do {
-			
-			asd = get_asd(sih, &eromptr, 0, 0, AD_ST_BRIDGE, &addrl, &addrh,
+
+				asd = get_asd(sih, &eromptr, 0, 0, AD_ST_BRIDGE, &addrl, &addrh,
 			              &sizel, &sizeh);
-			if (asd != 0)
-				br = TRUE;
-			else {
+				if (asd != 0)
+					br = TRUE;
+				else {
 					if (br == TRUE) {
 						break;
 					}
@@ -256,7 +256,7 @@ ai_scan(si_t *sih, void *regs, uint devid)
 		}
 		sii->coresba[idx] = addrl;
 		sii->coresba_size[idx] = sizel;
-		
+
 		j = 1;
 		do {
 			asd = get_asd(sih, &eromptr, 0, j, AD_ST_SLAVE, &addrl, &addrh,

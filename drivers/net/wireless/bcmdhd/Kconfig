@@ -95,4 +95,3 @@ config WLAN_REGION_CODE
 		- 202 : KOR KTT
 		- 203 : KOR LGT
 		- 300 : CHN OPEN
-		- 400 : JPN OPEN

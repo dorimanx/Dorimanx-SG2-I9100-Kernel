@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_iw.c 367054 2012-11-06 15:06:04Z $
+ * $Id: wl_iw.c 384655 2013-02-12 19:59:43Z $
  */
 
 #if defined(USE_IW)
@@ -843,7 +843,7 @@ wl_iw_get_range(
 	
 	if (dev_wlc_intvar_get(dev, "fbt_cap", &fbt_cap) == 0) {
 		if (fbt_cap == WLC_FBT_CAP_DRV_4WAY_AND_REASSOC) {
-			
+
 			range->enc_capa |= IW_ENC_CAPA_4WAY_HANDSHAKE;
 		}
 	}
@@ -2692,7 +2692,7 @@ wl_iw_set_wpaauth(
 		if ((error = dev_wlc_intvar_set(dev, "wsec", val)))
 			return error;
 
-		
+
 		if (dev_wlc_intvar_get(dev, "fbt_cap", &fbt_cap) == 0) {
 			if (fbt_cap == WLC_FBT_CAP_DRV_4WAY_AND_REASSOC) {
 				if ((paramid == IW_AUTH_CIPHER_PAIRWISE) && (val & AES_ENABLED)) {
@@ -3647,7 +3647,7 @@ static void wl_iw_send_scan_complete(iscan_info_t *iscan)
 
 	memset(&wrqu, 0, sizeof(wrqu));
 
-	
+
 	wireless_send_event(iscan->dev, SIOCGIWSCAN, &wrqu, NULL);
 }
 

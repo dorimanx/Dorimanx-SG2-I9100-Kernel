@@ -166,7 +166,9 @@ static int	g_cen_sts = 0;
 static int	g_rfs_sts = 0;
 
 static int felica_varying_gpio_intu;
-
+#ifdef P2P_FPGA_ALWAYS_ON
+extern void set_fpga_felica_flag(int on);
+#endif /* P2P_FPGA_ALWAYS_ON */
 #endif /* CONFIG_NFC_FELICA */
 
 /******************************************************************************
@@ -1128,6 +1130,8 @@ static ssize_t felica_pon_read(struct file *file, char __user *buf, size_t len,
 	ret = gpio_get_value(GPIO_PINID_FELICA_PON);
 #elif defined(CONFIG_ARCH_APQ8064)
 	ret = ice_gpiox_get(GPIO_PINID_FELICA_PON);
+#else
+	ret = gpio_get_value(GPIO_PINID_FELICA_PON);
 #endif
 	if (ret == GPIO_VALUE_HIGH) {
 		retparam = FELICA_PON_WIRED;
@@ -2748,7 +2752,7 @@ static irqreturn_t intu_poll_irq_handler(int irq, void *dev_id)
 
 	disable_irq_nosync(gpio_to_irq(felica_varying_gpio_intu));
 
-	schedule_delayed_work(&intu_d->work, msecs_to_jiffies(INTU_POLL_DELAY));
+	schedule_delayed_work(&intu_d->work, 0);
 	
 	FELICA_LOG_DEBUG("[MFDD] %s END", __func__);
 	
@@ -3620,13 +3624,7 @@ static int cxd2235power_open(struct inode *inode, struct file *file)
 static int cxd2235power_release(struct inode *inode, struct file *file)
 {
 	FELICA_LOG_DEBUG("[MFDD] %s START", __func__);
-
-#if defined(CONFIG_ARCH_EXYNOS)
-	gpio_set_value(GPIO_PINID_NFC_PON , GPIO_VALUE_LOW);
-#elif defined(CONFIG_ARCH_APQ8064)
-	ice_gpiox_set(GPIO_PINID_NFC_PON, GPIO_VALUE_LOW);
-#endif
-
+	/* no operation */
 	FELICA_LOG_DEBUG("[MFDD] %s END", __func__);
 
 	return 0;
@@ -4200,6 +4198,23 @@ static long uartcc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		uartcc_felica_start_request();
 		FELICA_LOG_DEBUG("[MFDD] %s Set nfc start request=[%d]\n", \
 			__func__, guartcc_start_req);
+
+#ifdef P2P_FPGA_ALWAYS_ON
+		switch(guartcc_start_req)
+		{
+			case SNFC_START_TARGET:
+			case SNFC_START_INTU:
+				set_fpga_felica_flag(1);
+				break;
+			case UARTCC_NFC_START_ENDPROC:
+				break;
+			default:
+				set_fpga_felica_flag(0);
+				break;
+		}
+		FELICA_LOG_DEBUG("[MFDD] %s [fpga]felica_status=[%d]\n", \
+			__func__, felica_status);
+#endif /* P2P_FPGA_ALWAYS_ON */
 		up(&guartcc_sem->felica_sem);
 		break;
 	case UARTCC_GET_FELICA_STATUS:

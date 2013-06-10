@@ -40,8 +40,8 @@
 
 #define VLAN_PRI_MASK		7	
 
-#define	VLAN_TPID_OFFSET	12	
-#define	VLAN_TCI_OFFSET		14	
+#define	VLAN_TPID_OFFSET	12
+#define	VLAN_TCI_OFFSET		14
 
 #define	VLAN_TAG_LEN		4
 #define	VLAN_TAG_OFFSET		(2 * ETHER_ADDR_LEN)	
@@ -49,8 +49,8 @@
 #define VLAN_TPID		0x8100	
 
 struct vlan_header {
-	uint16	vlan_type;		
-	uint16	vlan_tag;		
+	uint16	vlan_type;
+	uint16	vlan_tag;
 };
 
 struct ethervlan_header {
