@@ -1757,6 +1757,12 @@ config MSM_CPU_FREQ_MIN
 
 endif # CPU_FREQ_MSM
 
+config GPU_OVERCLOCK
+	bool "Enable GPU Overclocking option"
+	default n
+	help
+	  Kraint 600 ab GPU overclock up to 600 MHz
+
 config CPU_OVERCLOCK
 	bool "Enable CPU Overclocking option"
 	default n
