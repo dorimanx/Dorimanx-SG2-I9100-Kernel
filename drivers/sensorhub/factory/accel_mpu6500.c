@@ -44,10 +44,19 @@ static ssize_t accel_vendor_show(struct device *dev,
 {
 #ifdef K330_REV
 	struct ssp_data *data = dev_get_drvdata(dev);
+#if defined(CONFIG_MACH_JF_EUR)
+	if (data->ap_rev == 13)
+		return sprintf(buf, "%s\n", VENDOR);
+	else if (data->ap_rev >= K330_REV)
+		return sprintf(buf, "%s\n", VENDOR_K330);
+	else
+		return sprintf(buf, "%s\n", VENDOR);
+#else
 	if (data->ap_rev >= K330_REV)
 		return sprintf(buf, "%s\n", VENDOR_K330);
 	else
 		return sprintf(buf, "%s\n", VENDOR);
+#endif
 #else
 	return sprintf(buf, "%s\n", VENDOR);
 #endif
@@ -58,10 +67,19 @@ static ssize_t accel_name_show(struct device *dev,
 {
 #ifdef K330_REV
 	struct ssp_data *data = dev_get_drvdata(dev);
+#if defined(CONFIG_MACH_JF_EUR)
+	if (data->ap_rev == 13)
+		return sprintf(buf, "%s\n", CHIP_ID);
+	else if (data->ap_rev >= K330_REV)
+		return sprintf(buf, "%s\n", CHIP_ID_K330);
+	else
+		return sprintf(buf, "%s\n", CHIP_ID);
+#else
 	if (data->ap_rev >= K330_REV)
 		return sprintf(buf, "%s\n", CHIP_ID_K330);
 	else
 		return sprintf(buf, "%s\n", CHIP_ID);
+#endif
 #else
 	return sprintf(buf, "%s\n", CHIP_ID);
 #endif

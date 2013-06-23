@@ -22,6 +22,10 @@
 #include <linux/cpufreq.h>
 #endif
 
+#include <linux/mfd/pm8xxx/misc.h>
+#include <mach/sec_debug.h>
+#include <mach/restart.h>
+
 #define MAX_BUF 100
 
 DEFINE_MUTEX(pm_mutex);
@@ -711,6 +715,39 @@ power_attr(cpufreq_min_limit);
 power_attr(cpufreq_table);
 #endif
 
+static ssize_t hard_reset_ctl_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", pm8xxx_hard_reset_enabled());
+}
+
+static ssize_t hard_reset_ctl_store(struct kobject *kobj,
+					struct kobj_attribute *attr,
+					const char *buf, size_t n)
+{
+	int ret = 0;
+	int enable;
+
+	ret = sscanf(buf, "%d", &enable);
+
+	if (ret != 1 || enable > 1)
+		return -EINVAL;
+
+	ret = pm8xxx_hard_reset_control(enable);
+	if (ret)
+		return -EPERM;
+
+	ret = resout_irq_control(enable);
+	if (ret)
+		return -EPERM;
+
+	pr_info("hard_reset_controlled = %d\n", enable);
+
+	return n;
+}
+
+power_attr(hard_reset_ctl);
+
 static struct attribute *g[] = {
 	&state_attr.attr,
 #ifdef CONFIG_PM_TRACE
@@ -735,6 +772,7 @@ static struct attribute *g[] = {
 	&cpufreq_max_limit_attr.attr,
 	&cpufreq_table_attr.attr,
 #endif
+	&hard_reset_ctl_attr.attr,
 	NULL,
 };
 

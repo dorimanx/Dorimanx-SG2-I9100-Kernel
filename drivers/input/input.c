@@ -1577,7 +1577,7 @@ void input_reset_device(struct input_dev *dev)
 		 */
 		if (!poweroff_charging) {
 			spin_lock_irq(&dev->event_lock);
-#if !defined(CONFIG_SEC_TORCH_FLASH)
+#if !defined(CONFIG_MACH_JACTIVE_ATT)
 			input_dev_release_keys(dev);
 #endif
 			spin_unlock_irq(&dev->event_lock);

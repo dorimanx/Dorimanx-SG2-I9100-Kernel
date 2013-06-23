@@ -190,6 +190,9 @@ static struct synaptics_rmi4_platform_data rmi4_platformdata = {
 #ifdef CONFIG_FB_MSM_MIPI_SAMSUNG_OCTA_VIDEO_FULL_HD_PT_PANEL
 	.tout1_on = touch_tout1_on,
 #endif
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+	.hsync_onoff = lcd_hsync_onoff,
+#endif
 };
 
 static struct i2c_board_info bus2_i2c_devices[] = {

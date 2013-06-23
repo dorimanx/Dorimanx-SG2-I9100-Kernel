@@ -23,6 +23,23 @@
  *
  * $Id: dhd_custom_sec.c 334946 2012-05-24 20:38:00Z $
  */
+ 
+/* Function list
+	1. Module Type
+		a. For CID - Use 'USE_CID_CHECK' Feature
+			dhd_write_cid_file(), dhd_dump_cis(), dhd_check_module_cid()
+		b. For MAC - Use 'GET_MAC_FROM_OTP' Feature
+			dhd_write_mac_file(), dhd_check_module_mac()
+	2. COB Type
+		a. For MAC - Use 'READ_MACADDR' Feature
+			dhd_read_macaddr()
+	3. Etc
+		a. Power Save Mode - Use 'CONFIG_CONTROL_PM' Feature
+			sec_control_pm()
+		b. Frame Burst Control (11ac) - Use 'USE_WL_FRAMEBURST' Feature
+			sec_control_frameburst()
+ */
+ 
 #ifdef CUSTOMER_HW4
 #include <typedefs.h>
 #include <linuxver.h>
@@ -155,7 +172,7 @@ const struct cntry_locales_custom translate_custom_table[] = {
 #ifdef BCM4335_CHIP
 	{"AL", "AL", 2},
 	{"DZ", "DZ", 1},
-	{"AS", "AS", 2},
+	{"AS", "AS", 12},
 	{"AI", "AI", 1},
 	{"AG", "AG", 2},
 	{"AR", "AR", 21},
@@ -164,8 +181,8 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"AT", "AT", 4},
 	{"AZ", "AZ", 2},
 	{"BS", "BS", 2},
-	{"BH", "BH", 24},
-	{"BD", "BD", 1},
+	{"BH", "BH", 4},
+	{"BD", "BD", 2},
 	{"BY", "BY", 3},
 	{"BE", "BE", 4},
 	{"BM", "BM", 12},
@@ -177,7 +194,7 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"KH", "KH", 2},
 	{"CA", "CA", 31},
 	{"KY", "KY", 3},
-	{"CN", "CN", 9},
+	{"CN", "CN", 24},
 	{"CO", "CO", 17},
 	{"CR", "CR", 17},
 	{"HR", "HR", 4},
@@ -211,7 +228,7 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"LS", "LS", 2},
 	{"LI", "LI", 4},
 	{"LT", "LT", 4},
-	{"LU", "LU", 1},
+	{"LU", "LU", 3},
 	{"MO", "MO", 2},
 	{"MK", "MK", 2},
 	{"MW", "MW", 1},
@@ -249,14 +266,14 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"SK", "SK", 4},
 	{"SI", "SI", 4},
 	{"ES", "ES", 4},
-	{"LK", "LK", 3},
+	{"LK", "LK", 1},
 	{"SE", "SE", 4},
 	{"CH", "CH", 4},
 	{"TW", "TW", 1},
 	{"TH", "TH", 5},
 	{"TT", "TT", 3},
 	{"TR", "TR", 7},
-	{"AE", "AE", 4},
+	{"AE", "AE", 6},
 	{"UG", "UG", 2},
 	{"GB", "GB", 6},
 	{"UY", "UY", 1},
@@ -264,13 +281,17 @@ const struct cntry_locales_custom translate_custom_table[] = {
 	{"VA", "VA", 2},
 	{"VE", "VE", 3},
 	{"VN", "VN", 4},
-	{"MA", "MA", 1},
+	{"MA", "MA", 2},
 	{"ZM", "ZM", 2},
 	{"EC", "EC", 21},
 	{"SV", "SV", 19},
 	{"KR", "KR", 48},
 	{"RU", "RU", 13},
 	{"UA", "UA", 8},
+	{"GT", "GT", 1},
+	{"FR", "FR", 5},
+	{"MN", "MN", 1},
+	{"NI", "NI", 2},
 #endif /* BCM4335_CHIP */
 };
 
@@ -1272,81 +1293,6 @@ void sec_control_pm(dhd_pub_t *dhd, uint *power_mode)
 		filp_close(fp, NULL);
 }
 #endif /* CONFIG_CONTROL_PM */
-#ifdef GLOBALCONFIG_WLAN_COUNTRY_CODE
-int dhd_customer_set_country(dhd_pub_t *dhd)
-{
-	struct file *fp = NULL;
-	char *filepath = "/data/.ccode.info";
-	char iovbuf[WL_EVENTING_MASK_LEN + 12] = {0};
-	char buffer[10] = {0};
-	int ret = 0;
-	wl_country_t cspec;
-	int buf_len = 0;
-	char country_code[WLC_CNTRY_BUF_SZ];
-	int country_rev;
-	int country_offset;
-	int country_code_size;
-	char country_rev_buf[WLC_CNTRY_BUF_SZ];
-	fp = filp_open(filepath, O_RDONLY, 0);
-	if (IS_ERR(fp)) {
-		DHD_ERROR(("%s: %s open failed\n", __FUNCTION__, filepath));
-		return -1;
-	} else {
-		if (kernel_read(fp, 0, buffer, sizeof(buffer))) {
-			memset(&cspec, 0, sizeof(cspec));
-			memset(country_code, 0, sizeof(country_code));
-			memset(country_rev_buf, 0, sizeof(country_rev_buf));
-			country_offset = strcspn(buffer, " ");
-			country_code_size = country_offset;
-			if (country_offset != 0) {
-				strncpy(country_code, buffer, country_offset);
-				strncpy(country_rev_buf, buffer+country_offset+1,
-					strlen(buffer) - country_code_size + 1);
-				country_rev = bcm_atoi(country_rev_buf);
-				buf_len = bcm_mkiovar("country", (char *)&cspec,
-					sizeof(cspec), iovbuf, sizeof(iovbuf));
-				ret = dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, iovbuf, buf_len, FALSE, 0);
-				memcpy((void *)&cspec, iovbuf, sizeof(cspec));
-				if (!ret) {
-					DHD_ERROR(("%s: get country ccode:%s"
-						" country_abrev:%s rev:%d  \n",
-						__FUNCTION__, cspec.ccode,
-						cspec.country_abbrev, cspec.rev));
-					if ((strncmp(country_code, cspec.ccode,
-						WLC_CNTRY_BUF_SZ) != 0) ||
-						(cspec.rev != country_rev)) {
-						strncpy(cspec.country_abbrev,
-							country_code, country_code_size);
-						strncpy(cspec.ccode, country_code,
-							country_code_size);
-						cspec.rev = country_rev;
-						DHD_ERROR(("%s: set country ccode:%s"
-							"country_abrev:%s rev:%d\n",
-							__FUNCTION__, cspec.ccode,
-							cspec.country_abbrev, cspec.rev));
-						buf_len = bcm_mkiovar("country", (char *)&cspec,
-							sizeof(cspec), iovbuf, sizeof(iovbuf));
-						ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR,
-							iovbuf, buf_len, TRUE, 0);
-					}
-				}
-			} else {
-				DHD_ERROR(("%s: set country %s failed code \n",
-					__FUNCTION__, country_code));
-				ret = -1;
-			}
-		} else {
-			DHD_ERROR(("%s: Reading from the '%s' returns 0 bytes \n",
-				__FUNCTION__, filepath));
-			ret = -1;
-		}
-	}
-	if (fp)
-		filp_close(fp, NULL);
-
-	return ret;
-}
-#endif /* GLOBALCONFIG_WLAN_COUNTRY_CODE */
 
 #ifdef MIMO_ANT_SETTING
 int dhd_sel_ant_from_file(dhd_pub_t *dhd)

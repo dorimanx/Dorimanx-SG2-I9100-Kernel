@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_android.c 393894 2013-03-29 07:14:35Z $
+ * $Id: wl_android.c 400963 2013-05-08 05:11:51Z $
  */
 
 #include <linux/module.h>
@@ -101,6 +101,12 @@
 #ifdef SUPPORT_TRIGGER_HANG_EVENT
 #define CMD_TEST_FORCE_HANG		"TEST_FORCE_HANG"
 #endif /* SUPPORT_TRIGGER_HANG_EVENT */
+#ifdef SUPPORT_LTECX
+#define CMD_LTECX_CHAN_BITMAP		"LTECX_CHAN_BITMAP"
+#define CMD_LTECX_WLANRX_PROT		"LTECX_WLANRX_PROT"
+#define CMD_LTECX_LTERX_PROT		"LTECX_LTERX_PROT"
+#define CMD_LTECX_LTETX_ADV			"LTECX_LTETX_ADV"
+#endif /* SUPPORT_LTECX */
 #endif /* CUSTOMER_HW4 */
 
 /* CCX Private Commands */
@@ -1618,6 +1624,80 @@ wl_android_ch_res_rl(struct net_device *dev, bool change)
 	}
 	return error;
 }
+
+#ifdef SUPPORT_LTECX
+static int
+wl_android_set_ltecx_chan_bitmap(struct net_device *dev, const char* string_num)
+{
+	uint16 chan_bitmap;
+	int ret;
+
+	chan_bitmap = bcm_strtoul(string_num, NULL, 16);
+
+	DHD_INFO(("%s : LTECX_CHAN_BITMAP = 0x%x\n", __FUNCTION__, chan_bitmap));
+
+	ret = wldev_iovar_setint(dev, "mws_coex_bitmap", chan_bitmap);
+
+	if (ret < 0)
+		DHD_ERROR(("LTECX_CHAN_BITMAP error %d\n", ret));
+
+	return 1;
+}
+
+static int
+wl_android_set_wlanrx_protection(struct net_device *dev, const char* string_num)
+{
+	uint16 wlanrx_prot;
+	int ret;
+
+	wlanrx_prot = bcm_atoi(string_num);
+
+	DHD_INFO(("%s : LTECX_WLANRX_PROT = %d\n", __FUNCTION__, wlanrx_prot));
+
+	ret = wldev_iovar_setint(dev, "mws_wlanrx_prot", wlanrx_prot);
+
+	if (ret < 0)
+		DHD_ERROR(("LTECX_WLANRX_PROT error %d\n", ret));
+
+	return 1;
+}
+
+static int
+wl_android_set_lterx_protection(struct net_device *dev, const char* string_num)
+{
+	uint16 lterx_prot;
+	int ret;
+
+	lterx_prot = bcm_atoi(string_num);
+
+	DHD_INFO(("%s : LTECX_LTERX_PROT = %d\n", __FUNCTION__, lterx_prot));
+
+	ret = wldev_iovar_setint(dev, "mws_lterx_prot", lterx_prot);
+
+	if (ret < 0)
+		DHD_ERROR(("LTECX_LTERX_PROT error %d\n", ret));
+
+	return 1;
+}
+
+static int
+wl_android_set_ltetx_adv(struct net_device *dev, const char* string_num)
+{
+	uint16 ltetx_adv;
+	int ret;
+
+	ltetx_adv = bcm_atoi(string_num);
+
+	DHD_INFO(("%s : LTECX_LTETX_ADV = %d\n", __FUNCTION__, ltetx_adv));
+
+	ret = wldev_iovar_setint(dev, "mws_ltetx_adv", ltetx_adv);
+
+	if (ret < 0)
+		DHD_ERROR(("LTECX_LTETX_ADV error %d\n", ret));
+
+	return 1;
+}
+#endif /* SUPPORT_LTECX */
 #endif /* CUSTOMER_HW4 */
 
 int wl_android_set_roam_mode(struct net_device *dev, char *command, int total_len)
@@ -1644,12 +1724,7 @@ int wl_android_set_roam_mode(struct net_device *dev, char *command, int total_le
 
 int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 {
-#ifdef CUSTOMER_HW4
-/* DO NOT CHANGE THIS: Samsung JBP branch requires 16KB buffer size */
-#define PRIVATE_COMMAND_MAX_LEN	16384
-#else
 #define PRIVATE_COMMAND_MAX_LEN	8192
-#endif /* CUSTOMER_HW4 */
 	int ret = 0;
 	char *command = NULL;
 	int bytes_written = 0;
@@ -2013,6 +2088,24 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		bytes_written = wl_android_ch_res_rl(net, true);
 	else if (strnicmp(command, CMD_RESTORE_RL, strlen(CMD_RESTORE_RL)) == 0)
 		bytes_written = wl_android_ch_res_rl(net, false);
+#ifdef SUPPORT_LTECX
+	else if (strnicmp(command, CMD_LTECX_CHAN_BITMAP, strlen(CMD_LTECX_CHAN_BITMAP)) == 0) {
+		int skip = strlen(CMD_LTECX_CHAN_BITMAP) + 3;
+		bytes_written = wl_android_set_ltecx_chan_bitmap(net, (const char*)command+skip);
+	}
+	else if (strnicmp(command, CMD_LTECX_WLANRX_PROT, strlen(CMD_LTECX_WLANRX_PROT)) == 0) {
+		int skip = strlen(CMD_LTECX_WLANRX_PROT) + 3;
+		bytes_written = wl_android_set_wlanrx_protection(net, (const char*)command+skip);
+	}
+	else if (strnicmp(command, CMD_LTECX_LTERX_PROT, strlen(CMD_LTECX_LTERX_PROT)) == 0) {
+		int skip = strlen(CMD_LTECX_LTERX_PROT) + 3;
+		bytes_written = wl_android_set_lterx_protection(net, (const char*)command+skip);
+	}
+	else if (strnicmp(command, CMD_LTECX_LTETX_ADV, strlen(CMD_LTECX_LTETX_ADV)) == 0) {
+		int skip = strlen(CMD_LTECX_LTETX_ADV) + 3;
+		bytes_written = wl_android_set_ltetx_adv(net, (const char*)command+skip);
+	}
+#endif /* SUPPORT_LTECX */
 #endif /* CUSTOMER_HW4 */
 	else if (strnicmp(command, CMD_SETROAMMODE, strlen(CMD_SETROAMMODE)) == 0)
 		bytes_written = wl_android_set_roam_mode(net, command, priv_cmd.total_len);

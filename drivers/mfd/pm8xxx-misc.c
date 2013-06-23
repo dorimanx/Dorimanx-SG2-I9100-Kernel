@@ -25,6 +25,8 @@
 #include <asm/system_info.h>
 #include <mach/apq8064-gpio.h>
 
+#include <mach/sec_debug.h>
+
 /* PON CTRL 1 register */
 #define REG_PM8XXX_PON_CTRL_1			0x01C
 
@@ -911,6 +913,43 @@ int pm8xxx_hard_reset_config(enum pm8xxx_pon_config config)
 }
 EXPORT_SYMBOL(pm8xxx_hard_reset_config);
 
+static int hr_enabled;
+static int status;
+
+int pm8xxx_hard_reset_enabled (void)
+{
+	return status;
+}
+
+int pm8xxx_hard_reset_control(int enable)
+{
+	int rc = 0;
+
+	if (!hr_enabled)
+		return -1;
+
+	if (enable ^ status) {
+		if (enable) {
+			rc = pm8xxx_hard_reset_config(PM8XXX_RESTART_ON_HARD_RESET);
+			if (rc) {
+				pr_err("hard reset control failed, rc=%d\n", rc);
+				return rc;
+			}
+			status = 1;
+		} else {
+			rc = pm8xxx_hard_reset_config(PM8XXX_DISABLE_HARD_RESET);
+			if (rc) {
+				pr_err("hard reset control failed, rc=%d\n", rc);
+				return rc;
+			}
+			status = 0;
+		}
+	} else
+		return -1;
+
+	return rc;
+}
+
 /* Handle the OSC_HALT interrupt: 32 kHz XTAL oscillator has stopped. */
 static irqreturn_t pm8xxx_osc_halt_isr(int irq, void *data)
 {
@@ -1230,6 +1269,13 @@ static int __devinit pm8xxx_misc_probe(struct platform_device *pdev)
 		else
 			pr_info("%s: att rev%d coincell disabled",
 					__func__, system_rev);
+	}
+#endif
+
+#if !defined(CONFIG_MACH_JF_VZW)
+	if (!sec_debug_is_enabled()) {
+		hr_enabled = 1;
+		status = 1;
 	}
 #endif
 

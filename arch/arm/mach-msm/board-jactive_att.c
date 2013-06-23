@@ -291,7 +291,7 @@ static void max77693_haptic_power_onoff(int onoff)
 
 	if (!reg_l8) {
 		reg_l8 = regulator_get(NULL, "8921_l8");
-		ret = regulator_set_voltage(reg_l8, 1800000, 3000000);
+		ret = regulator_set_voltage(reg_l8, 3000000, 3000000);
 
 		if (IS_ERR(reg_l8)) {
 			printk(KERN_ERR"could not get 8921_l8, rc = %ld\n",
@@ -2164,7 +2164,7 @@ static int __init bcm2079x_init(void)
 	};
 	pm8xxx_gpio_config(GPIO_NFC_IRQ, &nfc_irq_cfg);
 	pm8xxx_gpio_config(GPIO_NFC_EN, &nfc_en_cfg);
-	if (system_rev > BOARD_REV07)
+	if (system_rev > BOARD_REV11)
 		pm8xxx_gpio_config(GPIO_NFC_FIRMWARE_REV2, &nfc_firmware_cfg);
 	else
 		pm8xxx_gpio_config(GPIO_NFC_FIRMWARE, &nfc_firmware_cfg);
@@ -4420,7 +4420,7 @@ static struct gpio_keys_button gpio_keys_button[] = {
 		.desc           = "volume_up_key",
 		.active_low     = 1,
 		.type		= EV_KEY,
-		.wakeup		= 0,
+		.wakeup		= 1,
 		.debounce_interval = 5,
 	},
 	{
@@ -4429,7 +4429,7 @@ static struct gpio_keys_button gpio_keys_button[] = {
 		.desc           = "volume_down_key",
 		.active_low     = 1,
 		.type		= EV_KEY,
-		.wakeup		= 0,
+		.wakeup		= 1,
 		.debounce_interval = 5,
 	},
 	{
@@ -5253,12 +5253,8 @@ static void __init apq8064_common_init(void)
 #if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI) || defined(CONFIG_TOUCHSCREEN_ATMEL_MXTS)
 	printk(KERN_DEBUG"[TSP] System revision, LPM mode : %d %d\n",
 				system_rev, poweroff_charging);
-	if (!poweroff_charging) {
-		if (sec_tsp_synaptics_mode)
+	if (!poweroff_charging) 
 			S5000_tsp_input_init(lcd_tsp_panel_version);
-		else
-			mxt540s_tsp_input_init();
-		}
 #endif
 
 #if defined(CONFIG_VIDEO_MHL_V2)
@@ -5316,7 +5312,7 @@ static void __init apq8064_gpio_keys_init(void)
 
 static void __init nfc_gpio_rev_init(void)
 {
-	if (system_rev < BOARD_REV08)
+	if (system_rev < BOARD_REV12)
 		bcm2079x_i2c_pdata.wake_gpio = GPIO_NFC_FIRMWARE;
 }
 

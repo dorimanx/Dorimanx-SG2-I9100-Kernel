@@ -721,6 +721,12 @@ config SEC_TORCH_FLASH
 	default n
 	help
 	  This driver provides torch flash function.	  
+
+config TIMA_LOG
+	tristate "Support for dumping TIMA log"
+	default m
+	help
+	  This option enables support for dumping TIMA log
 	  
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"

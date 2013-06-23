@@ -2132,7 +2132,9 @@ static int ssp_check_changes(void)
 */
 static void ssp_get_positions(int *acc, int *mag)
 {
-	if (system_rev > BOARD_REV09)
+	if (system_rev == BOARD_REV13)
+		*acc = MPU6500_TOP_RIGHT_UPPER;
+	else if (system_rev > BOARD_REV09)
 		*acc = K330_TOP_LEFT_UPPER;
 	else if (system_rev > BOARD_REV04)
 		*acc = MPU6500_TOP_RIGHT_UPPER;

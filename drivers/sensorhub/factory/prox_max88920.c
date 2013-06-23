@@ -27,12 +27,21 @@
 #define LDI_GRAY	'1'
 #define LDI_WHITE	'2'
 
+#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
+#define DEFUALT_HIGH_THRESHOLD	45
+#define DEFUALT_LOW_THRESHOLD	30
+#define TBD_HIGH_THRESHOLD		45
+#define TBD_LOW_THRESHOLD		30
+#define WHITE_HIGH_THRESHOLD		45
+#define WHITE_LOW_THRESHOLD		30
+#else
 #define DEFUALT_HIGH_THRESHOLD	60
 #define DEFUALT_LOW_THRESHOLD	45
 #define TBD_HIGH_THRESHOLD		60
 #define TBD_LOW_THRESHOLD		45
 #define WHITE_HIGH_THRESHOLD		60
 #define WHITE_LOW_THRESHOLD		45
+#endif
 /*************************************************************************/
 /* factory Sysfs                                                         */
 /*************************************************************************/

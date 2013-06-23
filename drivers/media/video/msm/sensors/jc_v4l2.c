@@ -2940,6 +2940,16 @@ void sensor_native_control(void __user *arg)
 			jc_ctrl->factory_bin = false;
 		break;
 
+	case EXT_CAM_START_GOLF_SHOT:
+		cam_info("Golf shot start, 1/1000 shutter speed");
+		jc_writeb(0x03, 0x0B, 0x18);
+		break;
+
+	case EXT_CAM_STOP_GOLF_SHOT:
+		cam_info("Golf shot stop, return normal shutter speed");
+		jc_writeb(0x03, 0x0B, 0x08);
+		break;
+
 	case EXT_CAM_SET_AF_WINDOW:
 		jc_set_af_window(ctrl_info.value_1);
 		break;
@@ -3201,6 +3211,7 @@ static int jc_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 
 				if (result_sensor_isp > 0) {
 					cam_info("Sensor > ISP, update from sensor\n");
+					jc_ctrl->isp_null_read_sensor_fw = true;
 					jc_isp_reset(s_ctrl);
 					jc_load_SIO_fw();
 					jc_read_from_sensor_fw();

@@ -1482,6 +1482,40 @@ static struct msm_gpiomux_config apq8064_muic_config[] __initdata = {
 };
 #endif
 
+static struct gpiomux_setting auxpcm_sleep_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
+	.dir = GPIOMUX_IN,
+};
+
+static struct msm_gpiomux_config apq8064_auxpcm_configs[] __initdata = {
+	{
+		.gpio = 43,	/* AUX_PCM_DOUT */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &auxpcm_sleep_cfg,
+		}	
+	},
+	{
+		.gpio = 44,	/* AUX_PCM_DIN */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &auxpcm_sleep_cfg,
+		}	
+	},
+	{
+		.gpio = 45,	/* AUX_PCM_SYNC */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &auxpcm_sleep_cfg,
+		}	
+	},
+	{
+		.gpio = 46,	/* AUX_PCM_CLK */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &auxpcm_sleep_cfg,
+		}	
+	},
+};
+
 void __init apq8064_init_gpiomux(void)
 {
 	int rc;
@@ -1542,6 +1576,9 @@ void __init apq8064_init_gpiomux(void)
 	pr_debug("%s(): audio-auxpcm: Include GPIO configs"
 		" as audio is not the primary user"
 		" for these GPIO Pins\n", __func__);
+
+	msm_gpiomux_install(apq8064_auxpcm_configs,
+		ARRAY_SIZE(apq8064_auxpcm_configs));		
 
 	if (machine_is_mpq8064_cdp() || machine_is_mpq8064_hrd() ||
 		machine_is_mpq8064_dtv())

@@ -72,6 +72,8 @@ static int32_t vibe_set_pwm_freq(int nForce)
 #if defined(CONFIG_MOTOR_DRV_MAX77693)
 #if defined(CONFIG_MACH_JF_DCM)
 		g_nforce_32 = ((nForce * g_nlra_gp_clk_pwm_mul) >> 8) + 22;
+#elif defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
+		g_nforce_32 = ((nForce * g_nlra_gp_clk_pwm_mul) >> 8) + 1;
 #else
 		g_nforce_32 = ((nForce * g_nlra_gp_clk_pwm_mul) >> 8) + 10;
 #endif

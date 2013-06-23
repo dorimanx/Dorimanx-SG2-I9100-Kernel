@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_cfg80211.c 394719 2013-04-03 13:22:12Z $
+ * $Id: wl_cfg80211.c 400791 2013-05-07 13:33:03Z $
  */
 /* */
 #include <typedefs.h>
@@ -407,7 +407,7 @@ static s32 wl_inform_single_bss(struct wl_priv *wl, struct wl_bss_info *bi, u8 i
 static s32 wl_update_bss_info(struct wl_priv *wl, struct net_device *ndev, u8 is_roam_done);
 static chanspec_t wl_cfg80211_get_shared_freq(struct wiphy *wiphy);
 s32 wl_cfg80211_channel_to_freq(u32 channel);
-
+static void wl_cfg80211_work_handler(struct work_struct *work);
 static s32 wl_add_keyext(struct wiphy *wiphy, struct net_device *dev,
 	u8 key_idx, const u8 *mac_addr,
 	struct key_params *params);
@@ -1216,11 +1216,7 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy, char *name,
 				rollback_lock = true;
 			}
 			if (net_attach && !net_attach(wl->pub, _ndev->ifindex)) {
-#ifdef CUSTOMER_HW4
-				wl_alloc_netinfo(wl, _ndev, vwdev, mode, PM_BLOCK);
-#else
 				wl_alloc_netinfo(wl, _ndev, vwdev, mode, PM_ENABLE);
-#endif /* CUSTOMER_HW4 */
 				val = 1;
 				/* Disable firmware roaming for P2P interface  */
 				wldev_iovar_setint(_ndev, "roam_off", val);
@@ -1302,6 +1298,11 @@ wl_cfg80211_del_virtual_iface(struct wiphy *wiphy, struct net_device *dev)
 				wl_notify_escan_complete(wl, dev, true, true);
 			}
 			wldev_iovar_setint(dev, "mpc", 1);
+
+			if (wl->pm_enable_work_on) {
+				cancel_delayed_work_sync(&wl->pm_enable_work);
+				wl->pm_enable_work_on = false;
+			}
 
 			/* for GC */
 			if (wl_get_drv_status(wl, DISCONNECTING, dev) &&
@@ -3988,18 +3989,22 @@ wl_cfg80211_set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	struct net_info *_net_info = wl_get_netinfo_by_netdev(wl, dev);
 
 	RETURN_EIO_IF_NOT_UP(wl);
-
-	if (wl->p2p_net == dev || _net_info == NULL || wl->vsdb_mode) {
+	WL_DBG(("Enter\n"));
+	if (wl->p2p_net == dev || _net_info == NULL || wl->vsdb_mode ||
+		!wl_get_drv_status(wl, CONNECTED, dev)) {
 		return err;
 	}
 
+	/* Delete pm_enable_work */
+	if (wl->pm_enable_work_on) {
+		cancel_delayed_work_sync(&wl->pm_enable_work);
+		wl->pm_enable_work_on = false;
+	}
 
 	pm = enabled ? PM_FAST : PM_OFF;
-	/* Do not enable the power save after assoc if it is p2p interface */
 	if (_net_info->pm_block) {
-		/* Do not enable the power save if it is p2p interface or vsdb mode is set */
-		WL_DBG(("%s:Do not enable the power save for pm_block %d or vsdb_mode %d\n",
-			dev->name, _net_info->pm_block, wl->vsdb_mode));
+		WL_ERR(("%s:Do not enable the power save for pm_block %d\n",
+			dev->name, _net_info->pm_block));
 		pm = PM_OFF;
 	}
 	pm = htod32(pm);
@@ -5760,8 +5765,8 @@ wl_cfg80211_parse_ap_ies(
 	struct parsed_ies prb_ies;
 	struct wl_priv *wl = wlcfg_drv_priv;
 	dhd_pub_t *dhd = (dhd_pub_t *)(wl->pub);
-	u8 *vndr;
-	u32 vndr_ie_len;
+	u8 *vndr = NULL;
+	u32 vndr_ie_len = 0;
 	s32 err = BCME_OK;
 
 	/* Parse Beacon IEs */
@@ -5776,9 +5781,11 @@ wl_cfg80211_parse_ap_ies(
 		/* SoftAP mode */
 		struct ieee80211_mgmt *mgmt;
 		mgmt = (struct ieee80211_mgmt *)info->probe_resp;
-		vndr = (u8 *)&mgmt->u.probe_resp.variable;
-		vndr_ie_len = info->probe_resp_len -
-			offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+		if (mgmt != NULL) {
+			vndr = (u8 *)&mgmt->u.probe_resp.variable;
+			vndr_ie_len = info->probe_resp_len -
+				offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+		}
 	} else {
 		/* Other mode */
 		vndr = (u8 *)info->proberesp_ies;
@@ -5804,8 +5811,8 @@ wl_cfg80211_set_ies(
 {
 	struct wl_priv *wl = wlcfg_drv_priv;
 	dhd_pub_t *dhd = (dhd_pub_t *)(wl->pub);
-	u8 *vndr;
-	u32 vndr_ie_len;
+	u8 *vndr = NULL;
+	u32 vndr_ie_len = 0;
 	s32 err = BCME_OK;
 
 	/* Set Beacon IEs to FW */
@@ -5821,9 +5828,11 @@ wl_cfg80211_set_ies(
 		/* SoftAP mode */
 		struct ieee80211_mgmt *mgmt;
 		mgmt = (struct ieee80211_mgmt *)info->probe_resp;
-		vndr = (u8 *)&mgmt->u.probe_resp.variable;
-		vndr_ie_len = info->probe_resp_len -
-			offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+		if (mgmt != NULL) {
+			vndr = (u8 *)&mgmt->u.probe_resp.variable;
+			vndr_ie_len = info->probe_resp_len -
+				offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+		}
 	} else {
 		/* Other mode */
 		vndr = (u8 *)info->proberesp_ies;
@@ -9109,6 +9118,7 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 {
 	s32 pm = PM_FAST;
 	s32 err = BCME_OK;
+	u32 mode;
 	u32 chan = 0;
 	struct net_info *iter, *next;
 	struct net_device *primary_dev = wl_to_prmry_ndev(wl);
@@ -9117,17 +9127,28 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 
 	if (state != WL_STATUS_CONNECTED)
 		return 0;
-
+	mode = wl_get_mode_by_netdev(wl, _net_info->ndev);
 	if (set) {
 		wl_cfg80211_concurrent_roam(wl, 1);
 
-		if (wl_get_mode_by_netdev(wl, _net_info->ndev) == WL_MODE_AP) {
+		if (mode == WL_MODE_AP) {
 
 			if (wl_add_remove_eventmsg(primary_dev, WLC_E_P2P_PROBREQ_MSG, false))
 				WL_ERR((" failed to unset WLC_E_P2P_PROPREQ_MSG\n"));
 		}
 		wl_cfg80211_determine_vsdb_mode(wl);
 		if (wl->vsdb_mode || _net_info->pm_block) {
+			if (wl->pm_enable_work_on) {
+				cancel_delayed_work_sync(&wl->pm_enable_work);
+				wl->pm_enable_work_on = false;
+			}
+			/* save PM_FAST in _net_info to restore this
+			 * if _net_info->pm_block is false
+			 */
+			if (!_net_info->pm_block && (mode == WL_MODE_BSS)) {
+				_net_info->pm = PM_FAST;
+				_net_info->pm_restore = true;
+			}
 			pm = PM_OFF;
 			for_each_ndev(wl, iter, next) {
 				if (iter->pm_restore)
@@ -9149,9 +9170,33 @@ static s32 wl_notifier_change_state(struct wl_priv *wl, struct net_info *_net_in
 						WL_DBG(("%s:netdev not ready\n", iter->ndev->name));
 					else
 						WL_ERR(("%s:error (%d)\n", iter->ndev->name, err));
+				} else
 					iter->ndev->ieee80211_ptr->ps = false;
+			}
+		} else {
+			/* add PM Enable timer to go to power save mode
+			 * if supplicant control pm mode, it will be cleared or
+			 * updated by wl_cfg80211_set_power_mgmt() if not - for static IP & HW4 P2P,
+			 * PM will be configured when timer expired
+			 */
+
+			/*
+			 * before calling pm_enable_timer, we need to set PM -1 for all ndev
+			 */
+			pm = PM_OFF;
+
+			for_each_ndev(wl, iter, next) {
+				if ((err = wldev_ioctl(iter->ndev, WLC_SET_PM, &pm,
+					sizeof(pm), true)) != 0) {
+					if (err == -ENODEV)
+						WL_DBG(("%s:netdev not ready\n", iter->ndev->name));
+					else
+						WL_ERR(("%s:error (%d)\n", iter->ndev->name, err));
 				}
 			}
+			wl->pm_enable_work_on = true;
+			schedule_delayed_work(&wl->pm_enable_work,
+				msecs_to_jiffies(WL_PM_ENABLE_TIMEOUT));
 		}
 #if defined(CUSTOMER_HW4) && defined(WLTDLS)
 		if (wl->vsdb_mode) {
@@ -10043,7 +10088,7 @@ static s32 __wl_cfg80211_up(struct wl_priv *wl)
 		}
 	}
 #endif /* WL_HOST_BAND_MGMT */
-
+	INIT_DELAYED_WORK(&wl->pm_enable_work, wl_cfg80211_work_handler);
 	wl_set_drv_status(wl, READY, ndev);
 	return err;
 }
@@ -10059,7 +10104,10 @@ static s32 __wl_cfg80211_down(struct wl_priv *wl)
 #endif
 	u32 bssidx = 0;
 	WL_DBG(("In\n"));
-
+	if (wl->pm_enable_work_on) {
+		cancel_delayed_work_sync(&wl->pm_enable_work);
+		wl->pm_enable_work_on = false;
+	}
 
 	/* If primary BSS is operational (for e.g SoftAP), bring it down */
 	if (!(wl_cfgp2p_find_idx(wl, ndev, &bssidx)) &&
@@ -10931,3 +10979,37 @@ wl_cfg80211_set_band(struct net_device *ndev, int band)
 	return 0;
 }
 #endif /* WL_HOST_BAND_MGMT */
+
+static void wl_cfg80211_work_handler(struct work_struct * work)
+{
+	struct wl_priv *wl = NULL;
+	struct net_info *iter, *next;
+	s32 err = BCME_OK;
+	s32 pm = PM_FAST;
+
+	wl = container_of(work, struct wl_priv, pm_enable_work.work);
+	WL_DBG(("Enter \n"));
+	if (!wl) {
+		WL_ERR(("wl_priv ptr NULL"));
+		return;
+	}
+	if (wl->pm_enable_work_on) {
+		wl->pm_enable_work_on = false;
+		for_each_ndev(wl, iter, next) {
+			if (!wl_get_drv_status(wl, CONNECTED, iter->ndev) ||
+				(wl_get_mode_by_netdev(wl, iter->ndev) != WL_MODE_BSS))
+				continue;
+			if (iter->ndev) {
+				if ((err = wldev_ioctl(iter->ndev, WLC_SET_PM,
+					&pm, sizeof(pm), true)) != 0) {
+					if (err == -ENODEV)
+						WL_DBG(("%s:netdev not ready\n", iter->ndev->name));
+					else
+						WL_ERR(("%s:error (%d)\n", iter->ndev->name, err));
+				} else
+					iter->ndev->ieee80211_ptr->ps = true;
+			}
+		}
+
+	}
+}

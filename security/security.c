@@ -661,6 +661,9 @@ int security_file_permission(struct file *file, int mask)
 
 	return fsnotify_perm(file, mask);
 }
+#if defined(CONFIG_VMWARE_MVP)
+EXPORT_SYMBOL_GPL(security_file_permission);
+#endif
 
 int security_file_alloc(struct file *file)
 {

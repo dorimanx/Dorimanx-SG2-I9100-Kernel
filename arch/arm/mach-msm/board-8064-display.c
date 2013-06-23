@@ -381,11 +381,13 @@ static bool oled_power_on;
 /* [junesok] Power on for samsung oled */
 #if defined(CONFIG_MACH_JACTIVE_EUR)
 #define LCD_22V_EN	33
+#define LCD_22V_EN_2	20
 #define PMIC_GPIO_LED_DRIVER 31
 #elif defined(CONFIG_MACH_JACTIVE_ATT)
 #define LCD_22V_EN	33
+#define LCD_22V_EN_2	20
 #define PMIC_GPIO_LED_DRIVER_REV00 28
-#define PMIC_GPIO_LED_DRIVER_REV10 31	
+#define PMIC_GPIO_LED_DRIVER_REV10 31
 #else
 #define LCD_22V_EN	69
 #define PMIC_GPIO_LED_DRIVER 27
@@ -423,6 +425,9 @@ static int gpio27;	/* LED_DRIVER */
 static int gpio33;
 #endif
 static struct regulator *reg_L15;
+#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
+static struct regulator *reg_L16;
+#endif
 #if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE)
 static struct regulator *reg_LVS1;
 #endif
@@ -534,6 +539,23 @@ static int mipi_dsi_power_tft_request(void)
 		pr_info("[lcd] configure LCD_22V_EN\n");
 		gpio_tlmm_config(GPIO_CFG(LCD_22V_EN,  0, GPIO_CFG_OUTPUT,
 		GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+
+		if( system_rev >= 13 ) // rev0.5 + 8
+		{
+			pr_info("[lcd] request gpio lcd_22v_en_2\n");
+			rc = gpio_request(LCD_22V_EN_2, "lcd_22v_en_2");
+			if (rc) {
+				gpio_free(LCD_22V_EN_2);
+				rc = gpio_request(LCD_22V_EN_2, "lcd_22v_en_2");
+				if(rc){
+					pr_err("request gpio lcd_22v_en_2 failed, rc=%d\n", rc);
+					return -ENODEV;
+				}
+			}
+			pr_info("[lcd] configure LCD_22V_EN_2\n");
+			gpio_tlmm_config(GPIO_CFG(LCD_22V_EN_2,  0, GPIO_CFG_OUTPUT,
+			GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		}
 	}
 #else
 	pr_info("[lcd] request gpio lcd_22v_en\n");
@@ -547,6 +569,19 @@ static int mipi_dsi_power_tft_request(void)
 	pr_info("[lcd] configure LCD_22V_EN\n");
 	gpio_tlmm_config(GPIO_CFG(LCD_22V_EN,  0, GPIO_CFG_OUTPUT,
 		GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+
+	if( system_rev >= 16 ) // rev0.6 + 10
+	{
+		pr_info("[lcd] request gpio lcd_22v_en_2\n");
+		rc = gpio_request(LCD_22V_EN_2, "lcd_22v_en_2");
+		if (rc) {
+			pr_err("request gpio lcd_22v_en_2 failed, rc=%d\n", rc);
+			return -ENODEV;
+		}
+		pr_info("[lcd] configure LCD_22V_EN_2\n");
+		gpio_tlmm_config(GPIO_CFG(LCD_22V_EN_2,  0, GPIO_CFG_OUTPUT,
+			GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+	}
 #endif
 
 	if (system_rev == 0) {
@@ -590,9 +625,21 @@ static int mipi_dsi_power_tft_request(void)
 	if(system_rev < 10)
 		gpio_direction_output(gpio33, 0);
 	else
-		gpio_direction_output(LCD_22V_EN, 0);	
+	{
+		gpio_direction_output(LCD_22V_EN, 0);
+		if( system_rev >= 13 ) // rev0.5 + 8
+		{
+			mdelay(10);
+			gpio_direction_output(LCD_22V_EN_2, 0);
+		}
+	}
 #else
 	gpio_direction_output(LCD_22V_EN, 0);
+	if( system_rev >= 16 ) // rev0.6 + 10
+	{
+		mdelay(10);
+		gpio_direction_output(LCD_22V_EN_2, 0);
+	}
 #endif
 	if (system_rev == 0)
 		gpio_direction_output(gpio43, 0);
@@ -655,21 +702,58 @@ static int mipi_panel_power_tft(int enable)
 	if(system_rev < 10)
 		gpio_direction_output(gpio33, 1);
 	else
+	{
 		gpio_direction_output(LCD_22V_EN, 1);
+		if( system_rev >= 13 ) // rev0.5 + 8
+		{
+			mdelay(10);
+			gpio_direction_output(LCD_22V_EN_2, 1);
+		}
+	}
 #else
 		gpio_direction_output(LCD_22V_EN, 1);
+		if( system_rev >= 16 ) // rev0.6 + 10
+		{
+			mdelay(10);
+			gpio_direction_output(LCD_22V_EN_2, 1);
+		}
 #endif
-
-		/*active_reset_ldi(gpio43);*/
-		if (system_rev == 0)
-			gpio_direction_output(gpio43, 1);
-		else
-			pm8xxx_mpp_config(
-				PM8921_MPP_PM_TO_SYS(MLCD_RST_MPP2),
-				&MLCD_RESET_HIGH_CONFIG);
 
 		msleep(20);
 
+#if defined(CONFIG_MACH_JACTIVE_EUR)
+		if( system_rev >= 15 ) // rev0.5 + 10
+		{
+			rc = regulator_set_optimum_mode(reg_L16, 100000); /*IOVDD */
+			if (rc < 0) {
+				pr_err("set_optimum_mode L16 failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+			rc = regulator_enable(reg_L16);
+			if (rc) {
+				pr_err("enable L16 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
+			
+			msleep ( 10 );
+		}
+#elif defined(CONFIG_MACH_JACTIVE_ATT)
+		if( system_rev >= 11 ) // rev0.3 + 8
+		{
+			rc = regulator_set_optimum_mode(reg_L16, 100000); /*IOVDD */
+			if (rc < 0) {
+				pr_err("set_optimum_mode L16 failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+			rc = regulator_enable(reg_L16);
+			if (rc) {
+				pr_err("enable L16 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
+			
+			msleep ( 10 );
+		}
+#endif
 		gpio_direction_output(gpio27, 1);/*LED_DRIVER(gpio27);*/
 	} else {
 		if (system_rev == 0)
@@ -682,8 +766,20 @@ static int mipi_panel_power_tft(int enable)
 		if(system_rev < 10)
 			gpio_direction_output(gpio33, 0);
 		else
-			gpio_direction_output(LCD_22V_EN, 0);	
+		{
+			if( system_rev >= 13 ) // rev0.5 + 8
+			{
+				gpio_direction_output(LCD_22V_EN_2, 0);
+				mdelay(10);
+			}
+			gpio_direction_output(LCD_22V_EN, 0);
+		}
 #else
+		if( system_rev >= 16 ) // rev0.6 + 10
+		{
+			gpio_direction_output(LCD_22V_EN_2, 0);
+			mdelay(10);
+		}
 		gpio_direction_output(LCD_22V_EN, 0);
 #endif
 		usleep(2000); /*1ms delay(minimum) required between VDD off and AVDD off*/
@@ -701,6 +797,40 @@ static int mipi_panel_power_tft(int enable)
 		}
 
 		gpio_direction_output(gpio27, 0);/*LED_DRIVER(gpio27);*/
+
+#if defined(CONFIG_MACH_JACTIVE_EUR)
+		if( system_rev >= 15 ) // rev0.5 + 10
+		{
+			msleep ( 10 );
+			rc = regulator_set_optimum_mode(reg_L16, 100);
+			if (rc < 0) {
+				pr_err("set_optimum_mode L16 failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+			
+			rc = regulator_disable(reg_L16);
+			if (rc) {
+				pr_err("disable reg_L16 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
+		}
+#elif defined(CONFIG_MACH_JACTIVE_ATT)
+		if( system_rev >= 11 ) // rev0.3 + 8
+		{
+			msleep ( 10 );
+			rc = regulator_set_optimum_mode(reg_L16, 100);
+			if (rc < 0) {
+				pr_err("set_optimum_mode L16 failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+			
+			rc = regulator_disable(reg_L16);
+			if (rc) {
+				pr_err("disable reg_L16 failed, rc=%d\n", rc);
+				return -ENODEV;
+			}
+		}
+#endif
 
 #if defined(CONFIG_MACH_JACTIVE_EUR)
 		rc = regulator_set_optimum_mode(reg_LVS1, 100);
@@ -904,6 +1034,41 @@ static int mipi_oled_power_set(void)
 			pr_err("set_voltage L15 failed, rc=%d\n", rc);
 			return -EINVAL;
 		}
+
+#if defined(CONFIG_MACH_JACTIVE_EUR)
+		if( system_rev >= 15 ) // rev0.5 + 10
+		{
+			reg_L16 = regulator_get(NULL, "8921_l16");
+			if (IS_ERR_OR_NULL(reg_L16)) {
+				pr_err("could not get 8921_L16, rc = %ld\n",
+						PTR_ERR(reg_L16));
+				return -ENODEV;
+			}
+			
+			rc = regulator_set_voltage(reg_L16, 3000000, 3000000);
+			if (rc) {
+				pr_err("set_voltage L16 failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+		}
+#elif defined(CONFIG_MACH_JACTIVE_ATT)
+		if( system_rev >= 11 ) // rev0.3 + 8
+		{
+			reg_L16 = regulator_get(NULL, "8921_l16");
+			if (IS_ERR_OR_NULL(reg_L16)) {
+				pr_err("could not get 8921_L16, rc = %ld\n",
+						PTR_ERR(reg_L16));
+				return -ENODEV;
+			}
+			
+			rc = regulator_set_voltage(reg_L16, 3000000, 3000000);
+			if (rc) {
+				pr_err("set_voltage L16 failed, rc=%d\n", rc);
+				return -EINVAL;
+			}
+		}
+#endif
+
 #if defined(CONFIG_MACH_JACTIVE_EUR)
 		reg_LVS1 = regulator_get(NULL, "8921_lvs1");
 		if (IS_ERR_OR_NULL(reg_LVS1)) {
@@ -1221,6 +1386,33 @@ static struct msm_bus_vectors dtv_bus_def_vectors[] = {
 	},
 };
 
+#if defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
+static struct msm_bus_vectors dtv_bus_cam_override_vectors[] = {
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = 707616000 * 2,
+	},
+};
+#endif
+
+#if defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
+static struct msm_bus_paths dtv_bus_scale_usecases[] = {
+	{
+		ARRAY_SIZE(dtv_bus_init_vectors),
+		dtv_bus_init_vectors,
+	},
+	{
+		ARRAY_SIZE(dtv_bus_def_vectors),
+		dtv_bus_def_vectors,
+	},
+	{
+		ARRAY_SIZE(dtv_bus_cam_override_vectors),
+		dtv_bus_cam_override_vectors,
+	},
+};
+#else
 static struct msm_bus_paths dtv_bus_scale_usecases[] = {
 	{
 		ARRAY_SIZE(dtv_bus_init_vectors),
@@ -1231,6 +1423,8 @@ static struct msm_bus_paths dtv_bus_scale_usecases[] = {
 		dtv_bus_def_vectors,
 	},
 };
+#endif
+
 static struct msm_bus_scale_pdata dtv_bus_scale_pdata = {
 	dtv_bus_scale_usecases,
 	ARRAY_SIZE(dtv_bus_scale_usecases),

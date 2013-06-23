@@ -27,12 +27,14 @@
 #include "board-8064.h"
 #include <mach/apq8064-gpio.h>
 
+#if 0
 /* The SPI configurations apply to GSBI 5*/
 static struct gpiomux_setting gpio_spi_config = {
 	.func = GPIOMUX_FUNC_2,
 	.drv = GPIOMUX_DRV_12MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
+#endif
 
 #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
 static struct gpiomux_setting gpio_eth_config = {
@@ -66,12 +68,14 @@ struct msm_gpiomux_config apq8064_ethernet_configs[] = {
 };
 #endif
 
+#if !defined(CONFIG_USB_EHCI_MSM_HSIC)
 /* Chip selects for SPI clients */
 static struct gpiomux_setting gpio_spi_cs_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_12MA,
 	.pull = GPIOMUX_PULL_UP,
 };
+#endif
 
 /* Chip selects for EPM SPI clients */
 static struct gpiomux_setting gpio_epm_spi_cs_config = {
@@ -837,38 +841,57 @@ static struct msm_gpiomux_config apq8064_audio_codec_configs[] __initdata = {
 static struct gpiomux_setting ap2mdm_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
-	.pull = GPIOMUX_PULL_DOWN,
+	.pull = GPIOMUX_PULL_NONE,
 };
 
 static struct gpiomux_setting mdm2ap_status_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
-	.pull = GPIOMUX_PULL_DOWN,
+	.pull = GPIOMUX_PULL_NONE,
 };
 
 static struct gpiomux_setting mdm2ap_errfatal_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_16MA,
-	.pull = GPIOMUX_PULL_DOWN,
+	.pull = GPIOMUX_PULL_NONE,
 };
 
 static struct gpiomux_setting mdm2ap_pblrdy = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_16MA,
-	.pull = GPIOMUX_PULL_DOWN,
+	.pull = GPIOMUX_PULL_NONE,
 };
 
 
 static struct gpiomux_setting ap2mdm_soft_reset_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
-	.pull = GPIOMUX_PULL_DOWN,
+	.pull = GPIOMUX_PULL_NONE,
 };
 
 static struct gpiomux_setting ap2mdm_wakeup = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
-	.pull = GPIOMUX_PULL_DOWN,
+	.pull = GPIOMUX_PULL_NONE,
+};
+
+static struct gpiomux_setting ap2mdm_vddmin_sus = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_OUT_HIGH,
+};
+
+static struct gpiomux_setting ap2mdm_vddmin_act = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_OUT_LOW,
+};
+static struct gpiomux_setting mdm2ap_vddmin = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
 };
 
 #ifdef CONFIG_MSM_HSIC_GPIO_REV06
@@ -921,6 +944,21 @@ static struct msm_gpiomux_config mdm_configs[] __initdata = {
 		.gpio = 31,
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &mdm2ap_pblrdy,
+		}
+	},
+	/* AP2MDM_VDDMIN*/
+	{
+		.gpio = 30,
+		.settings = {
+			[GPIOMUX_ACTIVE] = &ap2mdm_vddmin_act,
+			[GPIOMUX_SUSPENDED] = &ap2mdm_vddmin_sus,
+		}
+	},
+	/* MDM2AP_VDDMIN*/
+	{
+		.gpio = 80,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &mdm2ap_vddmin,
 		}
 	},
 };
@@ -1065,6 +1103,7 @@ static struct msm_gpiomux_config mpq8064_mi2s_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &mi2s_sus_cfg,
 		},
 	},
+#if !defined(CONFIG_USB_EHCI_MSM_HSIC)
 	{
 		.gpio	= 30,		/* mi2s dout2 */
 		.settings = {
@@ -1072,7 +1111,7 @@ static struct msm_gpiomux_config mpq8064_mi2s_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &mi2s_sus_cfg,
 		},
 	},
-
+#endif
 	{
 		.gpio	= 31,		/* mi2s dout1 */
 		.settings = {

@@ -169,6 +169,9 @@ int pm8xxx_watchdog_reset_control(int enable);
  */
 int pm8xxx_hard_reset_config(enum pm8xxx_pon_config config);
 
+int pm8xxx_hard_reset_enabled(void);
+int pm8xxx_hard_reset_control(int enable);
+
 /**
  * pm8xxx_stay_on - enables stay_on feature
  *

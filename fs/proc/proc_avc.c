@@ -115,7 +115,7 @@ static ssize_t sec_avc_log_write(struct file *file,
 	if (sscanf(page, "%u", &new_value) != 1) {
 		pr_info("%s\n", page);
 		/* print avc_log to sec_avc_log_buf */
-		sec_avc_log(page);
+		sec_avc_log("%s", page);
 	} 
 	ret = count;
 out:

@@ -24,6 +24,8 @@
 #define RECOVERY_CNT		5
 #define REDUCE_CURRENT_STEP	100
 #define MINIMUM_INPUT_CURRENT	300
+#define SIOP_INPUT_LIMIT_CURRENT 1200
+#define SIOP_CHARGING_LIMIT_CURRENT 1000
 
 struct max77693_charger_data {
 	struct max77693_dev	*max77693;
@@ -53,6 +55,7 @@ struct max77693_charger_data {
 	unsigned int	charging_current_max;
 	unsigned int	charging_current;
 	unsigned int	vbus_state;
+	int		aicl_on;
 	int		status;
 	int		siop_level;
 
@@ -260,6 +263,12 @@ static void max77693_set_input_current(struct max77693_charger_data *charger,
 				if ((chg_state != POWER_SUPPLY_STATUS_CHARGING) &&
 						(chg_state != POWER_SUPPLY_STATUS_FULL))
 					break;
+				/* under 500mA, slow rate */
+				if (set_current_reg < (500 / 20) &&
+						(charger->cable_type == POWER_SUPPLY_TYPE_MAINS))
+					charger->aicl_on = true;
+				else
+					charger->aicl_on = false;
 				msleep(50);
 			} else
 				break;
@@ -309,8 +318,15 @@ static void max77693_set_input_current(struct max77693_charger_data *charger,
 			if ((chg_state != POWER_SUPPLY_STATUS_CHARGING) &&
 					(chg_state != POWER_SUPPLY_STATUS_FULL))
 				goto exit;
-			if (curr_step < 2)
+			if (curr_step < 2) {
+				/* under 500mA, slow rate */
+				if (now_current_reg < (500 / 20) &&
+						(charger->cable_type == POWER_SUPPLY_TYPE_MAINS))
+					charger->aicl_on = true;
+				else
+					charger->aicl_on = false;
 				goto exit;
+			}
 			msleep(50);
 		} else
 			now_current_reg += (curr_step);
@@ -450,9 +466,15 @@ static void max77693_recovery_work(struct work_struct *work)
 		(chgin_dtls == 0x3) && (chg_dtls != 0x8) && (byp_dtls == 0x0))) {
 		pr_info("%s: try to recovery, cnt(%d)\n", __func__,
 				(chg_data->soft_reg_recovery_cnt + 1));
-		max77693_set_input_current(chg_data,
-				chg_data->charging_current_max);
-
+		if (chg_data->siop_level < 100 &&
+				chg_data->cable_type == POWER_SUPPLY_TYPE_MAINS) {
+			pr_info("%s : LCD on status and revocer current\n", __func__);
+			max77693_set_input_current(chg_data,
+					SIOP_INPUT_LIMIT_CURRENT);
+		} else {
+			max77693_set_input_current(chg_data,
+					chg_data->charging_current_max);
+		}
 	} else {
 		pr_info("%s: fail to recovery, cnt(%d)\n", __func__,
 				(chg_data->soft_reg_recovery_cnt + 1));
@@ -679,6 +701,11 @@ static int sec_chg_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_TYPE:
 		if (!charger->is_charging)
 			val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
+		else if (charger->aicl_on)
+		{
+			val->intval = POWER_SUPPLY_CHARGE_TYPE_SLOW;
+			pr_info("%s: slow-charging mode\n", __func__);
+		}
 		else
 			val->intval = POWER_SUPPLY_CHARGE_TYPE_FAST;
 		break;
@@ -719,6 +746,7 @@ static int sec_chg_set_property(struct power_supply *psy,
 				POWER_SUPPLY_PROP_HEALTH, value);
 		if (val->intval == POWER_SUPPLY_TYPE_BATTERY) {
 			charger->is_charging = false;
+			charger->aicl_on = false;
 			charger->soft_reg_recovery_cnt = 0;
 			set_charging_current = 0;
 			set_charging_current_max =
@@ -753,7 +781,14 @@ static int sec_chg_set_property(struct power_supply *psy,
 				set_charging_current_max = wpc_charging_current;
 			else
 				set_charging_current_max =
-						charger->charging_current_max;
+					charger->charging_current_max;
+
+			if (charger->siop_level < 100 &&
+					val->intval == POWER_SUPPLY_TYPE_MAINS) {
+				set_charging_current_max = SIOP_INPUT_LIMIT_CURRENT;
+				if (set_charging_current > SIOP_CHARGING_LIMIT_CURRENT)
+					set_charging_current = SIOP_CHARGING_LIMIT_CURRENT;
+			}
 		}
 		max77693_set_charger_state(charger, charger->is_charging);
 		/* if battery full, only disable charging  */
@@ -791,9 +826,25 @@ static int sec_chg_set_property(struct power_supply *psy,
 			/* decrease the charging current according to siop level */
 			int current_now =
 				charger->charging_current * val->intval / 100;
+
 			if (current_now > 0 &&
 					current_now < usb_charging_current)
 				current_now = usb_charging_current;
+
+			/* do forced set charging current */
+			if (charger->cable_type == POWER_SUPPLY_TYPE_MAINS) {
+				if (charger->siop_level < 100 )
+					set_charging_current_max =
+						SIOP_INPUT_LIMIT_CURRENT;
+				else
+					set_charging_current_max =
+						charger->charging_current_max;
+
+				if (charger->siop_level < 100 && current_now > SIOP_CHARGING_LIMIT_CURRENT)
+					current_now = SIOP_CHARGING_LIMIT_CURRENT;
+				max77693_set_input_current(charger,
+						set_charging_current_max);
+			}
 			max77693_set_charge_current(charger, current_now);
 		}
 		break;
@@ -1224,6 +1275,7 @@ static __devinit int max77693_charger_probe(struct platform_device *pdev)
 
 	charger->max77693 = iodev;
 	charger->pdata = pdata->charger_data;
+	charger->aicl_on = false;
 	charger->siop_level = 100;
 
 	platform_set_drvdata(pdev, charger);

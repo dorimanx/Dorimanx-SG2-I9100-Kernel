@@ -165,6 +165,9 @@ static void check_sync_rss_stat(struct task_struct *task)
 #define inc_mm_counter_fast(mm, member) inc_mm_counter(mm, member)
 #define dec_mm_counter_fast(mm, member) dec_mm_counter(mm, member)
 
+#if defined(CONFIG_VMWARE_MVP)
+EXPORT_SYMBOL_GPL(get_mm_counter);
+#endif
 static void check_sync_rss_stat(struct task_struct *task)
 {
 }

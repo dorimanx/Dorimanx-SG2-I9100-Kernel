@@ -35,6 +35,7 @@ void fsm_restart(char mode, const char *cmd);
 #endif
 
 extern int pmic_reset_irq;
+int resout_irq_control (int enable);
 
 #endif
 

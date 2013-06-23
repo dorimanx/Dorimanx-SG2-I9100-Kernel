@@ -79,6 +79,12 @@
 #define MIN_SLEEP_TIME_US 50
 #define MAX_SLEEP_TIME_US 100
 
+#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
+#define FW_SUPPORT_HSYNC03(x)	 (strncmp(x->product_id, "SY 03", 5) == 0)
+#define FW_SUPPORT_HSYNC04(x)	 (strncmp(x->product_id, "SY 04", 5) == 0)
+#define FW_NOT_SUPPORT_HSYNC(x)	 ((strncmp(x->product_id, "SY 01", 5) == 0) || (strncmp(x->product_id, "S5000B", 6) == 0) || (strncmp(x->product_id, "SY 02", 5) == 0))
+#endif
+
 static ssize_t fwu_sysfs_show_image(struct file *data_file,
 		struct kobject *kobj, struct bin_attribute *attributes,
 		char *buf, loff_t pos, size_t count);
@@ -937,11 +943,59 @@ static int fwu_start_reflash(bool mode, bool factory_fw)
 		memset(&fw_path, 0, SYNAPTICS_MAX_FW_PATH);
 
 		/* use factory test FW */
+#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
 		if (factory_fw) {
 			dev_info(&fwu->rmi4_data->i2c_client->dev,
 				"%s: run fw update for FACTORY FIRMWARE\n",
 				__func__);
-
+			if (FW_NOT_SUPPORT_HSYNC(fwu))
+				snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
+					"%s", FW_IMAGE_NAME_B0_NON_HSYNC_FAC);
+			else if (FW_SUPPORT_HSYNC03(fwu))
+				snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
+					"%s", FW_IMAGE_NAME_B0_HSYNC_FAC);
+			else // FW_SUPPORT_HSYNC04(fwu)
+				snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
+					"%s", FW_IMAGE_NAME_B0_HSYNC04_FAC);
+		} else {
+		/* Read firmware according to ic revision */
+			if ((fwu->rmi4_data->ic_revision_of_ic >> 4) == 0xB) {
+				/* Read firmware according to panel ID */
+				switch (fwu->rmi4_data->panel_revision) {
+				case OCTA_PANEL_REVISION_34:
+					if (FW_NOT_SUPPORT_HSYNC(fwu))
+						snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
+							"%s", FW_IMAGE_NAME_B0_NON_HSYNC);
+					else if (FW_SUPPORT_HSYNC03(fwu)){
+						snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
+							"%s", FW_IMAGE_NAME_B0_HSYNC);
+						}
+					else // FW_SUPPORT_HSYNC04(fwu)
+						snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
+							"%s", FW_IMAGE_NAME_B0_HSYNC04);
+					break;
+				default:
+					dev_info(&fwu->rmi4_data->i2c_client->dev,
+						"%s: Do not request, not matched revision and FW.\n",
+						__func__);
+					goto out;
+				}
+			} else if ((fwu->rmi4_data->ic_revision_of_ic >> 4) == 0xA) {
+				dev_info(&fwu->rmi4_data->i2c_client->dev,
+					"%s: Do not request, not matched revision and FW.\n",
+					__func__);
+				goto out;
+			} else { // force update when ic_revision_of_ic is NULL
+				snprintf(fw_path, SYNAPTICS_MAX_FW_PATH, "%s", FW_IMAGE_NAME_B0_HSYNC);
+				printk(KERN_ERR "%s, force update when ic_revision_of_ic is NULL\n", __func__);
+				mode = true;
+			}
+		}
+#else
+		if (factory_fw) {
+			dev_info(&fwu->rmi4_data->i2c_client->dev,
+				"%s: run fw update for FACTORY FIRMWARE\n",
+				__func__);
 			if (fwu->rmi4_data->panel_revision < OCTA_PANEL_REVISION_51)
 				snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
 						"%s", FW_IMAGE_NAME_B0_FAC);
@@ -985,19 +1039,8 @@ static int fwu_start_reflash(bool mode, bool factory_fw)
 					snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
 						"%s", FW_IMAGE_NAME_B0_43);
 			}
-#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
-			else  // force update when ic_revision_of_ic is NULL
-			{
-				snprintf(fw_path, SYNAPTICS_MAX_FW_PATH, "%s", FW_IMAGE_NAME_B0_34);
-				printk(KERN_ERR "%s, force update when ic_revision_of_ic is NULL\n", __func__);
-				mode = true;
-			}
-#endif
 		}
-/*
-		snprintf(fw_path, SYNAPTICS_MAX_FW_PATH,
-			"%s", FW_IMAGE_TEST);
-*/
+#endif
 		dev_info(&fwu->rmi4_data->i2c_client->dev,
 				"%s: Requesting firmware image %s\n",
 				__func__, fw_path);

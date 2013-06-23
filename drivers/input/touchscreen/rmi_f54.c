@@ -2208,9 +2208,14 @@ static void get_fac_fw_ver_bin(void)
 	const struct firmware *fw_entry = NULL;
 
 	set_default_result(data);
-
+#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
+	retval = request_firmware(&fw_entry, FW_IMAGE_NAME_B0_HSYNC_FAC,
+			&rmi4_data->i2c_client->dev);
+#else
 	retval = request_firmware(&fw_entry, FW_IMAGE_NAME_B0_FAC,
 			&rmi4_data->i2c_client->dev);
+#endif
+
 	if (retval < 0) {
 		dev_err(&rmi4_data->i2c_client->dev,
 				"%s: factory firmware request failed\n",
@@ -2389,8 +2394,13 @@ static int check_rx_tx_num(void)
 			__func__, data->cmd_param[0], data->cmd_param[1]);
 		node = -1;
 	} else {
+#if defined(CONFIG_MACH_JACTIVE_EUR) || defined(CONFIG_MACH_JACTIVE_ATT)
+		node = data->cmd_param[0] * rmi4_data->num_of_rx +
+						data->cmd_param[1];
+#else
 		node = data->cmd_param[0] * rmi4_data->num_of_tx +
 						data->cmd_param[1];
+#endif
 		dev_info(&rmi4_data->i2c_client->dev, "%s: node = %d\n",
 				__func__, node);
 	}

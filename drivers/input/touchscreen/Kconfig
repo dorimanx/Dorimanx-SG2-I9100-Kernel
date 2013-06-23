@@ -509,6 +509,13 @@ config TOUCHSCREEN_SYNAPTICS_RMI4_I2C
 	help
 	  This enables support for Synaptics RMI over I2C based touchscreens(ClearPad 3000).
 
+config TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE
+	bool "Synaptics prevent leakage i2c due to hsync"
+	default n
+	help
+	  There is leakage current on TSP I2C by HW defect. TSP I2C Failed.
+	  So To prevent leakage, hsync off, tsp on, hsync on.
+
 config SYNA_MULTI_TOUCH
 	tristate "Synaptics i2c touchscreen(ClearPad 3000) MutilTouch support"
 	depends on TOUCHSCREEN_SYNAPTICS_RMI4_I2C

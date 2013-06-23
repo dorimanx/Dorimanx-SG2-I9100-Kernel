@@ -850,7 +850,7 @@ msm8064_pm8917_regulator_pdata[] __devinitdata = {
 static struct rpm_regulator_init_data
 apq8064_rpm_regulator_init_data[] __devinitdata = {
 	/*	ID a_on pd ss min_uV   max_uV  supply sys_uA  freq  fm  ss_fm */
-	RPM_SMPS(S1, 1, 1, 0, 1225000, 1225000, NULL, 100000, 3p20, NONE, NONE),
+	RPM_SMPS(S1, 1, 1, 0, 1300000, 1300000, NULL, 100000, 3p20, NONE, NONE),
 	RPM_SMPS(S2, 0, 1, 0, 1300000, 1300000, NULL,      0, 1p60, NONE, NONE),
 	RPM_SMPS(S3, 0, 1, 1,  500000, 1150000, NULL, 100000, 4p80, NONE, NONE),
 	RPM_SMPS(S4, 1, 1, 0, 1800000, 1800000, NULL, 100000, 1p60, AUTO, AUTO),
@@ -879,14 +879,18 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
 	RPM_LDO(L15, 0, 1, 0, 1800000, 2950000, NULL,          0,     0),
 	RPM_LDO(L16, 0, 1, 0, 2800000, 3000000, NULL,          0,     0),
 	RPM_LDO(L17, 0, 1, 0, 1800000, 3300000, NULL,          0,     0),
+#if defined(CONFIG_MACH_JACTIVE_ATT)
+	RPM_LDO(L18, 0, 0, 0, 1100000, 1100000, "8921_s4",     0,     0),
+#else
 	RPM_LDO(L18, 1, 1, 0, 1100000, 1100000, "8921_s4",     0,     0),
+#endif
 	RPM_LDO(L21, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
 	RPM_LDO(L22, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
 	RPM_LDO(L23, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
 	RPM_LDO(L24, 0, 1, 1,  750000, 1150000, "8921_s1", 10000, 10000),
 	RPM_LDO(L25, 1, 1, 0, 1250000, 1250000, "8921_s1", 10000, 10000),
 	RPM_LDO(L27, 0, 0, 0, 1100000, 1100000, "8921_s7",     0,     0),
-	RPM_LDO(L28, 0, 1, 0, 1100000, 1100000, "8921_s7",     0,     0),
+	RPM_LDO(L28, 0, 1, 0, 1100000, 1200000, "8921_s7",     0,     0),
 	RPM_LDO(L29, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
 
 	/*     ID  a_on pd ss                   supply */

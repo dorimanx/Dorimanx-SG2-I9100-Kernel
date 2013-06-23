@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_cfg80211.h 393930 2013-03-29 12:06:51Z $
+ * $Id: wl_cfg80211.h 400791 2013-05-07 13:33:03Z $
  */
 
 #ifndef _wl_cfg80211_h_
@@ -181,6 +181,8 @@ do {									\
 #ifndef WL_SCB_TIMEOUT
 #define WL_SCB_TIMEOUT 20
 #endif
+
+#define WL_PM_ENABLE_TIMEOUT 3000
 
 /* driver status */
 enum wl_status {
@@ -600,6 +602,8 @@ struct wl_priv {
 #ifdef WL_HOST_BAND_MGMT
 	u8 curr_band;
 #endif /* WL_HOST_BAND_MGMT */
+	bool pm_enable_work_on;
+	struct delayed_work pm_enable_work;
 };
 
 

@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: linux_osl.c 390461 2013-03-12 07:21:34Z $
+ * $Id: linux_osl.c 399215 2013-04-29 12:41:45Z $
  */
 
 #define LINUX_PORT
@@ -748,6 +748,28 @@ osl_pktfree_static(osl_t *osh, void *p, bool send)
 	osl_pktfree(osh, p, send);
 }
 #endif 
+
+int osh_pktpadtailroom(osl_t *osh, struct sk_buff* skb, int pad)
+{
+	int err;
+	int ntail;
+
+	ntail = skb->data_len + pad - (skb->end - skb->tail);
+	if (likely(skb_cloned(skb) || ntail > 0)) {
+		err = pskb_expand_head(skb, 0, ntail, GFP_ATOMIC);
+		if (unlikely(err))
+			goto done;
+	}
+
+	err = skb_linearize(skb);
+	if (unlikely(err))
+		goto done;
+
+	memset(skb->data + skb->len, 0, pad);
+
+done:
+	return err;
+}
 
 uint32
 osl_pci_read_config(osl_t *osh, uint offset, uint size)

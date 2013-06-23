@@ -18,15 +18,15 @@
 #define PLATFORM_DRIVER_NAME "msm_camera_s5k6b2yx"
 #define s5k6b2yx_obj s5k6b2yx_##obj
 
-#define VISION_MODE_TEST_PATTERN 	0
+#define VISION_MODE_TEST_PATTERN	0
 
 #define VISION_MODE_AE_REG_ADDR		0x600a
-#define VISION_MODE_AE_BACKLIGHT	0x7a
+#define VISION_MODE_AE_BACKLIGHT	0x9a
 #define VISION_MODE_AE_NORMAL		0x2a
 
 #define VISION_MODE_SET_FPS_ADDR         0x6027
 #define VISION_MODE_SET_FPS_5           0x1
-#define VISION_MODE_SET_FPS_10          0X2  
+#define VISION_MODE_SET_FPS_10          0X2
 #define VISION_MODE_FPS_5_VAL           0xD0
 #define VISION_MODE_FPS_10_VAL          0x68
 
@@ -48,8 +48,11 @@ static struct msm_camera_i2c_reg_conf s5k6b2yx_vision_settings[] = {
 	{0x6026, 0x00},		/*  5fps */
 //	{0x6027, 0xD0},		/*  5fps */
 	/*  number of pixel : 176*104*24/64=6864 */
-	{0x5030, 0x1A},
-	{0x5031, 0xD0},
+	{0x5030, 0x11},
+	{0x5031, 0xE0},
+	/* AE max shutter */
+	{0x5014, 0x11},
+	{0x5015, 0x00},
 	/*  8bit mode */
 	{0x7030, 0x0E},
 	{0x7031, 0x2F},
@@ -66,14 +69,14 @@ static struct msm_camera_i2c_reg_conf s5k6b2yx_vision_settings[] = {
 	{0x7433, 0x32},
 	{0x7075, 0x3D},
 	{0x7066, 0x09},
-	{0x6000, 0x01},
-	{0x6001, 0x10},
-	{0x6002, 0x14},
-	{0x6003, 0x41},
-	{0x6004, 0x14},
-	{0x6005, 0x41},
-	{0x6006, 0x01},
-	{0x6007, 0x10},
+	{0x6000, 0x11},
+	{0x6001, 0x11},
+	{0x6002, 0x11},
+	{0x6003, 0x11},
+	{0x6004, 0x11},
+	{0x6005, 0x11},
+	{0x6006, 0x11},
+	{0x6007, 0x11},
 	/* Target */
 	{0x600A, 0x2A},
 	/*  Speed */

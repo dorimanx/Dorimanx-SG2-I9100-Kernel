@@ -117,13 +117,18 @@ tima_uevent_write(struct file *filp, const char __user *buff,
         return -ENOMEM;
     }
 
-    if ( copy_from_user(req, buff, len) ) {
+    /* Copy from user with truncation. */
+    if ( copy_from_user(req, buff, min((size_t)256, len)) ) {
         printk(KERN_ERR
                 "%s copy_from_user failed.\n",
                 __func__);
         retval = -EFAULT;
         goto out;
     }
+
+    /* Terminate the request string if it has been truncated. */
+    if (len > 255)
+        req[255] = '\0';
 
     printk(KERN_DEBUG "%s TIMA uevent request (%s).\n", __func__, req);
 
