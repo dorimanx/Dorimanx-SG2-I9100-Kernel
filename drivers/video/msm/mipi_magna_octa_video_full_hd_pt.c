@@ -102,7 +102,7 @@ static char magna_ss_control[] = {
 
 static char magna_TSP_control[] = {
 	0xFF,
-	0x00, 0x33,
+	0x00, 0x26,
 };
 
 static char magna_ACL_control[] = {
@@ -615,6 +615,9 @@ static struct dsi_cmd_desc magna_on_cmds_revF[] = {
 
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,
 		sizeof(magna_gamma_update), magna_gamma_update},
+
+	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,
+		sizeof(magna_TSP_control), magna_TSP_control},
 
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,
 		sizeof(magna_test_key_off1), magna_test_key_off1},

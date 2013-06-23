@@ -20,30 +20,58 @@ static struct msm_panel_info pinfo;
 static struct mipi_panel_data mipi_pd;
 
 enum {
-	GAMMA_30CD  =   8, // MIN 10 from platform
-	GAMMA_40CD  =  16,
-	GAMMA_50CD  =  22,
-	GAMMA_60CD  =  28,
-	GAMMA_70CD  =  34,
-	GAMMA_80CD  =  40,
-	GAMMA_90CD  =  46,
-	GAMMA_100CD =  52,
-	GAMMA_110CD =  58,
-	GAMMA_120CD =  64,
-	GAMMA_130CD =  70,
-	GAMMA_140CD =  76,
-	GAMMA_150CD =  82, // DEF 150 from platform
-	GAMMA_160CD =  94,
-	GAMMA_170CD = 106,
-	GAMMA_180CD = 118,
-	GAMMA_190CD = 130,
-	GAMMA_200CD = 142,
-	GAMMA_210CD = 154,
-	GAMMA_220CD = 166,
-	GAMMA_230CD = 178,
-	GAMMA_240CD = 190,
-	GAMMA_250CD = 202, // MAX 255 from platform
-	GAMMA_300CD = 202,
+	GAMMA_0CD	=	1,
+	GAMMA_5CD	=	2,
+	GAMMA_10CD	=	4, // MIN 10 from platform
+	GAMMA_15CD	=	7,
+	GAMMA_20CD	=	10,
+	GAMMA_25CD	=	13,
+	GAMMA_30CD	=	16,
+	GAMMA_35CD	=	19,
+	GAMMA_40CD	=	22,
+	GAMMA_45CD	=	25,
+	GAMMA_50CD	=	28,
+	GAMMA_55CD	=	31,
+	GAMMA_60CD	=	34,
+	GAMMA_65CD	=	37,
+	GAMMA_70CD	=	40,
+	GAMMA_75CD	=	43,
+	GAMMA_80CD	=	46,
+	GAMMA_85CD	=	49,
+	GAMMA_90CD	=	52,
+	GAMMA_95CD	=	55,
+	GAMMA_100CD	=	58,
+	GAMMA_105CD	=	61,
+	GAMMA_110CD =	64,
+	GAMMA_115CD =	67,
+	GAMMA_120CD	=	69,
+	GAMMA_125CD	=	71,
+	GAMMA_130CD =	73,
+	GAMMA_135CD =	75,
+	GAMMA_140CD	=	77,
+	GAMMA_145CD	=	79,
+	GAMMA_150CD =	81, // DEF 150 from platform
+	GAMMA_155CD =	86,
+	GAMMA_160CD	=	91,
+	GAMMA_165CD	=	96,
+	GAMMA_170CD =	101,
+	GAMMA_175CD =	106,
+	GAMMA_180CD	=	111,
+	GAMMA_185CD	=	116,
+	GAMMA_190CD =	121,
+	GAMMA_195CD =	126,
+	GAMMA_200CD	=	131,
+	GAMMA_205CD	=	136,
+	GAMMA_210CD =	141,
+	GAMMA_215CD =	146,
+	GAMMA_220CD	=	151,
+	GAMMA_225CD	=	156,
+	GAMMA_230CD =	161,
+	GAMMA_235CD =	166,
+	GAMMA_240CD =	170,
+	GAMMA_245CD =	174,
+	GAMMA_250CD =	178,
+	GAMMA_255CD =	182, // MAX 255 from platform
 };
 
 
@@ -63,12 +91,12 @@ static char renesas_manufacture_cmd_access_on[] = {
 
 static char renesas_brightness_setting[] = {
 	0x51,
-	0xCA, /*0xFF,*/
+	0xB6, /*0xFF,*/
 };
 
 static char renesas_brightness_packet[] = {
 	0x51,
-	0xCA, /*0xFF, */
+	0xB6, /*0xFF, */
 };
 
 static char renesas_cabc_control[] = {
@@ -93,9 +121,48 @@ static char renesas_backlight_control[] = {
 	0x2C,
 };
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+static char renesas_teon_control[] = {
+	0x35,
+	0x01,
+};
+
+static char renesas_teoff_control[] = {
+	0x35,
+	0x00,
+};
+#endif
+
 static char renesas_memory_access_control[] = {
 	0x36,
 	0xC0,
+};
+
+static char renesas_F0_control[] = {
+	0xF0,
+	0x5A,0x5A,
+};
+
+static char renesas_FA_control[] = {
+	0xFA,
+	0x18,0x3F,0x0A,0x08,0x0D,0x0E,0x0E,0x10,0x11,0x11,
+	0x10,0x0C,0x08,0x07,0x0A,0x0E,0x16,0x16,0x15,0x13,
+	0x0F,0x02,0x02,0x0F,0x3F,0x0C,0x0D,0x12,0x15,0x16,
+	0x18,0x1A,0x19,0x18,0x13,0x0D,0x0A,0x0C,0x10,0x17,
+	0x17,0x16,0x13,0x0F,0x03,0x03,0x00,0x3F,0x0F,0x11,
+	0x19,0x1D,0x20,0x22,0x24,0x23,0x22,0x1C,0x14,0x10,
+	0x12,0x15,0x1B,0x1A,0x18,0x15,0x10,0x05,0x06,
+};
+
+static char renesas_FB_control[] = {
+	0xFB,
+	0x18,0x3F,0x0A,0x08,0x0D,0x0E,0x0E,0x10,0x11,0x11,
+	0x10,0x0C,0x08,0x07,0x0A,0x0E,0x16,0x16,0x15,0x13,
+	0x0F,0x02,0x02,0x0F,0x3F,0x0C,0x0D,0x12,0x15,0x16,
+	0x18,0x1A,0x19,0x18,0x13,0x0D,0x0A,0x0C,0x10,0x17,
+	0x17,0x16,0x13,0x0F,0x03,0x03,0x00,0x3F,0x0F,0x11,
+	0x19,0x1D,0x20,0x22,0x24,0x23,0x22,0x1C,0x14,0x10,
+	0x12,0x15,0x1B,0x1A,0x18,0x15,0x10,0x05,0x06,
 };
 
 static char renesas_display_on[] = { 0x29, /* no param */ };
@@ -113,8 +180,17 @@ static struct dsi_cmd_desc renesas_ready_to_on_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,
 		sizeof(renesas_backlight_control), renesas_backlight_control},
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,
+		sizeof(renesas_teon_control), renesas_teon_control},
+#endif
+
+	{DTYPE_DCS_LWRITE, 1, 0, 0, 120,
 		sizeof(renesas_sleep_out), renesas_sleep_out},
+
+	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(renesas_F0_control), renesas_F0_control},
+	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(renesas_FA_control), renesas_FA_control},
+	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(renesas_FB_control), renesas_FB_control},
 
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,
 		sizeof(renesas_display_on), renesas_display_on},
@@ -174,6 +250,17 @@ static struct dsi_cmd_desc panel_cabc_disable_cmds[] = {
 };
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+static struct dsi_cmd_desc panel_hsync_on_cmds[] = {
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0,
+		sizeof(renesas_teon_control), renesas_teon_control},
+};
+
+static struct dsi_cmd_desc panel_hsync_off_cmds[] = {
+	{DTYPE_GEN_LWRITE, 1, 0, 0, 0,
+		sizeof(renesas_teoff_control), renesas_teoff_control},
+};
+#endif
 static int get_candela_index(int bl_level)
 {
 	int backlightlevel;
@@ -182,83 +269,164 @@ static int get_candela_index(int bl_level)
 	 * But in this driver, brightness is only supported from 0 to 24 */
 
 	switch (bl_level) {
-	case 0 ... 39:
-		backlightlevel = GAMMA_30CD; /* 0*/
+	case 0 ... 4:
+		backlightlevel = GAMMA_0CD;
 		break;
-	case 40 ... 49:
-		backlightlevel = GAMMA_40CD; /* 1 */
+	case 5 ... 9:
+		backlightlevel = GAMMA_5CD;
 		break;
-	case 50 ... 59:
-		backlightlevel = GAMMA_50CD; /* 2 */
+	case 10 ... 14:
+		backlightlevel = GAMMA_10CD;
 		break;
-	case 60 ... 69:
-		backlightlevel = GAMMA_60CD; /* 3 */
+	case 15 ... 19:
+		backlightlevel = GAMMA_15CD;
 		break;
-	case 70 ... 79:
-		backlightlevel = GAMMA_70CD; /* 4 */
+	case 20 ... 24:
+		backlightlevel = GAMMA_20CD;
 		break;
-	case 80 ... 89:
-		backlightlevel = GAMMA_80CD; /* 5 */
+	case 25 ... 29:
+		backlightlevel = GAMMA_25CD;
 		break;
-	case 90 ... 99:
-		backlightlevel = GAMMA_90CD; /* 6 */
+	case 30 ... 34:
+		backlightlevel = GAMMA_30CD;
 		break;
-	case 100 ... 109:
-		backlightlevel = GAMMA_100CD; /* 7 */
+	case 35 ... 39:
+		backlightlevel = GAMMA_35CD;
 		break;
-	case 110 ... 119:
-		backlightlevel = GAMMA_110CD; /* 8 */
+	case 40 ... 44:
+		backlightlevel = GAMMA_40CD;
 		break;
-	case 120 ... 129:
-		backlightlevel = GAMMA_120CD; /* 9 */
+	case 45 ... 49:
+		backlightlevel = GAMMA_45CD;
 		break;
-	case 130 ... 139:
-		backlightlevel = GAMMA_130CD; /* 10 */
+	case 50 ... 54:
+		backlightlevel = GAMMA_50CD;
 		break;
-	case 140 ... 149:
-		backlightlevel = GAMMA_140CD; /* 11 */
+	case 55 ... 59:
+		backlightlevel = GAMMA_55CD;
 		break;
-	case 150 ... 159:
-		backlightlevel = GAMMA_150CD; /* 12 */
+	case 60 ... 64:
+		backlightlevel = GAMMA_60CD;
 		break;
-	case 160 ... 169:
-		backlightlevel = GAMMA_160CD; /* 13 */
+	case 65 ... 69:
+		backlightlevel = GAMMA_65CD;
 		break;
-	case 170 ... 179:
-		backlightlevel = GAMMA_170CD; /* 14 */
+	case 70 ... 74:
+		backlightlevel = GAMMA_70CD;
 		break;
-	case 180 ... 189:
-		backlightlevel = GAMMA_180CD; /* 15 */
+	case 75 ... 79:
+		backlightlevel = GAMMA_75CD;
 		break;
-	case 190 ... 199:
-		backlightlevel = GAMMA_190CD; /* 16 */
+	case 80 ... 84:
+		backlightlevel = GAMMA_80CD;
 		break;
-	case 200 ... 209:
-		backlightlevel = GAMMA_200CD; /* 17 */
+	case 85 ... 89:
+		backlightlevel = GAMMA_85CD;
 		break;
-	case 210 ... 219:
-		backlightlevel = GAMMA_210CD; /* 18 */
+	case 90 ... 94:
+		backlightlevel = GAMMA_90CD;
 		break;
-	case 220 ... 229:
-		backlightlevel = GAMMA_220CD; /* 10 */
+	case 95 ... 99:
+		backlightlevel = GAMMA_95CD;
 		break;
-	case 230 ... 239:
-		backlightlevel = GAMMA_230CD; /* 20 */
+	case 100 ... 104:
+		backlightlevel = GAMMA_100CD;
 		break;
-	case 240 ... 249:
-		backlightlevel = GAMMA_240CD; /* 21 */
+	case 105 ... 109:
+		backlightlevel = GAMMA_105CD;
+		break;
+	case 110 ... 114:
+		backlightlevel = GAMMA_110CD;
+		break;
+	case 115 ... 119:
+		backlightlevel = GAMMA_115CD;
+		break;
+	case 120 ... 124:
+		backlightlevel = GAMMA_120CD;
+		break;
+	case 125 ... 129:
+		backlightlevel = GAMMA_125CD;
+		break;
+	case 130 ... 134:
+		backlightlevel = GAMMA_130CD;
+		break;
+	case 135 ... 139:
+		backlightlevel = GAMMA_135CD;
+		break;
+	case 140 ... 144:
+		backlightlevel = GAMMA_140CD;
+		break;
+	case 145 ... 149:
+		backlightlevel = GAMMA_145CD;
+		break;
+	case 150 ... 154:
+		backlightlevel = GAMMA_150CD;
+		break;
+	case 155 ... 159:
+		backlightlevel = GAMMA_155CD;
+		break;
+	case 160 ... 164:
+		backlightlevel = GAMMA_160CD;
+		break;
+	case 165 ... 169:
+		backlightlevel = GAMMA_165CD;
+		break;
+	case 170 ... 174:
+		backlightlevel = GAMMA_170CD;
+		break;
+	case 175 ... 179:
+		backlightlevel = GAMMA_175CD;
+		break;
+	case 180 ... 184:
+		backlightlevel = GAMMA_180CD;
+		break;
+	case 185 ... 189:
+		backlightlevel = GAMMA_185CD;
+		break;
+	case 190 ... 194:
+		backlightlevel = GAMMA_190CD;
+		break;
+	case 195 ... 199:
+		backlightlevel = GAMMA_195CD;
+		break;
+	case 200 ... 204:
+		backlightlevel = GAMMA_200CD;
+		break;
+	case 205 ... 209:
+		backlightlevel = GAMMA_205CD;
+		break;
+	case 210 ... 214:
+		backlightlevel = GAMMA_210CD;
+		break;
+	case 215 ... 219:
+		backlightlevel = GAMMA_215CD;
+		break;
+	case 220 ... 224:
+		backlightlevel = GAMMA_220CD;
+		break;
+	case 225 ... 229:
+		backlightlevel = GAMMA_225CD;
+		break;
+	case 230 ... 234:
+		backlightlevel = GAMMA_230CD;
+		break;
+	case 235 ... 239:
+		backlightlevel = GAMMA_235CD;
+		break;
+	case 240 ... 244:
+		backlightlevel = GAMMA_240CD;
+		break;
+	case 245 ... 249:
+		backlightlevel = GAMMA_245CD;
 		break;
 	case 250 ... 254:
-		backlightlevel = GAMMA_250CD; /* 22 */
+		backlightlevel = GAMMA_250CD;
 		break;
 	case 255:
-		if (mipi_pd.msd->dstat.auto_brightness == 1)
-			backlightlevel = GAMMA_300CD; /* 23 */
-		else
-			backlightlevel = GAMMA_250CD; /* 22 */
+		backlightlevel = GAMMA_255CD;
 		break;
 	default:
-		backlightlevel = GAMMA_40CD; /* 1 */
+		backlightlevel = GAMMA_150CD;
 		break;
 	}
 	return backlightlevel;
@@ -279,7 +447,10 @@ static int brightness_control(int bl_level)
 		renesas_brightness_packet[1] = value & 0xFF;
 		renesas_brightness_packet[1] = (value >> 8) & 0xFF;
 	} else
+	{
 		renesas_brightness_packet[1] =  level & 0xFF;
+		renesas_brightness_setting[1] = level & 0xFF;
+	}
 
 	return 0;
 }
@@ -311,6 +482,12 @@ static struct mipi_panel_data mipi_pd = {
 	.cabc_disable	= {panel_cabc_disable_cmds
 				, ARRAY_SIZE(panel_cabc_disable_cmds)},
 #endif
+#if defined(CONFIG_TOUCHSCREEN_SYNAPTICS_PREVENT_HSYNC_LEAKAGE)
+	.hsync_on = {panel_hsync_on_cmds
+				, ARRAY_SIZE(panel_hsync_on_cmds)},
+	.hsync_off	= {panel_hsync_off_cmds
+				, ARRAY_SIZE(panel_hsync_off_cmds)},
+#endif
 };
 
 static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db = {
@@ -318,7 +495,7 @@ static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db = {
 	/* regulator */
 	.regulator = {0x03, 0x0a, 0x04, 0x00, 0x20},
 	/* timing */
-	.timing = {0xD9, 0x31, 0x1E, 0x00, 0x52, 0x5E, 0x24, 0x35,
+	.timing = {0xD9, 0x40, 0x3C, 0x00, 0x52, 0x5E, 0x32, 0x40,
 	0x3C, 0x03, 0x04, 0xa0},
 	/* phy ctrl */
 	.ctrl = {0x5f, 0x00, 0x00, 0x10},
@@ -352,6 +529,8 @@ static int __init mipi_cmd_samsung_tft_full_hd_pt_init(void)
 #endif
 	pinfo.xres = 1080;
 	pinfo.yres = 1920;
+	pinfo.height = 111;
+	pinfo.width = 62;
 
 	pinfo.type = MIPI_VIDEO_PANEL;
 	pinfo.pdest = DISPLAY_1;

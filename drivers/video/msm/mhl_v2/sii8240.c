@@ -1814,6 +1814,7 @@ static void sii8240_power_down(struct sii8240_data *sii8240)
 	if (sii8240->pdata->power)
 		sii8240->pdata->power(0);
 	sii8240->muic_state = MHL_DETTACHED;
+	external_common_state->sii8240_connected = false;
 }
 
 static int cbus_handle_write_state(struct sii8240_data *sii8240,
@@ -2175,7 +2176,7 @@ static int sii8240_check_avi_info(struct sii8240_data *sii8240)
 			ret = 1;
 	}
 
-	if(ret == 1) {
+	if (ret == 1) {
 		pr_info("%s() current_aviInfoFrame  -------\n", __func__);
 		print_hex_dump(KERN_ERR, "sii8240: avi_info = ",
 			DUMP_PREFIX_NONE, 16, 1,
@@ -2504,6 +2505,7 @@ static void sii8240_avi_control_thread(struct work_struct *work)
 	switch (sii8240->avi_cmd) {
 	case HPD_HIGH_EVENT:
 		pr_info("***HPD high\n");
+		external_common_state->sii8240_connected = true;
 		external_common_state->hpd_feature(1);
 		/*reading devcap, but we can move this function
 		  any other first settup*/

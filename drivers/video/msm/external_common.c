@@ -525,6 +525,7 @@ static ssize_t hdmi_common_wta_hpd(struct device *dev,
 			DEV_DBG("%s: '%d'\n", __func__,
 				external_common_state->hpd_feature_on);
 		} else if (hpd == 1 && !external_common_state->hpd_feature_on) {
+			external_common_state->hpd_feature(1);
 			external_common_state->hpd_feature_on = 1;
 			DEV_DBG("%s: '%d'\n", __func__,
 				external_common_state->hpd_feature_on);
@@ -1350,7 +1351,11 @@ static void hdmi_edid_extract_audio_data_blocks(const uint8 *in_buf)
 		DEV_DBG("EDID: Audio Data Block=<ch=%d, format=%d "
 			"sampling=0x%02x bit-depth=0x%02x>\n",
 			(sad[1] & 0x7)+1, sad[1] >> 3, sad[2], sad[3]);
+		if ((sad[1] >> 3) == 0x01) {
 		audio_ch |= (1 << (sad[1] & 0x7));
+			if ((sad[1] & 0x7) > 5)
+				audio_ch |= 0x20;
+		}
 		*adb++ = (uint32)sad[1] + ((uint32)sad[2] << 8)
 			+ ((uint32)sad[2] << 16);
 		++external_common_state->audio_data_block_cnt;

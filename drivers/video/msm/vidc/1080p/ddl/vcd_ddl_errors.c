@@ -109,7 +109,6 @@ static u32 ddl_handle_client_fatal_errors(
 
 	switch (ddl_context->cmd_err_status) {
 	case VIDC_1080P_ERROR_UNSUPPORTED_FEATURE_IN_PROFILE:
-	case VIDC_1080P_ERROR_RESOLUTION_NOT_SUPPORTED:
 	case VIDC_1080P_ERROR_VOS_END_CODE_RECEIVED:
 	case VIDC_1080P_ERROR_FRAME_RATE_NOT_SUPPORTED:
 	case VIDC_1080P_ERROR_INVALID_QP_VALUE:
@@ -410,17 +409,6 @@ static u32 ddl_handle_dec_seq_hdr_fail_error(struct ddl_client_context *ddl)
 			VIDC_1080P_ERROR_UNSUPPORTED_FEATURE_IN_PROFILE
 			&& decoder->codec.codec == VCD_CODEC_H264) {
 			DDL_MSG_ERROR("Unsupported Feature for H264");
-			ddl_client_fatal_cb(ddl);
-			return true;
-		}
-		if ((ddl_context->cmd_err_status ==
-			VIDC_1080P_ERROR_RESOLUTION_NOT_SUPPORTED)
-			&& (decoder->codec.codec == VCD_CODEC_H263
-			|| decoder->codec.codec == VCD_CODEC_H264
-			|| decoder->codec.codec == VCD_CODEC_MPEG4
-			|| decoder->codec.codec == VCD_CODEC_VC1
-			|| decoder->codec.codec == VCD_CODEC_VC1_RCV)) {
-			DDL_MSG_ERROR("Unsupported resolution");
 			ddl_client_fatal_cb(ddl);
 			return true;
 		}

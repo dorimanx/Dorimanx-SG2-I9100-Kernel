@@ -801,7 +801,7 @@ static void hdmi_msm_send_event(boolean on)
 		switch_set_state(&hdmi_msm_state->hdmi_audio_ch,
 			hdmi_msm_is_dvi_mode() ?
 			0 : external_common_state->audio_speaker_data);
-		DEV_INFO("HDMI HPD: hdmi_audio_ch : %d\n",
+		DEV_INFO("HDMI HPD: hdmi_audio_ch : 0x%04x\n",
 			hdmi_msm_is_dvi_mode() ?
 			0 : external_common_state->audio_speaker_data);
 		if (!hdmi_msm_state->hdcp_enable) {
@@ -4775,10 +4775,18 @@ static int hdmi_msm_hpd_feature(int on)
 
 	DEV_INFO("%s: %d\n", __func__, on);
 	if (on) {
-		rc = hdmi_msm_hpd_on();
+		if (external_common_state->sii8240_connected)
+			rc = hdmi_msm_hpd_on();
 	} else {
 		external_common_state->hpd_state = 0;
 		hdmi_msm_hpd_off();
+                DEV_INFO("hdmi: HDMI HPD: sense DISCONNECTED: send OFFLINE\n");
+                hdmi_msm_state->hpd_on_offline = FALSE;
+                kobject_uevent(external_common_state->uevent_kobj,
+                        KOBJ_OFFLINE);
+                /*sending hdmi_audio_ch*/
+                switch_set_state(&hdmi_msm_state->hdmi_audio_ch, -1);
+                switch_set_state(&hdmi_msm_state->hdmi_audio_switch, 0);
 #ifdef QCT_SWITCH_STATE_CMD
 		SWITCH_SET_HDMI_AUDIO(0, 0);
 

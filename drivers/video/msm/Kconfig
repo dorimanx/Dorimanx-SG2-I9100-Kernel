@@ -1092,6 +1092,10 @@ config LCD_VDD3_BY_PMGPIO
 	bool "support externel dcdc for VDD3_IO"
 	default n
 
+config ESD_ERR_FG_RECOVERY
+	bool "ESD RECOVERY BY ERR_FG"
+	default n
+
 if FB_MSM_MDSS
 	source "drivers/video/msm/mdss/Kconfig"
 endif

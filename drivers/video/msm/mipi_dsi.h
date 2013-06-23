@@ -17,6 +17,10 @@
 #include <mach/scm-io.h>
 #include <linux/list.h>
 
+#if defined(CONFIG_ESD_ERR_FG_RECOVERY)
+#include "mdnie_lite_tuning.h"
+#endif
+
 #ifdef BIT
 #undef BIT
 #endif
@@ -270,6 +274,7 @@ typedef void (*fxn)(u32 data);
 #define CMD_REQ_COMMIT	0x0002
 #define CMD_CLK_CTRL	0x0004
 #define CMD_REQ_NO_MAX_PKT_SIZE 0x0008
+#define CMD_REQ_SINGLE_TX 0x0010
 
 struct dcs_cmd_req {
 	struct dsi_cmd_desc *cmds;
@@ -303,6 +308,8 @@ void mipi_dsi_bist_ctrl(void);
 int mipi_dsi_buf_alloc(struct dsi_buf *, int size);
 int mipi_dsi_cmd_dma_add(struct dsi_buf *dp, struct dsi_cmd_desc *cm);
 int mipi_dsi_cmds_tx(struct dsi_buf *dp, struct dsi_cmd_desc *cmds, int cnt);
+int mipi_dsi_cmds_single_tx(struct dsi_buf *dp, struct dsi_cmd_desc *cmds,
+								int cnt);
 
 int mipi_dsi_cmd_dma_tx(struct dsi_buf *dp);
 int mipi_dsi_cmd_reg_tx(uint32 data);
@@ -370,5 +377,9 @@ int mipi_runtime_clk_change(int fps);
 
 void mipi_dsi_irq_set(uint32 mask, uint32 irq);
 void mdp4_dsi_video_wait4dmap_for_dsi(int cndx);
+
+#if defined(CONFIG_ESD_ERR_FG_RECOVERY)
+void esd_recovery(void);
+#endif
 
 #endif /* MIPI_DSI_H */

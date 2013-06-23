@@ -962,6 +962,10 @@ int mdp4_update_base_blend(struct msm_fb_data_type *mfd,
 				struct mdp_blend_cfg *mdp_blend_cfg);
 u32 mdp4_get_mixer_num(u32 panel_type);
 int mdp4_overlay_reset(void);
+void dump_underrun_pipe_info(void);
+#if defined(CONFIG_MACH_JACTIVE_ATT) || defined(CONFIG_MACH_JACTIVE_EUR)
+void dtv_update_camera_vector_override(uint8_t enable);
+#endif
 
 #ifndef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
 static inline void mdp4_wfd_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe)
