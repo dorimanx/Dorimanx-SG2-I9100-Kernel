@@ -546,7 +546,7 @@ static struct acpu_level tbl_PVS0_2000MHz[] __initdata = {
 #ifdef CONFIG_OC_ULTIMATE
 	{ 1, {  2160000, HFPLL, 1, 0x50 }, L2(15), 1412500 },
 	{ 1, {  2214000, HFPLL, 1, 0x52 }, L2(15), 1437500 },
-	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1450000 },
+//	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1450000 },
 #endif
 #endif
 	{ 0, { 0 } }
@@ -585,7 +585,7 @@ static struct acpu_level tbl_PVS1_2000MHz[] __initdata = {
 #ifdef CONFIG_OC_ULTIMATE
 	{ 1, {  2160000, HFPLL, 1, 0x50 }, L2(15), 1375000 },
 	{ 1, {  2214000, HFPLL, 1, 0x52 }, L2(15), 1400000 },
-	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1425000 },
+//	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1425000 },
 #endif
 #endif
 	{ 0, { 0 } }
@@ -624,7 +624,7 @@ static struct acpu_level tbl_PVS2_2000MHz[] __initdata = {
 #ifdef CONFIG_OC_ULTIMATE
 	{ 1, {  2160000, HFPLL, 1, 0x50 }, L2(15), 1337500 },
 	{ 1, {  2214000, HFPLL, 1, 0x52 }, L2(15), 1362500 },
-	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1387500 },
+//	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1387500 },
 #endif
 #endif
 	{ 0, { 0 } }
@@ -663,7 +663,7 @@ static struct acpu_level tbl_PVS3_2000MHz[] __initdata = {
 #ifdef CONFIG_OC_ULTIMATE
 	{ 1, {  2160000, HFPLL, 1, 0x50 }, L2(15), 1300000 },
 	{ 1, {  2214000, HFPLL, 1, 0x52 }, L2(15), 1325000 },
-	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1350000 },
+//	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1350000 },
 #endif
 #endif
 	{ 0, { 0 } }
@@ -702,7 +702,7 @@ static struct acpu_level tbl_PVS4_2000MHz[] __initdata = {
 #ifdef CONFIG_OC_ULTIMATE
 	{ 1, {  2160000, HFPLL, 1, 0x50 }, L2(15), 1275000 },
 	{ 1, {  2214000, HFPLL, 1, 0x52 }, L2(15), 1300000 },
-	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1325000 },
+//	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1325000 },
 #endif
 #endif
 	{ 0, { 0 } }
@@ -741,7 +741,7 @@ static struct acpu_level tbl_PVS5_2000MHz[] __initdata = {
 #ifdef CONFIG_OC_ULTIMATE
 	{ 1, {  2160000, HFPLL, 1, 0x50 }, L2(15), 1250000 },
 	{ 1, {  2214000, HFPLL, 1, 0x52 }, L2(15), 1275000 },
-	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1300000 },
+//	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1300000 },
 #endif
 #endif
 	{ 0, { 0 } }
@@ -780,7 +780,7 @@ static struct acpu_level tbl_PVS6_2000MHz[] __initdata = {
 #ifdef CONFIG_OC_ULTIMATE
 	{ 1, {  2160000, HFPLL, 1, 0x50 }, L2(15), 1225000 },
 	{ 1, {  2214000, HFPLL, 1, 0x52 }, L2(15), 1250000 },
-	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1275000 },
+//	{ 1, {  2268000, HFPLL, 1, 0x54 }, L2(15), 1275000 },
 #endif
 #endif
 	{ 0, { 0 } }
