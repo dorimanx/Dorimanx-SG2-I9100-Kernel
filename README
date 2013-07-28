@@ -1,10 +1,28 @@
                        This is Dorimanx Kernel 9.X/8.x
 
-This kernel is compiled on Ubuntu 12.04 x86/64BIT
+This kernel is compiled on Ubuntu 12.04 x86/64BIT.
 
-To compile you need to add
-sudo apt-get install ccache
-sudo apt-get install imagemagick
+It is important to keep this one, otherwise the kernel will be compiled
+but it won't boot as the script will fire errors.
+
+*** ONLY FOR 64 BIT ***
+It is important to install this otherwise the linaro GCC will fire errors
+$ sudo apt-get install ia32-libs
+***********************
+
+To compile you need:
+$ sudo apt-get install ccache imagemagick libxml2-utils
+
+To clone this repo
+$ sudo apt-get install git
+$ mkdir samsung-i9100
+$ cd samsung-i9100
+$ git clone https://github.com/dorimanx/Dorimanx-SG2-I9100-Kernel.git
+$ git clone https://github.com/dorimanx/initramfs3.git
+
+To start the build
+$ cd Dorimanx-SG2-I9100-Kernel
+$ ./build_kernel.sh
 
 ==================================================================
 My info guide.
