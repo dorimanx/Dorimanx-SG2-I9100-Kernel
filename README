@@ -15,14 +15,14 @@ $ sudo apt-get install ccache imagemagick libxml2-utils
 
 To clone this repo
 $ sudo apt-get install git
-$ mkdir samsung-i9100
-$ cd samsung-i9100
+$ mkdir ~/samsung-i9100
+$ cd ~/samsung-i9100
 $ git clone https://github.com/dorimanx/Dorimanx-SG2-I9100-Kernel.git
 $ git clone https://github.com/dorimanx/initramfs3.git
 
 To start the build
-$ cd Dorimanx-SG2-I9100-Kernel
-$ ./build_kernel.sh
+$ cd ~/samsung-i9100/Dorimanx-SG2-I9100-Kernel
+$ sudo ./build_kernel.sh
 
 ==================================================================
 My info guide.
