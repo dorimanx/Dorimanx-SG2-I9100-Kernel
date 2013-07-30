@@ -11,7 +11,7 @@ $ sudo apt-get install ia32-libs
 ***********************
 
 To compile you need:
-$ sudo apt-get install ccache imagemagick libxml2-utils
+$ sudo apt-get install ccache imagemagick libxml2-utils optipng
 
 To clone this repo
 $ sudo apt-get install git
