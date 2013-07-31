@@ -80,16 +80,7 @@
  */
 #define IOREMAP_MAX_ORDER	24
 
-/*
- * Size of DMA-consistent memory region.  Must be multiple of 2M,
- * between 2MB and 14MB inclusive.
- */
-#ifndef CONSISTENT_DMA_SIZE
-#define CONSISTENT_DMA_SIZE 	SZ_2M
-#endif
-
 #define CONSISTENT_END		(0xffe00000UL)
-#define CONSISTENT_BASE		(CONSISTENT_END - CONSISTENT_DMA_SIZE)
 
 #else /* CONFIG_MMU */
 
@@ -208,18 +199,6 @@ static inline unsigned long __phys_to_virt(unsigned long x)
 #else
 #define PHYS_OFFSET	UL(CONFIG_PHYS_OFFSET)
 #endif
-#endif
-
-/*
- * The DMA mask corresponding to the maximum bus address allocatable
- * using GFP_DMA.  The default here places no restriction on DMA
- * allocations.  This must be the smallest DMA mask in the system,
- * so a successful GFP_DMA allocation will always satisfy this.
- */
-#ifndef ARM_DMA_ZONE_SIZE
-#define ISA_DMA_THRESHOLD	(0xffffffffULL)
-#else
-#define ISA_DMA_THRESHOLD	(PHYS_OFFSET + ARM_DMA_ZONE_SIZE - 1)
 #endif
 
 /*
