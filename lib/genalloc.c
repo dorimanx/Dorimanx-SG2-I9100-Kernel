@@ -14,7 +14,7 @@
 #include <linux/export.h>
 #include <linux/bitmap.h>
 #include <linux/genalloc.h>
-#include <linux/vmalloc.h>
+
 
 /* General purpose special memory pool descriptor. */
 struct gen_pool {
@@ -32,6 +32,7 @@ struct gen_pool_chunk {
 	unsigned long size;		/* number of bits */
 	unsigned long bits[0];		/* bitmap for allocating memory chunk */
 };
+
 
 /**
  * gen_pool_create() - create a new special memory pool
@@ -73,14 +74,15 @@ EXPORT_SYMBOL(gen_pool_create);
  *
  * Returns 0 on success or a -ve errno on failure.
  */
-int __must_check gen_pool_add_virt(struct gen_pool *pool, unsigned long virt, phys_addr_t phys,
+int __must_check
+gen_pool_add_virt(struct gen_pool *pool, unsigned long virt, phys_addr_t phys,
 		 size_t size, int nid)
 {
 	struct gen_pool_chunk *chunk;
 	size_t nbytes;
 
 	if (WARN_ON(!virt || virt + size < virt ||
-	    (virt & ((1 << pool->order) - 1))))
+		    (virt & ((1 << pool->order) - 1))))
 		return -EINVAL;
 
 	size = size >> pool->order;
@@ -88,17 +90,9 @@ int __must_check gen_pool_add_virt(struct gen_pool *pool, unsigned long virt, ph
 		return -EINVAL;
 
 	nbytes = sizeof *chunk + BITS_TO_LONGS(size) * sizeof *chunk->bits;
-
-	if (nbytes <= PAGE_SIZE)
-		chunk = kzalloc_node(nbytes, GFP_KERNEL, nid);
-	else
-		chunk = vmalloc(nbytes);
-
+	chunk = kzalloc_node(nbytes, GFP_KERNEL, nid);
 	if (!chunk)
 		return -ENOMEM;
-
-	if (nbytes > PAGE_SIZE)
-		memset(chunk, 0, nbytes);
 
 	spin_lock_init(&chunk->lock);
 	chunk->phys_addr = phys;
@@ -130,7 +124,7 @@ phys_addr_t gen_pool_virt_to_phys(struct gen_pool *pool, unsigned long addr)
 		chunk = list_entry(_chunk, struct gen_pool_chunk, next_chunk);
 
 		if (addr >= chunk->start &&
-		    addr < (chunk->start + chunk->size))
+				addr < (chunk->start + chunk->size))
 			return chunk->phys_addr + addr - chunk->start;
 	}
 	read_unlock(&pool->lock);
@@ -150,7 +144,6 @@ void gen_pool_destroy(struct gen_pool *pool)
 {
 	struct gen_pool_chunk *chunk;
 	int bit;
-	size_t nbytes;
 
 	while (!list_empty(&pool->chunks)) {
 		chunk = list_entry(pool->chunks.next, struct gen_pool_chunk,
@@ -160,13 +153,7 @@ void gen_pool_destroy(struct gen_pool *pool)
 		bit = find_next_bit(chunk->bits, chunk->size, 0);
 		BUG_ON(bit < chunk->size);
 
-		nbytes = sizeof *chunk + BITS_TO_LONGS(chunk->size) *
-			sizeof *chunk->bits;
-
-		if (nbytes <= PAGE_SIZE)
-			kfree(chunk);
-		else
-			vfree(chunk);
+		kfree(chunk);
 	}
 	kfree(pool);
 }
@@ -226,10 +213,10 @@ done:
 EXPORT_SYMBOL(gen_pool_alloc_aligned);
 
 /**
- * gen_pool_free() - free allocated special memory back to the pool
- * @pool:	Pool to free to.
- * @addr:	Starting address of memory to free back to pool.
- * @size:	Size in bytes of memory to free.
+ * gen_pool_free - free allocated special memory back to the pool
+ * @pool: pool to free to
+ * @addr: starting address of memory to free back to pool
+ * @size: size in bytes of memory to free
  *
  * Free previously allocated special memory back to the specified pool.
  */
