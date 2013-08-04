@@ -1,5 +1,25 @@
                        This is Dorimanx Kernel 9.X/8.x
 
+NEW! You can build this kernel easily on BBQLinux (http://www.bbqlinux.org/), an Arch based distro for Android Devs.
+Install it and simply do these commands:
+
+To compile you need:
+$ pacman -S parallel bc
+
+To clone this repo
+$ sudo apt-get install git
+$ mkdir ~/samsung-i9100
+$ cd ~/samsung-i9100
+$ git clone https://github.com/dorimanx/Dorimanx-SG2-I9100-Kernel.git
+$ git clone https://github.com/dorimanx/initramfs3.git
+
+To start the build
+$ cd ~/samsung-i9100/Dorimanx-SG2-I9100-Kernel
+$ sudo ./build_kernel.sh
+
+Enjoy!
+
+==================================================================
 This kernel is compiled on Ubuntu Server/Desktop 12.04 x86/64BIT.
 
 It is important to keep this one, otherwise the kernel will be compiled
