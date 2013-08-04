@@ -2,6 +2,7 @@ config ARM
 	bool
 	default y
 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+	select BUILDTIME_EXTABLE_SORT if MMU
 	select CPU_PM if (SUSPEND || CPU_IDLE)
 	select DCACHE_WORD_ACCESS if (CPU_V6 || CPU_V6K || CPU_V7L) && !CPU_BIG_ENDIAN && MMU
 	select GENERIC_ATOMIC64 if (CPU_V6 || !CPU_32v6K || !AEABI)
@@ -240,6 +241,13 @@ config ARM_PATCH_PHYS_VIRT_16BIT
 
 config ARCH_HIBERNATION_POSSIBLE
 	def_bool y
+
+config NEED_MACH_IO_H
+	bool
+	help
+	  Select this when mach/io.h is required to provide special
+	  definitions for this platform.  The need for mach/io.h should
+	  be avoided when possible.
 
 config NO_MACH_MEMORY_H
 	bool
@@ -483,8 +491,8 @@ config ARM_ERRATA_751472
 	  operation is received by a CPU before the ICIALLUIS has completed,
 	  potentially leading to corrupted entries in the cache or TLB.
 
-config ARM_ERRATA_753970
-	bool "ARM errata: cache sync operation may be faulty"
+config PL310_ERRATA_753970
+	bool "PL310 errata: cache sync operation may be faulty"
 	depends on CACHE_PL310
 	help
 	  This option enables the workaround for the 753970 PL310 (r3p0) erratum.

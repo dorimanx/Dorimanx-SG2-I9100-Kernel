@@ -11,3 +11,4 @@ recordmcount
 docproc
 zconf.hash.c
 zconf.tab.c
+sortextable
