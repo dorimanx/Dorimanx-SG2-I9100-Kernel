@@ -2037,7 +2037,9 @@ static void rmnet_smd_sdio_cleanup(void)
 	struct rmnet_mux_dev *dev = rmux_dev;
 	struct rmnet_mux_smd_dev *smd_dev = &dev->smd_dev;
 
+#ifdef CONFIG_DEBUG_FS
 	debugfs_remove_recursive(dent_rmnet_mux);
+#endif
 	misc_deregister(&rmnet_mux_ctrl_dev);
 	smd_close(smd_dev->smd_data.ch);
 	destroy_workqueue(dev->wq);

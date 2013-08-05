@@ -29,13 +29,13 @@ static inline struct dentry *kgsl_get_debugfs_dir(void)
 	return kgsl_debugfs_dir;
 }
 
-int kgsl_process_init_debugfs(struct kgsl_process_private *);
+int kgsl_process_init_debugfs(struct kgsl_process_private *ptr);
 #else
 static inline void kgsl_core_debugfs_init(void) { }
 static inline void kgsl_device_debugfs_init(struct kgsl_device *device) { }
 static inline void kgsl_core_debugfs_close(void) { }
 static inline struct dentry *kgsl_get_debugfs_dir(void) { return NULL; }
-static inline int kgsl_process_init_debugfs(struct kgsl_process_private *)
+static inline int kgsl_process_init_debugfs(struct kgsl_process_private *ptr)
 {
 	return 0;
 }

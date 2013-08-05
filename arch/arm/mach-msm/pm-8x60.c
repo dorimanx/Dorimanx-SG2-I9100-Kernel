@@ -1083,7 +1083,9 @@ module_param_named(
 static int msm_pm_prepare_late(void)
 {
 	if (msm_pm_secdebug_mask & MSM_PM_SECDEBUG_LEVLE1) {
+#ifdef CONFIG_DEBUG_FS
 		regulator_showall_enabled();
+#endif
 		msm_gpio_print_enabled();
 		pm_gpio_dbg_showall(1);
 		pm_mpp_dbg_showall(1);

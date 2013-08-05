@@ -5639,12 +5639,13 @@ static struct clk_lookup msm_clocks_8064[] = {
 
 	CLK_LOOKUP("reset1_clk",	dsi1_reset_clk.c, "footswitch-8x60.4"),
 	CLK_LOOKUP("reset2_clk",	dsi2_reset_clk.c, "footswitch-8x60.4"),
-
+#ifdef CONFIG_DEBUG_FS
 	CLK_LOOKUP("l2_mclk",		l2_m_clk,     ""),
 	CLK_LOOKUP("krait0_mclk",	krait0_m_clk, ""),
 	CLK_LOOKUP("krait1_mclk",	krait1_m_clk, ""),
 	CLK_LOOKUP("krait2_mclk",	krait2_m_clk, ""),
 	CLK_LOOKUP("krait3_mclk",	krait3_m_clk, ""),
+#endif
 #ifdef CONFIG_SND_SOC_ES325
 	CLK_LOOKUP("osr_clk",	codec_i2s_spkr_osr_clk.c, "es325_mclk_dev"),
 #endif
@@ -5674,12 +5675,14 @@ static struct clk_lookup msm_clocks_8960_common[] __initdata = {
 	CLK_LOOKUP("bus_clk",		dfab_a_clk.c,	""),
 	CLK_LOOKUP("mem_clk",		ebi1_clk.c,	""),
 	CLK_LOOKUP("mem_clk",		ebi1_a_clk.c,	""),
+#ifdef CONFIG_DEBUG_FS
 	CLK_LOOKUP("bus_clk",		mmfab_clk.c,	""),
 	CLK_LOOKUP("bus_clk",		mmfab_a_clk.c,	""),
 	CLK_LOOKUP("bus_clk",		mmfpb_clk.c,	""),
 	CLK_LOOKUP("bus_clk",		mmfpb_a_clk.c,	""),
 	CLK_LOOKUP("bus_clk",		sfab_clk.c,	""),
 	CLK_LOOKUP("bus_clk",		sfab_a_clk.c,	""),
+#endif
 	CLK_LOOKUP("bus_clk",		sfpb_clk.c,	""),
 	CLK_LOOKUP("bus_clk",		sfpb_a_clk.c,	""),
 
@@ -5973,13 +5976,14 @@ static struct clk_lookup msm_clocks_8960_common[] __initdata = {
 
 	CLK_LOOKUP("reset1_clk",	dsi1_reset_clk.c, "footswitch-8x60.4"),
 	CLK_LOOKUP("reset2_clk",	dsi2_reset_clk.c, "footswitch-8x60.4"),
-
+#ifdef CONFIG_DEBUG_FS
 	CLK_LOOKUP("l2_mclk",		l2_m_clk,     ""),
 	CLK_LOOKUP("krait0_mclk",	krait0_m_clk, ""),
 	CLK_LOOKUP("krait1_mclk",	krait1_m_clk, ""),
 	CLK_LOOKUP("q6sw_clk",		q6sw_clk,     ""),
 	CLK_LOOKUP("q6fw_clk",		q6fw_clk,     ""),
 	CLK_LOOKUP("q6_func_clk",	q6_func_clk,  ""),
+#endif
 };
 
 static struct clk_lookup msm_clocks_8960_only[] __initdata = {
@@ -6304,13 +6308,14 @@ static struct clk_lookup msm_clocks_8930[] = {
 	CLK_LOOKUP("bus_clk",		afab_acpu_a_clk.c, ""),
 
 	CLK_LOOKUP("reset1_clk",	dsi1_reset_clk.c, "footswitch-8x60.4"),
-
+#ifdef CONFIG_DEBUG_fS
 	CLK_LOOKUP("l2_mclk",		l2_m_clk,     ""),
 	CLK_LOOKUP("krait0_mclk",	krait0_m_clk, ""),
 	CLK_LOOKUP("krait1_mclk",	krait1_m_clk, ""),
 	CLK_LOOKUP("q6sw_clk",		q6sw_clk,     ""),
 	CLK_LOOKUP("q6fw_clk",		q6fw_clk,     ""),
 	CLK_LOOKUP("q6_func_clk",	q6_func_clk,  ""),
+#endif
 };
 /*
  * Miscellaneous clock register initializations

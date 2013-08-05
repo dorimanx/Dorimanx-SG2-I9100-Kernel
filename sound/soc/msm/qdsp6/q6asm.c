@@ -970,7 +970,9 @@ static int32_t q6asm_callback(struct apr_client_data *data, void *priv)
 	case ASM_STREAM_CMDRSP_GET_PP_PARAMS:
 		
 		if(payload!=NULL &&  payload[2] == 0x10001fd2){
+#ifdef CONFIG_DEBUG_FS
 		       score = payload[5];
+#endif
 		}
 		else {
 			rtac_make_asm_callback(ac->session, payload,

@@ -2307,6 +2307,7 @@ out:
 	return ret;
 }
 
+#ifdef CONFIG_DEBUG_FS
 static unsigned int __regulator_get_mode(struct regulator_dev *rdev)
 {
 	int ret;
@@ -2321,6 +2322,7 @@ static unsigned int __regulator_get_mode(struct regulator_dev *rdev)
 out:
 	return ret;
 }
+#endif
 
 /**
  * regulator_get_mode - get regulator operating mode
