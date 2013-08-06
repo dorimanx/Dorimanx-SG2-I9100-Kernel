@@ -42,6 +42,8 @@ static void ext2_sync_super(struct super_block *sb,
 static int ext2_remount (struct super_block * sb, int * flags, char * data);
 static int ext2_statfs (struct dentry * dentry, struct kstatfs * buf);
 static int ext2_sync_fs(struct super_block *sb, int wait);
+static int ext2_freeze(struct super_block *sb);
+static int ext2_unfreeze(struct super_block *sb);
 
 void ext2_error(struct super_block *sb, const char *function,
 		const char *fmt, ...)
@@ -204,6 +206,11 @@ static int init_inodecache(void)
 
 static void destroy_inodecache(void)
 {
+	/*
+	 * Make sure all delayed rcu free inodes are flushed before we
+	 * destroy cache.
+	 */
+	rcu_barrier();
 	kmem_cache_destroy(ext2_inode_cachep);
 }
 
@@ -305,6 +312,8 @@ static const struct super_operations ext2_sops = {
 	.evict_inode	= ext2_evict_inode,
 	.put_super	= ext2_put_super,
 	.sync_fs	= ext2_sync_fs,
+	.freeze_fs	= ext2_freeze,
+	.unfreeze_fs	= ext2_unfreeze,
 	.statfs		= ext2_statfs,
 	.remount_fs	= ext2_remount,
 	.show_options	= ext2_show_options,
@@ -460,7 +469,7 @@ static int parse_options(char *options, struct super_block *sb)
 			uid = make_kuid(current_user_ns(), option);
 			if (!uid_valid(uid)) {
 				ext2_msg(sb, KERN_ERR, "Invalid uid value %d", option);
-				return -1;
+				return 0;
 
 			}
 			sbi->s_resuid = uid;
@@ -471,7 +480,7 @@ static int parse_options(char *options, struct super_block *sb)
 			gid = make_kgid(current_user_ns(), option);
 			if (!gid_valid(gid)) {
 				ext2_msg(sb, KERN_ERR, "Invalid gid value %d", option);
-				return -1;
+				return 0;
 			}
 			sbi->s_resgid = gid;
 			break;
@@ -771,13 +780,13 @@ static int ext2_fill_super(struct super_block *sb, void *data, int silent)
 	err = -ENOMEM;
 	sbi = kzalloc(sizeof(*sbi), GFP_KERNEL);
 	if (!sbi)
-		goto failed_unlock;
+		goto failed;
 
 	sbi->s_blockgroup_lock =
 		kzalloc(sizeof(struct blockgroup_lock), GFP_KERNEL);
 	if (!sbi->s_blockgroup_lock) {
 		kfree(sbi);
-		goto failed_unlock;
+		goto failed;
 	}
 	sb->s_fs_info = sbi;
 	sbi->s_sb_block = sb_block;
@@ -1130,7 +1139,7 @@ failed_sbi:
 	sb->s_fs_info = NULL;
 	kfree(sbi->s_blockgroup_lock);
 	kfree(sbi);
-failed_unlock:
+failed:
 	return ret;
 }
 
@@ -1184,6 +1193,12 @@ static int ext2_sync_fs(struct super_block *sb, int wait)
 	struct ext2_sb_info *sbi = EXT2_SB(sb);
 	struct ext2_super_block *es = EXT2_SB(sb)->s_es;
 
+	/*
+	 * Write quota structures to quota file, sync_blockdev() will write
+	 * them to disk later
+	 */
+	dquot_writeback_dquots(sb, -1);
+
 	spin_lock(&sbi->s_lock);
 	if (es->s_state & cpu_to_le16(EXT2_VALID_FS)) {
 		ext2_debug("setting valid to 0\n");
@@ -1194,6 +1209,35 @@ static int ext2_sync_fs(struct super_block *sb, int wait)
 	return 0;
 }
 
+static int ext2_freeze(struct super_block *sb)
+{
+	struct ext2_sb_info *sbi = EXT2_SB(sb);
+
+	/*
+	 * Open but unlinked files present? Keep EXT2_VALID_FS flag cleared
+	 * because we have unattached inodes and thus filesystem is not fully
+	 * consistent.
+	 */
+	if (atomic_long_read(&sb->s_remove_count)) {
+		ext2_sync_fs(sb, 1);
+		return 0;
+	}
+	/* Set EXT2_FS_VALID flag */
+	spin_lock(&sbi->s_lock);
+	sbi->s_es->s_state = cpu_to_le16(sbi->s_mount_state);
+	spin_unlock(&sbi->s_lock);
+	ext2_sync_super(sb, sbi->s_es, 1);
+
+	return 0;
+}
+
+static int ext2_unfreeze(struct super_block *sb)
+{
+	/* Just write sb to clear EXT2_VALID_FS flag */
+	ext2_write_super(sb);
+
+	return 0;
+}
 
 void ext2_write_super(struct super_block *sb)
 {
@@ -1456,7 +1500,7 @@ static ssize_t ext2_quota_write(struct super_block *sb, int type,
 			bh = sb_bread(sb, tmp_bh.b_blocknr);
 		else
 			bh = sb_getblk(sb, tmp_bh.b_blocknr);
-		if (!bh) {
+		if (unlikely(!bh)) {
 			err = -EIO;
 			goto out;
 		}
@@ -1492,6 +1536,7 @@ static struct file_system_type ext2_fs_type = {
 	.kill_sb	= kill_block_super,
 	.fs_flags	= FS_REQUIRES_DEV,
 };
+MODULE_ALIAS_FS("ext2");
 
 static int __init init_ext2_fs(void)
 {

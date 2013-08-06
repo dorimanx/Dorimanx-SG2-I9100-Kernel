@@ -583,13 +583,6 @@ DECLARE_EVENT_CLASS(writeback_single_inode_template,
 	)
 );
 
-DEFINE_EVENT(writeback_single_inode_template, writeback_single_inode_requeue,
-	TP_PROTO(struct inode *inode,
-		 struct writeback_control *wbc,
-		 unsigned long nr_to_write),
-	TP_ARGS(inode, wbc, nr_to_write)
-);
-
 DEFINE_EVENT(writeback_single_inode_template, writeback_single_inode_start,
 	TP_PROTO(struct inode *inode,
 		 struct writeback_control *wbc,

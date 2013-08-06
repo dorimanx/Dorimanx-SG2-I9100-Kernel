@@ -2,29 +2,19 @@
  * (C) 1997 Linus Torvalds
  * (C) 1999 Andrea Arcangeli <andrea@suse.de> (dynamic inode allocation)
  */
+#include <linux/export.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
-#include <linux/dcache.h>
-#include <linux/init.h>
-#include <linux/slab.h>
-#include <linux/writeback.h>
-#include <linux/export.h>
 #include <linux/backing-dev.h>
-#include <linux/wait.h>
-#include <linux/rwsem.h>
 #include <linux/hash.h>
 #include <linux/swap.h>
 #include <linux/security.h>
-#include <linux/pagemap.h>
 #include <linux/cdev.h>
 #include <linux/bootmem.h>
 #include <linux/fsnotify.h>
 #include <linux/mount.h>
-#include <linux/async.h>
 #include <linux/posix_acl.h>
 #include <linux/prefetch.h>
-#include <linux/ima.h>
-#include <linux/cred.h>
 #include <linux/buffer_head.h> /* for inode_has_buffers */
 #include <linux/ratelimit.h>
 #include "internal.h"
@@ -34,7 +24,7 @@
  *
  * inode->i_lock protects:
  *   inode->i_state, inode->i_hash, __iget()
- * inode_lru_lock protects:
+ * inode->i_sb->s_inode_lru_lock protects:
  *   inode->i_sb->s_inode_lru, inode->i_lru
  * inode_sb_list_lock protects:
  *   sb->s_inodes, inode->i_sb_list
@@ -47,7 +37,7 @@
  *
  * inode_sb_list_lock
  *   inode->i_lock
- *     inode_lru_lock
+ *     inode->i_sb->s_inode_lru_lock
  *
  * bdi->wb.list_lock
  *   inode->i_lock
@@ -65,20 +55,7 @@ static unsigned int i_hash_shift __read_mostly;
 static struct hlist_head *inode_hashtable __read_mostly;
 static __cacheline_aligned_in_smp DEFINE_SPINLOCK(inode_hash_lock);
 
-static DEFINE_SPINLOCK(inode_lru_lock);
-
 __cacheline_aligned_in_smp DEFINE_SPINLOCK(inode_sb_list_lock);
-
-/*
- * iprune_sem provides exclusion between the icache shrinking and the
- * umount path.
- *
- * We don't actually need it to protect anything in the umount path,
- * but only need to cycle through it to make sure any inode that
- * prune_icache_sb took off the LRU list has been fully torn down by the
- * time we are past evict_inodes.
- */
-static DECLARE_RWSEM(iprune_sem);
 
 /*
  * Empty aops. Can be used for the cases where the user does not
@@ -158,8 +135,8 @@ int inode_init_always(struct super_block *sb, struct inode *inode)
 	inode->i_fop = &empty_fops;
 	inode->__i_nlink = 1;
 	inode->i_opflags = 0;
-	inode->i_uid = 0;
-	inode->i_gid = 0;
+	i_uid_write(inode, 0);
+	i_gid_write(inode, 0);
 	atomic_set(&inode->i_writecount, 0);
 	inode->i_size = 0;
 	inode->i_blocks = 0;
@@ -335,9 +312,6 @@ EXPORT_SYMBOL(clear_nlink);
 void set_nlink(struct inode *inode, unsigned int nlink)
 {
 	if (!nlink) {
-		printk_ratelimited(KERN_INFO
-			"set_nlink() clearing i_nlink on %s inode %li\n",
-			inode->i_sb->s_type->name, inode->i_ino);
 		clear_nlink(inode);
 	} else {
 		/* Yes, some filesystems do change nlink from zero to one */
@@ -425,24 +399,37 @@ EXPORT_SYMBOL(ihold);
 
 static void inode_lru_list_add(struct inode *inode)
 {
-	spin_lock(&inode_lru_lock);
+	spin_lock(&inode->i_sb->s_inode_lru_lock);
 	if (list_empty(&inode->i_lru)) {
 		list_add(&inode->i_lru, &inode->i_sb->s_inode_lru);
 		inode->i_sb->s_nr_inodes_unused++;
 		this_cpu_inc(nr_unused);
 	}
-	spin_unlock(&inode_lru_lock);
+	spin_unlock(&inode->i_sb->s_inode_lru_lock);
 }
+
+/*
+ * Add inode to LRU if needed (inode is unused and clean).
+ *
+ * Needs inode->i_lock held.
+ */
+void inode_add_lru(struct inode *inode)
+{
+	if (!(inode->i_state & (I_DIRTY | I_SYNC | I_FREEING | I_WILL_FREE)) &&
+	    !atomic_read(&inode->i_count) && inode->i_sb->s_flags & MS_ACTIVE)
+		inode_lru_list_add(inode);
+}
+
 
 static void inode_lru_list_del(struct inode *inode)
 {
-	spin_lock(&inode_lru_lock);
+	spin_lock(&inode->i_sb->s_inode_lru_lock);
 	if (!list_empty(&inode->i_lru)) {
 		list_del_init(&inode->i_lru);
 		inode->i_sb->s_nr_inodes_unused--;
 		this_cpu_dec(nr_unused);
 	}
-	spin_unlock(&inode_lru_lock);
+	spin_unlock(&inode->i_sb->s_inode_lru_lock);
 }
 
 /**
@@ -526,17 +513,10 @@ void clear_inode(struct inode *inode)
 	BUG_ON(!list_empty(&inode->i_data.private_list));
 	BUG_ON(!(inode->i_state & I_FREEING));
 	BUG_ON(inode->i_state & I_CLEAR);
-	inode_sync_wait(inode);
 	/* don't need i_lock here, no concurrent mods to i_state */
 	inode->i_state = I_FREEING | I_CLEAR;
 }
 EXPORT_SYMBOL(clear_inode);
-
-void end_writeback(struct inode *inode)
-{
-	clear_inode(inode);
-}
-EXPORT_SYMBOL(end_writeback);
 
 /*
  * Free the inode passed in, removing it from the lists it is still connected
@@ -562,6 +542,14 @@ static void evict(struct inode *inode)
 		inode_wb_list_del(inode);
 
 	inode_sb_list_del(inode);
+
+	/*
+	 * Wait for flusher thread to be done with the inode so that filesystem
+	 * does not start destroying it while writeback is still running. Since
+	 * the inode has I_FREEING set, flusher thread won't start new work on
+	 * the inode.  We just have to wait for running writeback to finish.
+	 */
+	inode_wait_for_writeback(inode);
 
 	if (op->evict_inode) {
 		op->evict_inode(inode);
@@ -637,14 +625,6 @@ void evict_inodes(struct super_block *sb)
 	spin_unlock(&inode_sb_list_lock);
 
 	dispose_list(&dispose);
-
-	/*
-	 * Cycle through iprune_sem to make sure any inode that prune_icache_sb
-	 * moved off the list before we took the lock has been fully torn
-	 * down.
-	 */
-	down_write(&iprune_sem);
-	up_write(&iprune_sem);
 }
 
 /**
@@ -730,8 +710,7 @@ void prune_icache_sb(struct super_block *sb, int nr_to_scan)
 	int nr_scanned;
 	unsigned long reap = 0;
 
-	down_read(&iprune_sem);
-	spin_lock(&inode_lru_lock);
+	spin_lock(&sb->s_inode_lru_lock);
 	for (nr_scanned = nr_to_scan; nr_scanned >= 0; nr_scanned--) {
 		struct inode *inode;
 
@@ -741,7 +720,7 @@ void prune_icache_sb(struct super_block *sb, int nr_to_scan)
 		inode = list_entry(sb->s_inode_lru.prev, struct inode, i_lru);
 
 		/*
-		 * we are inverting the inode_lru_lock/inode->i_lock here,
+		 * we are inverting the sb->s_inode_lru_lock/inode->i_lock here,
 		 * so use a trylock. If we fail to get the lock, just move the
 		 * inode to the back of the list so we don't spin on it.
 		 */
@@ -773,12 +752,12 @@ void prune_icache_sb(struct super_block *sb, int nr_to_scan)
 		if (inode_has_buffers(inode) || inode->i_data.nrpages) {
 			__iget(inode);
 			spin_unlock(&inode->i_lock);
-			spin_unlock(&inode_lru_lock);
+			spin_unlock(&sb->s_inode_lru_lock);
 			if (remove_inode_buffers(inode))
 				reap += invalidate_mapping_pages(&inode->i_data,
 								0, -1);
 			iput(inode);
-			spin_lock(&inode_lru_lock);
+			spin_lock(&sb->s_inode_lru_lock);
 
 			if (inode != list_entry(sb->s_inode_lru.next,
 						struct inode, i_lru))
@@ -803,10 +782,11 @@ void prune_icache_sb(struct super_block *sb, int nr_to_scan)
 		__count_vm_events(KSWAPD_INODESTEAL, reap);
 	else
 		__count_vm_events(PGINODESTEAL, reap);
-	spin_unlock(&inode_lru_lock);
+	spin_unlock(&sb->s_inode_lru_lock);
+	if (current->reclaim_state)
+		current->reclaim_state->reclaimed_slab += reap;
 
 	dispose_list(&freeable);
-	up_read(&iprune_sem);
 }
 
 static void __wait_on_freeing_inode(struct inode *inode);
@@ -966,8 +946,7 @@ void lockdep_annotate_inode_mutex_key(struct inode *inode)
 		struct file_system_type *type = inode->i_sb->s_type;
 
 		/* Set new key only if filesystem hasn't already changed it */
-		if (!lockdep_match_class(&inode->i_mutex,
-		    &type->i_mutex_key)) {
+		if (lockdep_match_class(&inode->i_mutex, &type->i_mutex_key)) {
 			/*
 			 * ensure nobody is actually holding i_mutex
 			 */
@@ -994,6 +973,7 @@ void unlock_new_inode(struct inode *inode)
 	spin_lock(&inode->i_lock);
 	WARN_ON(!(inode->i_state & I_NEW));
 	inode->i_state &= ~I_NEW;
+	smp_mb();
 	wake_up_bit(&inode->i_state, __I_NEW);
 	spin_unlock(&inode->i_lock);
 }
@@ -1394,17 +1374,6 @@ int generic_delete_inode(struct inode *inode)
 EXPORT_SYMBOL(generic_delete_inode);
 
 /*
- * Normal UNIX filesystem behaviour: delete the
- * inode when the usage count drops to zero, and
- * i_nlink is zero.
- */
-int generic_drop_inode(struct inode *inode)
-{
-	return !inode->i_nlink || inode_unhashed(inode);
-}
-EXPORT_SYMBOL_GPL(generic_drop_inode);
-
-/*
  * Called when we're dropping the last reference
  * to an inode.
  *
@@ -1429,8 +1398,7 @@ static void iput_final(struct inode *inode)
 
 	if (!drop && (sb->s_flags & MS_ACTIVE)) {
 		inode->i_state |= I_REFERENCED;
-		if (!(inode->i_state & (I_DIRTY|I_SYNC)))
-			inode_lru_list_add(inode);
+		inode_add_lru(inode);
 		spin_unlock(&inode->i_lock);
 		return;
 	}
@@ -1549,8 +1517,7 @@ static int update_time(struct inode *inode, struct timespec *time, int flags)
 
 /**
  *	touch_atime	-	update the access time
- *	@mnt: mount the inode is accessed on
- *	@dentry: dentry accessed
+ *	@path: the &struct path to update
  *
  *	Update the accessed time on an inode and mark it for writeback.
  *	This function automatically handles read only file systems and media,
@@ -1582,18 +1549,24 @@ void touch_atime(struct path *path)
 	if (timespec_equal(&inode->i_atime, &now))
 		return;
 
-	if (mnt_want_write(mnt))
+	if (!sb_start_write_trylock(inode->i_sb))
 		return;
 
+	if (__mnt_want_write(mnt))
+		goto skip_update;
 	/*
 	 * File systems can error out when updating inodes if they need to
 	 * allocate new space to modify an inode (such is the case for
 	 * Btrfs), but since we touch atime while walking down the path we
 	 * really don't care if we failed to update the atime of the file,
 	 * so just ignore the return value.
+	 * We may also fail on filesystems that have the ability to make parts
+	 * of the fs read only, e.g. subvolumes in Btrfs.
 	 */
 	update_time(inode, &now, S_ATIME);
-	mnt_drop_write(mnt);
+	__mnt_drop_write(mnt);
+skip_update:
+	sb_end_write(inode->i_sb);
 }
 EXPORT_SYMBOL(touch_atime);
 
@@ -1869,10 +1842,57 @@ EXPORT_SYMBOL(inode_init_owner);
  */
 bool inode_owner_or_capable(const struct inode *inode)
 {
-	if (current_fsuid() == inode->i_uid)
+	if (uid_eq(current_fsuid(), inode->i_uid))
 		return true;
 	if (inode_capable(inode, CAP_FOWNER))
 		return true;
 	return false;
 }
 EXPORT_SYMBOL(inode_owner_or_capable);
+
+/*
+ * Direct i/o helper functions
+ */
+static void __inode_dio_wait(struct inode *inode)
+{
+	wait_queue_head_t *wq = bit_waitqueue(&inode->i_state, __I_DIO_WAKEUP);
+	DEFINE_WAIT_BIT(q, &inode->i_state, __I_DIO_WAKEUP);
+
+	do {
+		prepare_to_wait(wq, &q.wait, TASK_UNINTERRUPTIBLE);
+		if (atomic_read(&inode->i_dio_count))
+			schedule();
+	} while (atomic_read(&inode->i_dio_count));
+	finish_wait(wq, &q.wait);
+}
+
+/**
+ * inode_dio_wait - wait for outstanding DIO requests to finish
+ * @inode: inode to wait for
+ *
+ * Waits for all pending direct I/O requests to finish so that we can
+ * proceed with a truncate or equivalent operation.
+ *
+ * Must be called under a lock that serializes taking new references
+ * to i_dio_count, usually by inode->i_mutex.
+ */
+void inode_dio_wait(struct inode *inode)
+{
+	if (atomic_read(&inode->i_dio_count))
+		__inode_dio_wait(inode);
+}
+EXPORT_SYMBOL(inode_dio_wait);
+
+/*
+ * inode_dio_done - signal finish of a direct I/O requests
+ * @inode: inode the direct I/O happens on
+ *
+ * This is called once we've finished processing a direct I/O request,
+ * and is used to wake up callers waiting for direct I/O to be quiesced.
+ */
+void inode_dio_done(struct inode *inode)
+{
+	if (atomic_dec_and_test(&inode->i_dio_count))
+		wake_up_bit(&inode->i_state, __I_DIO_WAKEUP);
+}
+EXPORT_SYMBOL(inode_dio_done);

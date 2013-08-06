@@ -28,7 +28,7 @@
 #include <sound/core.h>
 #include <sound/minors.h>
 #include <sound/info.h>
-#include <sound/version.h>
+#include <linux/utsname.h>
 #include <linux/proc_fs.h>
 #include <linux/mutex.h>
 #include <stdarg.h>
@@ -89,7 +89,7 @@ static int resize_info_buffer(struct snd_info_buffer *buffer,
 	char *nbuf;
 
 	nsize = PAGE_ALIGN(nsize);
-	nbuf = krealloc(buffer->buffer, nsize, GFP_KERNEL);
+	nbuf = krealloc(buffer->buffer, nsize, GFP_KERNEL | __GFP_ZERO);
 	if (! nbuf)
 		return -ENOMEM;
 
@@ -310,12 +310,10 @@ static int snd_info_entry_open(struct inode *inode, struct file *file)
 	struct snd_info_entry *entry;
 	struct snd_info_private_data *data;
 	struct snd_info_buffer *buffer;
-	struct proc_dir_entry *p;
 	int mode, err;
 
 	mutex_lock(&info_mutex);
-	p = PDE(inode);
-	entry = p == NULL ? NULL : (struct snd_info_entry *)p->data;
+	entry = PDE_DATA(inode);
 	if (entry == NULL || ! entry->p) {
 		mutex_unlock(&info_mutex);
 		return -ENODEV;
@@ -353,7 +351,7 @@ static int snd_info_entry_open(struct inode *inode, struct file *file)
 				goto __nomem;
 			data->rbuffer = buffer;
 			buffer->len = PAGE_SIZE;
-			buffer->buffer = kmalloc(buffer->len, GFP_KERNEL);
+			buffer->buffer = kzalloc(buffer->len, GFP_KERNEL);
 			if (buffer->buffer == NULL)
 				goto __nomem;
 		}
@@ -532,7 +530,7 @@ int __init snd_info_init(void)
 {
 	struct proc_dir_entry *p;
 
-	p = create_proc_entry("asound", S_IFDIR | S_IRUGO | S_IXUGO, NULL);
+	p = proc_mkdir("asound", NULL);
 	if (p == NULL)
 		return -ENOMEM;
 	snd_proc_root = p;
@@ -700,25 +698,20 @@ int snd_info_get_line(struct snd_info_buffer *buffer, char *line, int len)
 {
 	int c = -1;
 
+	if (snd_BUG_ON(!buffer || !buffer->buffer))
+		return 1;
 	if (len <= 0 || buffer->stop || buffer->error)
 		return 1;
-	while (--len > 0) {
-		c = buffer->buffer[buffer->curr++];
-		if (c == '\n') {
-			if (buffer->curr >= buffer->size)
-				buffer->stop = 1;
-			break;
-		}
-		*line++ = c;
-		if (buffer->curr >= buffer->size) {
-			buffer->stop = 1;
-			break;
-		}
-	}
-	while (c != '\n' && !buffer->stop) {
+	while (!buffer->stop) {
 		c = buffer->buffer[buffer->curr++];
 		if (buffer->curr >= buffer->size)
 			buffer->stop = 1;
+		if (c == '\n')
+			break;
+		if (len) {
+			len--;
+			*line++ = c;
+		}
 	}
 	*line = '\0';
 	return 0;
@@ -959,15 +952,21 @@ int snd_info_register(struct snd_info_entry * entry)
 		return -ENXIO;
 	root = entry->parent == NULL ? snd_proc_root : entry->parent->p;
 	mutex_lock(&info_mutex);
-	p = create_proc_entry(entry->name, entry->mode, root);
-	if (!p) {
-		mutex_unlock(&info_mutex);
-		return -ENOMEM;
+	if (S_ISDIR(entry->mode)) {
+		p = proc_mkdir_mode(entry->name, entry->mode, root);
+		if (!p) {
+			mutex_unlock(&info_mutex);
+			return -ENOMEM;
+		}
+	} else {
+		p = proc_create_data(entry->name, entry->mode, root,
+					&snd_info_entry_operations, entry);
+		if (!p) {
+			mutex_unlock(&info_mutex);
+			return -ENOMEM;
+		}
+		proc_set_size(p, entry->size);
 	}
-	if (!S_ISDIR(entry->mode))
-		p->proc_fops = &snd_info_entry_operations;
-	p->size = entry->size;
-	p->data = entry;
 	entry->p = p;
 	if (entry->parent)
 		list_add_tail(&entry->list, &entry->parent->children);
@@ -986,9 +985,8 @@ static struct snd_info_entry *snd_info_version_entry;
 static void snd_info_version_read(struct snd_info_entry *entry, struct snd_info_buffer *buffer)
 {
 	snd_iprintf(buffer,
-		    "Advanced Linux Sound Architecture Driver Version "
-		    CONFIG_SND_VERSION CONFIG_SND_DATE ".\n"
-		   );
+		    "Advanced Linux Sound Architecture Driver Version k%s.\n",
+		    init_utsname()->release);
 }
 
 static int __init snd_info_version_init(void)

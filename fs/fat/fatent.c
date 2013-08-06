@@ -186,9 +186,6 @@ static void fat16_ent_put(struct fat_entry *fatent, int new)
 
 static void fat32_ent_put(struct fat_entry *fatent, int new)
 {
-	if (new == FAT_ENT_EOF)
-		new = EOF_FAT32;
-
 	WARN_ON(new & 0xf0000000);
 	new |= le32_to_cpu(*fatent->u.ent32_p) & ~0x0fffffff;
 	*fatent->u.ent32_p = cpu_to_le32(new);
@@ -203,15 +200,18 @@ static int fat12_ent_next(struct fat_entry *fatent)
 
 	fatent->entry++;
 	if (fatent->nr_bhs == 1) {
-		WARN_ON(ent12_p[0] > (u8 *)(bhs[0]->b_data + (bhs[0]->b_size - 2)));
-		WARN_ON(ent12_p[1] > (u8 *)(bhs[0]->b_data + (bhs[0]->b_size - 1)));
+		WARN_ON(ent12_p[0] > (u8 *)(bhs[0]->b_data +
+							(bhs[0]->b_size - 2)));
+		WARN_ON(ent12_p[1] > (u8 *)(bhs[0]->b_data +
+							(bhs[0]->b_size - 1)));
 		if (nextp < (u8 *)(bhs[0]->b_data + (bhs[0]->b_size - 1))) {
 			ent12_p[0] = nextp - 1;
 			ent12_p[1] = nextp;
 			return 1;
 		}
 	} else {
-		WARN_ON(ent12_p[0] != (u8 *)(bhs[0]->b_data + (bhs[0]->b_size - 1)));
+		WARN_ON(ent12_p[0] != (u8 *)(bhs[0]->b_data +
+							(bhs[0]->b_size - 1)));
 		WARN_ON(ent12_p[1] != (u8 *)bhs[1]->b_data);
 		ent12_p[0] = nextp - 1;
 		ent12_p[1] = nextp;
@@ -310,7 +310,12 @@ void fat_ent_access_init(struct super_block *sb)
 
 static void mark_fsinfo_dirty(struct super_block *sb)
 {
-	sb->s_dirt = 1;
+	struct msdos_sb_info *sbi = MSDOS_SB(sb);
+
+	if (sb->s_flags & MS_RDONLY || sbi->fat_bits != 32)
+		return;
+
+	__mark_inode_dirty(sbi->fsinfo_inode, I_DIRTY_SYNC);
 }
 
 static inline int fat_ent_update_ptr(struct super_block *sb,
@@ -626,7 +631,6 @@ error:
 
 	return err;
 }
-
 EXPORT_SYMBOL_GPL(fat_free_clusters);
 
 /* 128kb is the whole sectors for FAT12 and FAT16 */

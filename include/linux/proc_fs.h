@@ -49,21 +49,13 @@ struct proc_dir_entry {
 	kgid_t gid;
 	loff_t size;
 	const struct inode_operations *proc_iops;
-	/*
-	 * NULL ->proc_fops means "PDE is going away RSN" or
-	 * "PDE is just created". In either case, e.g. ->read_proc won't be
-	 * called because it's too late or too early, respectively.
-	 *
-	 * If you're allocating ->proc_fops dynamically, save a pointer
-	 * somewhere.
-	 */
 	const struct file_operations *proc_fops;
 	struct proc_dir_entry *next, *parent, *subdir;
 	void *data;
 	read_proc_t *read_proc;
-	write_proc_t *write_proc;
 	atomic_t count;		/* use count */
-	int pde_users;	/* number of callers into module in progress */
+	int pde_users;	/* number of callers into module in progress; */
+			/* negative -> it's going away RSN */
 	struct completion *pde_unload_completion;
 	struct list_head pde_openers;	/* who did ->open, but not ->release */
 	spinlock_t pde_unload_lock; /* proc_fops checks and pde_users bumps */
@@ -106,6 +98,7 @@ struct proc_dir_entry *proc_create_data(const char *name, umode_t mode,
 				const struct file_operations *proc_fops,
 				void *data);
 extern void remove_proc_entry(const char *name, struct proc_dir_entry *parent);
+extern int remove_proc_subtree(const char *name, struct proc_dir_entry *parent);
 
 
 /*
@@ -188,6 +181,7 @@ static inline struct proc_dir_entry *proc_create_data(const char *name,
 	return NULL;
 }
 #define remove_proc_entry(name, parent) do {} while (0)
+#define remove_proc_subtree(name, parent) do {} while (0)
 
 static inline struct proc_dir_entry *proc_symlink(const char *name,
 		struct proc_dir_entry *parent,const char *dest) {return NULL;}
@@ -195,6 +189,8 @@ static inline struct proc_dir_entry *proc_mkdir(const char *name,
 	struct proc_dir_entry *parent) {return NULL;}
 static inline struct proc_dir_entry *proc_mkdir_mode(const char *name,
 	umode_t mode, struct proc_dir_entry *parent) { return NULL; }
+static inline void proc_set_size(struct proc_dir_entry *de, loff_t size) {}
+static inline void proc_set_user(struct proc_dir_entry *de, kuid_t uid, kgid_t gid) {}
 
 static inline struct proc_dir_entry *create_proc_read_entry(const char *name,
 	umode_t mode, struct proc_dir_entry *base, 
@@ -245,6 +241,11 @@ static inline struct proc_inode *PROC_I(const struct inode *inode)
 static inline struct proc_dir_entry *PDE(const struct inode *inode)
 {
 	return PROC_I(inode)->pde;
+}
+
+static inline void *PDE_DATA(const struct inode *inode)
+{
+	return PROC_I(inode)->pde->data;
 }
 
 static inline struct net *PDE_NET(struct proc_dir_entry *pde)

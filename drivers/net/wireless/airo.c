@@ -4507,73 +4507,109 @@ static int setup_proc_entry( struct net_device *dev,
 					    airo_entry);
 	if (!apriv->proc_entry)
 		goto fail;
+<<<<<<< HEAD
 	apriv->proc_entry->uid = proc_uid;
 	apriv->proc_entry->gid = proc_gid;
+=======
+	proc_set_user(apriv->proc_entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	/* Setup the StatsDelta */
 	entry = proc_create_data("StatsDelta", S_IRUGO & proc_perm,
 				 apriv->proc_entry, &proc_statsdelta_ops, dev);
 	if (!entry)
 		goto fail_stats_delta;
+<<<<<<< HEAD
 	entry->uid = proc_uid;
 	entry->gid = proc_gid;
+=======
+	proc_set_user(entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	/* Setup the Stats */
 	entry = proc_create_data("Stats", S_IRUGO & proc_perm,
 				 apriv->proc_entry, &proc_stats_ops, dev);
 	if (!entry)
 		goto fail_stats;
+<<<<<<< HEAD
 	entry->uid = proc_uid;
 	entry->gid = proc_gid;
+=======
+	proc_set_user(entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	/* Setup the Status */
 	entry = proc_create_data("Status", S_IRUGO & proc_perm,
 				 apriv->proc_entry, &proc_status_ops, dev);
 	if (!entry)
 		goto fail_status;
+<<<<<<< HEAD
 	entry->uid = proc_uid;
 	entry->gid = proc_gid;
+=======
+	proc_set_user(entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	/* Setup the Config */
 	entry = proc_create_data("Config", proc_perm,
 				 apriv->proc_entry, &proc_config_ops, dev);
 	if (!entry)
 		goto fail_config;
+<<<<<<< HEAD
 	entry->uid = proc_uid;
 	entry->gid = proc_gid;
+=======
+	proc_set_user(entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	/* Setup the SSID */
 	entry = proc_create_data("SSID", proc_perm,
 				 apriv->proc_entry, &proc_SSID_ops, dev);
 	if (!entry)
 		goto fail_ssid;
+<<<<<<< HEAD
 	entry->uid = proc_uid;
 	entry->gid = proc_gid;
+=======
+	proc_set_user(entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	/* Setup the APList */
 	entry = proc_create_data("APList", proc_perm,
 				 apriv->proc_entry, &proc_APList_ops, dev);
 	if (!entry)
 		goto fail_aplist;
+<<<<<<< HEAD
 	entry->uid = proc_uid;
 	entry->gid = proc_gid;
+=======
+	proc_set_user(entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	/* Setup the BSSList */
 	entry = proc_create_data("BSSList", proc_perm,
 				 apriv->proc_entry, &proc_BSSList_ops, dev);
 	if (!entry)
 		goto fail_bsslist;
+<<<<<<< HEAD
 	entry->uid = proc_uid;
 	entry->gid = proc_gid;
+=======
+	proc_set_user(entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	/* Setup the WepKey */
 	entry = proc_create_data("WepKey", proc_perm,
 				 apriv->proc_entry, &proc_wepkey_ops, dev);
 	if (!entry)
 		goto fail_wepkey;
+<<<<<<< HEAD
 	entry->uid = proc_uid;
 	entry->gid = proc_gid;
 
+=======
+	proc_set_user(entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 	return 0;
 
 fail_wepkey:
@@ -4663,8 +4699,7 @@ static ssize_t proc_write( struct file *file,
 static int proc_status_open(struct inode *inode, struct file *file)
 {
 	struct proc_data *data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *apriv = dev->ml_priv;
 	CapabilityRid cap_rid;
 	StatusRid status_rid;
@@ -4746,8 +4781,7 @@ static int proc_stats_rid_open( struct inode *inode,
 				u16 rid )
 {
 	struct proc_data *data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *apriv = dev->ml_priv;
 	StatsRid stats;
 	int i, j;
@@ -4809,8 +4843,7 @@ static inline int sniffing_mode(struct airo_info *ai)
 static void proc_config_on_close(struct inode *inode, struct file *file)
 {
 	struct proc_data *data = file->private_data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	char *line;
 
@@ -5021,8 +5054,7 @@ static const char *get_rmode(__le16 mode)
 static int proc_config_open(struct inode *inode, struct file *file)
 {
 	struct proc_data *data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	int i;
 	__le16 mode;
@@ -5112,8 +5144,7 @@ static int proc_config_open(struct inode *inode, struct file *file)
 static void proc_SSID_on_close(struct inode *inode, struct file *file)
 {
 	struct proc_data *data = file->private_data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	SsidRid SSID_rid;
 	int i;
@@ -5148,8 +5179,7 @@ static void proc_SSID_on_close(struct inode *inode, struct file *file)
 
 static void proc_APList_on_close( struct inode *inode, struct file *file ) {
 	struct proc_data *data = file->private_data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	APListRid APList_rid;
 	int i;
@@ -5283,8 +5313,7 @@ static int set_wep_tx_idx(struct airo_info *ai, u16 index, int perm, int lock)
 
 static void proc_wepkey_on_close( struct inode *inode, struct file *file ) {
 	struct proc_data *data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	int i, rc;
 	char key[16];
@@ -5335,8 +5364,7 @@ static void proc_wepkey_on_close( struct inode *inode, struct file *file ) {
 static int proc_wepkey_open( struct inode *inode, struct file *file )
 {
 	struct proc_data *data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	char *ptr;
 	WepKeyRid wkr;
@@ -5384,8 +5412,7 @@ static int proc_wepkey_open( struct inode *inode, struct file *file )
 static int proc_SSID_open(struct inode *inode, struct file *file)
 {
 	struct proc_data *data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	int i;
 	char *ptr;
@@ -5428,8 +5455,7 @@ static int proc_SSID_open(struct inode *inode, struct file *file)
 
 static int proc_APList_open( struct inode *inode, struct file *file ) {
 	struct proc_data *data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	int i;
 	char *ptr;
@@ -5468,8 +5494,7 @@ static int proc_APList_open( struct inode *inode, struct file *file ) {
 
 static int proc_BSSList_open( struct inode *inode, struct file *file ) {
 	struct proc_data *data;
-	struct proc_dir_entry *dp = PDE(inode);
-	struct net_device *dev = dp->data;
+	struct net_device *dev = PDE_DATA(inode);
 	struct airo_info *ai = dev->ml_priv;
 	char *ptr;
 	BSSListRid BSSList_rid;
@@ -5701,10 +5726,15 @@ static int __init airo_init_module( void )
 
 	airo_entry = proc_mkdir_mode("driver/aironet", airo_perm, NULL);
 
+<<<<<<< HEAD
 	if (airo_entry) {
 		airo_entry->uid = proc_uid;
 		airo_entry->gid = proc_gid;
 	}
+=======
+	if (airo_entry)
+		proc_set_user(airo_entry, proc_kuid, proc_kgid);
+>>>>>>> 271a15e... proc: Supply PDE attribute setting accessor functions
 
 	for (i = 0; i < 4 && io[i] && irq[i]; i++) {
 		airo_print_info("", "Trying to configure ISA adapter at irq=%d "

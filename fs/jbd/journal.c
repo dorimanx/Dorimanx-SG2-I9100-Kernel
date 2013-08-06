@@ -310,8 +310,6 @@ int journal_write_metadata_buffer(transaction_t *transaction,
 
 	new_bh = alloc_buffer_head(GFP_NOFS|__GFP_NOFAIL);
 	/* keep subsequent assertions sane */
-	new_bh->b_state = 0;
-	init_buffer(new_bh, NULL, NULL);
 	atomic_set(&new_bh->b_count, 1);
 	new_jh = journal_add_journal_head(new_bh);	/* This sleeps */
 
@@ -446,7 +444,8 @@ int __log_start_commit(journal_t *journal, tid_t target)
 	 * currently running transaction (if it exists).  Otherwise,
 	 * the target tid must be an old one.
 	 */
-	if (journal->j_running_transaction &&
+	if (journal->j_commit_request != target &&
+	    journal->j_running_transaction &&
 	    journal->j_running_transaction->t_tid == target) {
 		/*
 		 * We want a new commit: OK, mark the request and wakeup the
@@ -534,8 +533,8 @@ int journal_start_commit(journal_t *journal, tid_t *ptid)
 		ret = 1;
 	} else if (journal->j_committing_transaction) {
 		/*
-		 * If ext3_write_super() recently started a commit, then we
-		 * have to wait for completion of that transaction
+		 * If commit has been started, then we have to wait for
+		 * completion of that transaction.
 		 */
 		if (ptid)
 			*ptid = journal->j_committing_transaction->t_tid;
@@ -563,6 +562,16 @@ int log_wait_commit(journal_t *journal, tid_t tid)
 	spin_unlock(&journal->j_state_lock);
 #endif
 	spin_lock(&journal->j_state_lock);
+	/*
+	 * Not running or committing trans? Must be already committed. This
+	 * saves us from waiting for a *long* time when tid overflows.
+	 */
+	if (!((journal->j_running_transaction &&
+	       journal->j_running_transaction->t_tid == tid) ||
+	      (journal->j_committing_transaction &&
+	       journal->j_committing_transaction->t_tid == tid)))
+		goto out_unlock;
+
 	if (!tid_geq(journal->j_commit_waited, tid))
 		journal->j_commit_waited = tid;
 	while (tid_gt(tid, journal->j_commit_sequence)) {
@@ -574,6 +583,7 @@ int log_wait_commit(journal_t *journal, tid_t tid)
 				!tid_gt(tid, journal->j_commit_sequence));
 		spin_lock(&journal->j_state_lock);
 	}
+out_unlock:
 	spin_unlock(&journal->j_state_lock);
 
 	if (unlikely(is_journal_aborted(journal))) {
@@ -1113,6 +1123,11 @@ static void mark_journal_empty(journal_t *journal)
 
 	BUG_ON(!mutex_is_locked(&journal->j_checkpoint_mutex));
 	spin_lock(&journal->j_state_lock);
+	/* Is it already empty? */
+	if (sb->s_start == 0) {
+		spin_unlock(&journal->j_state_lock);
+		return;
+	}
 	jbd_debug(1, "JBD: Marking journal as empty (seq %d)\n",
         	  journal->j_tail_sequence);
 
@@ -1839,7 +1854,7 @@ static struct journal_head *journal_alloc_journal_head(void)
 #ifdef CONFIG_JBD_DEBUG
 	atomic_inc(&nr_journal_heads);
 #endif
-	ret = kmem_cache_alloc(journal_head_cache, GFP_NOFS);
+	ret = kmem_cache_zalloc(journal_head_cache, GFP_NOFS);
 	if (ret == NULL) {
 		jbd_debug(1, "out of memory for journal_head\n");
 		printk_ratelimited(KERN_NOTICE "ENOMEM in %s, retrying.\n",
@@ -1847,7 +1862,7 @@ static struct journal_head *journal_alloc_journal_head(void)
 
 		while (ret == NULL) {
 			yield();
-			ret = kmem_cache_alloc(journal_head_cache, GFP_NOFS);
+			ret = kmem_cache_zalloc(journal_head_cache, GFP_NOFS);
 		}
 	}
 	return ret;
@@ -1909,10 +1924,8 @@ struct journal_head *journal_add_journal_head(struct buffer_head *bh)
 	struct journal_head *new_jh = NULL;
 
 repeat:
-	if (!buffer_jbd(bh)) {
+	if (!buffer_jbd(bh))
 		new_jh = journal_alloc_journal_head();
-		memset(new_jh, 0, sizeof(*new_jh));
-	}
 
 	jbd_lock_bh_journal_head(bh);
 	if (buffer_jbd(bh)) {

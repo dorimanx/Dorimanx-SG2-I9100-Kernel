@@ -183,6 +183,7 @@ static struct super_block *alloc_super(struct file_system_type *type, int flags)
 		INIT_LIST_HEAD(&s->s_inodes);
 		INIT_LIST_HEAD(&s->s_dentry_lru);
 		INIT_LIST_HEAD(&s->s_inode_lru);
+		spin_lock_init(&s->s_inode_lru_lock);
 		INIT_LIST_HEAD(&s->s_mounts);
 		init_rwsem(&s->s_umount);
 		mutex_init(&s->s_lock);
@@ -349,19 +350,19 @@ EXPORT_SYMBOL(deactivate_super);
  *	and want to turn it into a full-blown active reference.  grab_super()
  *	is called with sb_lock held and drops it.  Returns 1 in case of
  *	success, 0 if we had failed (superblock contents was already dead or
- *	dying when grab_super() had been called).
+ *	dying when grab_super() had been called).  Note that this is only
+ *	called for superblocks not in rundown mode (== ones still on ->fs_supers
+ *	of their type), so increment of ->s_count is OK here.
  */
 static int grab_super(struct super_block *s) __releases(sb_lock)
 {
-	if (atomic_inc_not_zero(&s->s_active)) {
-		spin_unlock(&sb_lock);
-		return 1;
-	}
-	/* it's going away */
 	s->s_count++;
 	spin_unlock(&sb_lock);
-	/* wait for it to die */
 	down_write(&s->s_umount);
+	if ((s->s_flags & MS_BORN) && atomic_inc_not_zero(&s->s_active)) {
+		put_super(s);
+		return 1;
+	}
 	up_write(&s->s_umount);
 	put_super(s);
 	return 0;
@@ -492,11 +493,6 @@ retry:
 				destroy_super(s);
 				s = NULL;
 			}
-			down_write(&old->s_umount);
-			if (unlikely(!(old->s_flags & MS_BORN))) {
-				deactivate_locked_super(old);
-				goto retry;
-			}
 			return old;
 		}
 	}
@@ -534,46 +530,6 @@ void drop_super(struct super_block *sb)
 }
 
 EXPORT_SYMBOL(drop_super);
-
-/**
- * sync_supers - helper for periodic superblock writeback
- *
- * Call the write_super method if present on all dirty superblocks in
- * the system.  This is for the periodic writeback used by most older
- * filesystems.  For data integrity superblock writeback use
- * sync_filesystems() instead.
- *
- * Note: check the dirty flag before waiting, so we don't
- * hold up the sync while mounting a device. (The newly
- * mounted device won't need syncing.)
- */
-void sync_supers(void)
-{
-	struct super_block *sb, *p = NULL;
-
-	spin_lock(&sb_lock);
-	list_for_each_entry(sb, &super_blocks, s_list) {
-		if (hlist_unhashed(&sb->s_instances))
-			continue;
-		if (sb->s_op->write_super && sb->s_dirt) {
-			sb->s_count++;
-			spin_unlock(&sb_lock);
-
-			down_read(&sb->s_umount);
-			if (sb->s_root && sb->s_dirt && (sb->s_flags & MS_BORN))
-				sb->s_op->write_super(sb);
-			up_read(&sb->s_umount);
-
-			spin_lock(&sb_lock);
-			if (p)
-				__put_super(p);
-			p = sb;
-		}
-	}
-	if (p)
-		__put_super(p);
-	spin_unlock(&sb_lock);
-}
 
 /**
  *	iterate_supers - call function for all active superblocks
@@ -729,10 +685,10 @@ restart:
 		if (hlist_unhashed(&sb->s_instances))
 			continue;
 		if (sb->s_bdev == bdev) {
-			if (grab_super(sb)) /* drops sb_lock */
-				return sb;
-			else
+			if (!grab_super(sb))
 				goto restart;
+			up_write(&sb->s_umount);
+			return sb;
 		}
 	}
 	spin_unlock(&sb_lock);

@@ -35,7 +35,6 @@
 #include <linux/kthread.h>
 #include <linux/poison.h>
 #include <linux/proc_fs.h>
-#include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/math64.h>
 #include <linux/hash.h>
@@ -50,7 +49,14 @@
 
 #include <asm/uaccess.h>
 #include <asm/page.h>
-#include <asm/system.h>
+
+#ifdef CONFIG_JBD2_DEBUG
+ushort jbd2_journal_enable_debug __read_mostly;
+EXPORT_SYMBOL(jbd2_journal_enable_debug);
+
+module_param_named(jbd2_debug, jbd2_journal_enable_debug, ushort, 0644);
+MODULE_PARM_DESC(jbd2_debug, "Debugging level for jbd2");
+#endif
 
 EXPORT_SYMBOL(jbd2_journal_extend);
 EXPORT_SYMBOL(jbd2_journal_stop);
@@ -61,7 +67,6 @@ EXPORT_SYMBOL(jbd2_journal_get_create_access);
 EXPORT_SYMBOL(jbd2_journal_get_undo_access);
 EXPORT_SYMBOL(jbd2_journal_set_triggers);
 EXPORT_SYMBOL(jbd2_journal_dirty_metadata);
-EXPORT_SYMBOL(jbd2_journal_release_buffer);
 EXPORT_SYMBOL(jbd2_journal_forget);
 #if 0
 EXPORT_SYMBOL(journal_sync_buffer);
@@ -362,8 +367,6 @@ retry_alloc:
 	}
 
 	/* keep subsequent assertions sane */
-	new_bh->b_state = 0;
-	init_buffer(new_bh, NULL, NULL);
 	atomic_set(&new_bh->b_count, 1);
 	new_jh = jbd2_journal_add_journal_head(new_bh);	/* This sleeps */
 
@@ -515,6 +518,10 @@ int __jbd2_log_space_left(journal_t *journal)
  */
 int __jbd2_log_start_commit(journal_t *journal, tid_t target)
 {
+	/* Return if the txn has already requested to be committed */
+	if (journal->j_commit_request == target)
+		return 0;
+
 	/*
 	 * The only transaction we can possibly wait upon is the
 	 * currently running transaction (if it exists).  Otherwise,
@@ -531,6 +538,7 @@ int __jbd2_log_start_commit(journal_t *journal, tid_t target)
 		jbd_debug(1, "JBD2: requesting commit %d/%d\n",
 			  journal->j_commit_request,
 			  journal->j_commit_sequence);
+		journal->j_running_transaction->t_requested = jiffies;
 		wake_up(&journal->j_wait_commit);
 		return 1;
 	} else if (!tid_geq(journal->j_commit_request, target))
@@ -698,6 +706,37 @@ int jbd2_log_wait_commit(journal_t *journal, tid_t tid)
 	}
 	return err;
 }
+
+/*
+ * When this function returns the transaction corresponding to tid
+ * will be completed.  If the transaction has currently running, start
+ * committing that transaction before waiting for it to complete.  If
+ * the transaction id is stale, it is by definition already completed,
+ * so just return SUCCESS.
+ */
+int jbd2_complete_transaction(journal_t *journal, tid_t tid)
+{
+	int	need_to_wait = 1;
+
+	read_lock(&journal->j_state_lock);
+	if (journal->j_running_transaction &&
+	    journal->j_running_transaction->t_tid == tid) {
+		if (journal->j_commit_request != tid) {
+			/* transaction not yet started, so request it */
+			read_unlock(&journal->j_state_lock);
+			jbd2_log_start_commit(journal, tid);
+			goto wait_commit;
+		}
+	} else if (!(journal->j_committing_transaction &&
+		     journal->j_committing_transaction->t_tid == tid))
+		need_to_wait = 0;
+	read_unlock(&journal->j_state_lock);
+	if (!need_to_wait)
+		return 0;
+wait_commit:
+	return jbd2_log_wait_commit(journal, tid);
+}
+EXPORT_SYMBOL(jbd2_complete_transaction);
 
 /*
  * Log buffer allocation routines:
@@ -896,13 +935,18 @@ static int jbd2_seq_info_show(struct seq_file *seq, void *v)
 
 	if (v != SEQ_START_TOKEN)
 		return 0;
-	seq_printf(seq, "%lu transaction, each up to %u blocks\n",
-			s->stats->ts_tid,
-			s->journal->j_max_transaction_buffers);
+	seq_printf(seq, "%lu transactions (%lu requested), "
+		   "each up to %u blocks\n",
+		   s->stats->ts_tid, s->stats->ts_requested,
+		   s->journal->j_max_transaction_buffers);
 	if (s->stats->ts_tid == 0)
 		return 0;
 	seq_printf(seq, "average: \n  %ums waiting for transaction\n",
 	    jiffies_to_msecs(s->stats->run.rs_wait / s->stats->ts_tid));
+	seq_printf(seq, "  %ums request delay\n",
+	    (s->stats->ts_requested == 0) ? 0 :
+	    jiffies_to_msecs(s->stats->run.rs_request_delay /
+			     s->stats->ts_requested));
 	seq_printf(seq, "  %ums running transaction\n",
 	    jiffies_to_msecs(s->stats->run.rs_running / s->stats->ts_tid));
 	seq_printf(seq, "  %ums transaction was being locked\n",
@@ -935,7 +979,7 @@ static const struct seq_operations jbd2_seq_info_ops = {
 
 static int jbd2_seq_info_open(struct inode *inode, struct file *file)
 {
-	journal_t *journal = PDE(inode)->data;
+	journal_t *journal = PDE_DATA(inode);
 	struct jbd2_stats_proc_session *s;
 	int rc, size;
 
@@ -1355,6 +1399,11 @@ static void jbd2_mark_journal_empty(journal_t *journal)
 
 	BUG_ON(!mutex_is_locked(&journal->j_checkpoint_mutex));
 	read_lock(&journal->j_state_lock);
+	/* Is it already empty? */
+	if (sb->s_start == 0) {
+		read_unlock(&journal->j_state_lock);
+		return;
+	}
 	jbd_debug(1, "JBD2: Marking journal as empty (seq %d)\n",
 		  journal->j_tail_sequence);
 
@@ -2482,45 +2531,6 @@ restart:
 	spin_unlock(&journal->j_list_lock);
 }
 
-/*
- * debugfs tunables
- */
-#ifdef CONFIG_JBD2_DEBUG
-u8 jbd2_journal_enable_debug __read_mostly;
-EXPORT_SYMBOL(jbd2_journal_enable_debug);
-
-#define JBD2_DEBUG_NAME "jbd2-debug"
-
-static struct dentry *jbd2_debugfs_dir;
-static struct dentry *jbd2_debug;
-
-static void __init jbd2_create_debugfs_entry(void)
-{
-	jbd2_debugfs_dir = debugfs_create_dir("jbd2", NULL);
-	if (jbd2_debugfs_dir)
-		jbd2_debug = debugfs_create_u8(JBD2_DEBUG_NAME,
-					       S_IRUGO | S_IWUSR,
-					       jbd2_debugfs_dir,
-					       &jbd2_journal_enable_debug);
-}
-
-static void __exit jbd2_remove_debugfs_entry(void)
-{
-	debugfs_remove(jbd2_debug);
-	debugfs_remove(jbd2_debugfs_dir);
-}
-
-#else
-
-static void __init jbd2_create_debugfs_entry(void)
-{
-}
-
-static void __exit jbd2_remove_debugfs_entry(void)
-{
-}
-
-#endif
 
 #ifdef CONFIG_PROC_FS
 
@@ -2606,7 +2616,6 @@ static int __init journal_init(void)
 
 	ret = journal_init_caches();
 	if (ret == 0) {
-		jbd2_create_debugfs_entry();
 		jbd2_create_jbd_stats_proc_entry();
 	} else {
 		jbd2_journal_destroy_caches();
@@ -2621,7 +2630,6 @@ static void __exit journal_exit(void)
 	if (n)
 		printk(KERN_EMERG "JBD2: leaked %d journal_heads!\n", n);
 #endif
-	jbd2_remove_debugfs_entry();
 	jbd2_remove_jbd_stats_proc_entry();
 	jbd2_journal_destroy_caches();
 }

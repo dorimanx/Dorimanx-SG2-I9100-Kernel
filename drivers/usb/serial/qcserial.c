@@ -30,6 +30,19 @@ static bool debug;
 	USB_DEVICE(v, p), .driver_info = 1
 
 static const struct usb_device_id id_table[] = {
+	{DEVICE_G1K(0x04da, 0x250c)},	/* Panasonic Gobi QDL device */
+	{DEVICE_G1K(0x413c, 0x8172)},	/* Dell Gobi Modem device */
+	{DEVICE_G1K(0x413c, 0x8171)},	/* Dell Gobi QDL device */
+	{DEVICE_G1K(0x1410, 0xa001)},	/* Novatel/Verizon USB-1000 */
+	{DEVICE_G1K(0x1410, 0xa002)},	/* Novatel Gobi Modem device */
+	{DEVICE_G1K(0x1410, 0xa003)},	/* Novatel Gobi Modem device */
+	{DEVICE_G1K(0x1410, 0xa004)},	/* Novatel Gobi Modem device */
+	{DEVICE_G1K(0x1410, 0xa005)},	/* Novatel Gobi Modem device */
+	{DEVICE_G1K(0x1410, 0xa006)},	/* Novatel Gobi Modem device */
+	{DEVICE_G1K(0x1410, 0xa007)},	/* Novatel Gobi Modem device */
+	{DEVICE_G1K(0x1410, 0xa008)},	/* Novatel Gobi QDL device */
+	{DEVICE_G1K(0x0b05, 0x1776)},	/* Asus Gobi Modem device */
+	{DEVICE_G1K(0x0b05, 0x1774)},	/* Asus Gobi QDL device */
 	{USB_DEVICE(0x05c6, 0x9211)},	/* Acer Gobi QDL device */
 	{USB_DEVICE(0x05c6, 0x9212)},	/* Acer Gobi Modem Device */
 	{USB_DEVICE(0x03f0, 0x1f1d)},	/* HP un2400 Gobi Modem Device */

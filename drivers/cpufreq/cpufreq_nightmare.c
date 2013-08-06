@@ -866,7 +866,7 @@ static void nightmare_check_cpu(struct cpufreq_nightmare_cpuinfo *this_nightmare
 		j_nightmare_cpuinfo->prev_cpu_idle = cur_idle_time;
 
 		/*printk(KERN_ERR "TIMER CPU[%u], wall[%u], idle[%u]\n",j, busy_time + idle_time, idle_time);*/
-		if (unlikely(!cpu_policy || busy_time + idle_time == 0)) { /*if busy_time and idle_time are 0, evaluate cpu load next time*/
+		if (!cpu_policy || busy_time + idle_time == 0) { /*if busy_time and idle_time are 0, evaluate cpu load next time*/
 			continue;
 		}
 		cur_load = busy_time ? (100 * busy_time) / (busy_time + idle_time) : 1;/*if busy_time is 0 cpu_load is equal to 1*/
@@ -942,7 +942,7 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 {
 	unsigned int cpu = policy->cpu;
 	struct cpufreq_nightmare_cpuinfo *this_nightmare_cpuinfo = &per_cpu(od_nightmare_cpuinfo, cpu);
-	struct cpufreq_policy *cpu_policy;
+	struct cpufreq_policy *cpu_policy = per_cpu(cpufreq_cpu_data, cpu);
 	unsigned int j;
 	int rc;
 
@@ -984,19 +984,19 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 			atomic_set(&nightmare_tuners_ins.min_freq_limit,policy->min);
 			atomic_set(&nightmare_tuners_ins.max_freq_limit,policy->max);
 		}
-		mutex_init(&timer_mutex);
-		INIT_DEFERRABLE_WORK(&this_nightmare_cpuinfo->work, do_nightmare_timer);
 		mutex_unlock(&nightmare_mutex);
 
+		mutex_init(&timer_mutex);
+		INIT_DEFERRABLE_WORK(&this_nightmare_cpuinfo->work, do_nightmare_timer);
 		mod_delayed_work_on(this_nightmare_cpuinfo->cpu, dvfs_workqueue, &this_nightmare_cpuinfo->work, 0);
 
 		break;
 
 	case CPUFREQ_GOV_STOP:
-		mutex_lock(&nightmare_mutex);
 		cancel_delayed_work(&this_nightmare_cpuinfo->work);
 		mutex_destroy(&timer_mutex);
 
+		mutex_lock(&nightmare_mutex);
 		nightmare_enable--;
 		for_each_possible_cpu(j) {
 			per_cpu(cpufreq_cpu_data, j) = NULL;
@@ -1011,13 +1011,11 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 		break;
 
 	case CPUFREQ_GOV_LIMITS:
-		mutex_lock(&timer_mutex);
-		/* NOTHING TO DO JUST WATT */
-		cpu_policy = per_cpu(cpufreq_cpu_data, cpu);
 		if(!cpu_policy) {
-			mutex_unlock(&timer_mutex);
 			break;
 		}
+		mutex_lock(&timer_mutex);
+		/* NOTHING TO DO JUST WATT */
 		if (policy->max < cpu_policy->cur)
 			__cpufreq_driver_target(cpu_policy,
 				policy->max, CPUFREQ_RELATION_H);

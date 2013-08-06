@@ -85,6 +85,17 @@ enum fid_type {
 	FILEID_NILFS_WITH_PARENT = 0x62,
 
 	/*
+	 * 32 bit generation number, 40 bit i_pos.
+	 */
+	FILEID_FAT_WITHOUT_PARENT = 0x71,
+
+	/*
+	 * 32 bit generation number, 40 bit i_pos,
+	 * 32 bit parent generation number, 40 bit parent i_pos
+	 */
+	FILEID_FAT_WITH_PARENT = 0x72,
+
+	/*
 	 * Filesystems must not use 0xff file ID.
 	 */
 	FILEID_INVALID = 0xff,
@@ -141,7 +152,7 @@ struct fid {
  *    it should return a %NULL pointer if the file was found but no acceptable
  *    &dentries were available, or an %ERR_PTR error code indicating why it
  *    couldn't be found (e.g. %ENOENT or %ENOMEM).  Any suitable dentry can be
- *    returned including, if necessary, a new dentry created with d_make_root.
+ *    returned including, if necessary, a new dentry created with d_alloc_root.
  *    The caller can then find any other extant dentries by following the
  *    d_alias links.
  *
@@ -182,6 +193,8 @@ struct export_operations {
 	int (*commit_metadata)(struct inode *inode);
 };
 
+extern int exportfs_encode_inode_fh(struct inode *inode, struct fid *fid,
+				    int *max_len, struct inode *parent);
 extern int exportfs_encode_fh(struct dentry *dentry, struct fid *fid,
 	int *max_len, int connectable);
 extern struct dentry *exportfs_decode_fh(struct vfsmount *mnt, struct fid *fid,

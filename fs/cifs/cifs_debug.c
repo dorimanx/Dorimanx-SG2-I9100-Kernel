@@ -57,15 +57,32 @@ cifs_dump_mem(char *label, void *data, int length)
 	}
 }
 
+#ifdef CONFIG_CIFS_DEBUG
+void cifs_vfs_err(const char *fmt, ...)
+{
+	struct va_format vaf;
+	va_list args;
+
+	va_start(args, fmt);
+
+	vaf.fmt = fmt;
+	vaf.va = &args;
+
+	printk(KERN_ERR "CIFS VFS: %pV", &vaf);
+
+	va_end(args);
+}
+#endif
+
 void cifs_dump_detail(void *buf)
 {
 #ifdef CONFIG_CIFS_DEBUG2
 	struct smb_hdr *smb = (struct smb_hdr *)buf;
 
-	cERROR(1, "Cmd: %d Err: 0x%x Flags: 0x%x Flgs2: 0x%x Mid: %d Pid: %d",
-		  smb->Command, smb->Status.CifsError,
-		  smb->Flags, smb->Flags2, smb->Mid, smb->Pid);
-	cERROR(1, "smb buf %p len %d", smb, smbCalcSize(smb));
+	cifs_dbg(VFS, "Cmd: %d Err: 0x%x Flags: 0x%x Flgs2: 0x%x Mid: %d Pid: %d\n",
+		 smb->Command, smb->Status.CifsError,
+		 smb->Flags, smb->Flags2, smb->Mid, smb->Pid);
+	cifs_dbg(VFS, "smb buf %p len %u\n", smb, smbCalcSize(smb));
 #endif /* CONFIG_CIFS_DEBUG2 */
 }
 
@@ -78,25 +95,25 @@ void cifs_dump_mids(struct TCP_Server_Info *server)
 	if (server == NULL)
 		return;
 
-	cERROR(1, "Dump pending requests:");
+	cifs_dbg(VFS, "Dump pending requests:\n");
 	spin_lock(&GlobalMid_Lock);
 	list_for_each(tmp, &server->pending_mid_q) {
 		mid_entry = list_entry(tmp, struct mid_q_entry, qhead);
-		cERROR(1, "State: %d Cmd: %d Pid: %d Cbdata: %p Mid %llu",
-			mid_entry->mid_state,
-			le16_to_cpu(mid_entry->command),
-			mid_entry->pid,
-			mid_entry->callback_data,
-			mid_entry->mid);
+		cifs_dbg(VFS, "State: %d Cmd: %d Pid: %d Cbdata: %p Mid %llu\n",
+			 mid_entry->mid_state,
+			 le16_to_cpu(mid_entry->command),
+			 mid_entry->pid,
+			 mid_entry->callback_data,
+			 mid_entry->mid);
 #ifdef CONFIG_CIFS_STATS2
-		cERROR(1, "IsLarge: %d buf: %p time rcv: %ld now: %ld",
-			mid_entry->large_buf,
-			mid_entry->resp_buf,
-			mid_entry->when_received,
-			jiffies);
+		cifs_dbg(VFS, "IsLarge: %d buf: %p time rcv: %ld now: %ld\n",
+			 mid_entry->large_buf,
+			 mid_entry->resp_buf,
+			 mid_entry->when_received,
+			 jiffies);
 #endif /* STATS2 */
-		cERROR(1, "IsMult: %d IsEnd: %d", mid_entry->multiRsp,
-			  mid_entry->multiEnd);
+		cifs_dbg(VFS, "IsMult: %d IsEnd: %d\n",
+			 mid_entry->multiRsp, mid_entry->multiEnd);
 		if (mid_entry->resp_buf) {
 			cifs_dump_detail(mid_entry->resp_buf);
 			cifs_dump_mem("existing buf: ",
@@ -282,24 +299,8 @@ static ssize_t cifs_stats_proc_write(struct file *file,
 							  struct cifs_tcon,
 							  tcon_list);
 					atomic_set(&tcon->num_smbs_sent, 0);
-					atomic_set(&tcon->num_writes, 0);
-					atomic_set(&tcon->num_reads, 0);
-					atomic_set(&tcon->num_oplock_brks, 0);
-					atomic_set(&tcon->num_opens, 0);
-					atomic_set(&tcon->num_posixopens, 0);
-					atomic_set(&tcon->num_posixmkdirs, 0);
-					atomic_set(&tcon->num_closes, 0);
-					atomic_set(&tcon->num_deletes, 0);
-					atomic_set(&tcon->num_mkdirs, 0);
-					atomic_set(&tcon->num_rmdirs, 0);
-					atomic_set(&tcon->num_renames, 0);
-					atomic_set(&tcon->num_t2renames, 0);
-					atomic_set(&tcon->num_ffirst, 0);
-					atomic_set(&tcon->num_fnext, 0);
-					atomic_set(&tcon->num_fclose, 0);
-					atomic_set(&tcon->num_hardlinks, 0);
-					atomic_set(&tcon->num_symlinks, 0);
-					atomic_set(&tcon->num_locks, 0);
+					if (server->ops->clear_stats)
+						server->ops->clear_stats(tcon);
 				}
 			}
 		}
@@ -358,42 +359,10 @@ static int cifs_stats_proc_show(struct seq_file *m, void *v)
 				seq_printf(m, "\n%d) %s", i, tcon->treeName);
 				if (tcon->need_reconnect)
 					seq_puts(m, "\tDISCONNECTED ");
-				seq_printf(m, "\nSMBs: %d Oplock Breaks: %d",
-					atomic_read(&tcon->num_smbs_sent),
-					atomic_read(&tcon->num_oplock_brks));
-				seq_printf(m, "\nReads:  %d Bytes: %lld",
-					atomic_read(&tcon->num_reads),
-					(long long)(tcon->bytes_read));
-				seq_printf(m, "\nWrites: %d Bytes: %lld",
-					atomic_read(&tcon->num_writes),
-					(long long)(tcon->bytes_written));
-				seq_printf(m, "\nFlushes: %d",
-					atomic_read(&tcon->num_flushes));
-				seq_printf(m, "\nLocks: %d HardLinks: %d "
-					      "Symlinks: %d",
-					atomic_read(&tcon->num_locks),
-					atomic_read(&tcon->num_hardlinks),
-					atomic_read(&tcon->num_symlinks));
-				seq_printf(m, "\nOpens: %d Closes: %d "
-					      "Deletes: %d",
-					atomic_read(&tcon->num_opens),
-					atomic_read(&tcon->num_closes),
-					atomic_read(&tcon->num_deletes));
-				seq_printf(m, "\nPosix Opens: %d "
-					      "Posix Mkdirs: %d",
-					atomic_read(&tcon->num_posixopens),
-					atomic_read(&tcon->num_posixmkdirs));
-				seq_printf(m, "\nMkdirs: %d Rmdirs: %d",
-					atomic_read(&tcon->num_mkdirs),
-					atomic_read(&tcon->num_rmdirs));
-				seq_printf(m, "\nRenames: %d T2 Renames %d",
-					atomic_read(&tcon->num_renames),
-					atomic_read(&tcon->num_t2renames));
-				seq_printf(m, "\nFindFirst: %d FNext %d "
-					      "FClose %d",
-					atomic_read(&tcon->num_ffirst),
-					atomic_read(&tcon->num_fnext),
-					atomic_read(&tcon->num_fclose));
+				seq_printf(m, "\nSMBs: %d",
+					   atomic_read(&tcon->num_smbs_sent));
+				if (server->ops->print_stats)
+					server->ops->print_stats(m, tcon);
 			}
 		}
 	}
@@ -651,7 +620,7 @@ static ssize_t cifs_security_flags_proc_write(struct file *file,
 			global_secflags = CIFSSEC_MAX;
 			return count;
 		} else if (!isdigit(c)) {
-			cERROR(1, "invalid flag %c", c);
+			cifs_dbg(VFS, "invalid flag %c\n", c);
 			return -EINVAL;
 		}
 	}
@@ -659,16 +628,16 @@ static ssize_t cifs_security_flags_proc_write(struct file *file,
 
 	flags = simple_strtoul(flags_string, NULL, 0);
 
-	cFYI(1, "sec flags 0x%x", flags);
+	cifs_dbg(FYI, "sec flags 0x%x\n", flags);
 
 	if (flags <= 0)  {
-		cERROR(1, "invalid security flags %s", flags_string);
+		cifs_dbg(VFS, "invalid security flags %s\n", flags_string);
 		return -EINVAL;
 	}
 
 	if (flags & ~CIFSSEC_MASK) {
-		cERROR(1, "attempt to set unsupported security flags 0x%x",
-			flags & ~CIFSSEC_MASK);
+		cifs_dbg(VFS, "attempt to set unsupported security flags 0x%x\n",
+			 flags & ~CIFSSEC_MASK);
 		return -EINVAL;
 	}
 	/* flags look ok - update the global security flags for cifs module */
@@ -676,9 +645,9 @@ static ssize_t cifs_security_flags_proc_write(struct file *file,
 	if (global_secflags & CIFSSEC_MUST_SIGN) {
 		/* requiring signing implies signing is allowed */
 		global_secflags |= CIFSSEC_MAY_SIGN;
-		cFYI(1, "packet signing now required");
+		cifs_dbg(FYI, "packet signing now required\n");
 	} else if ((global_secflags & CIFSSEC_MAY_SIGN) == 0) {
-		cFYI(1, "packet signing disabled");
+		cifs_dbg(FYI, "packet signing disabled\n");
 	}
 	/* BB should we turn on MAY flags for other MUST options? */
 	return count;
