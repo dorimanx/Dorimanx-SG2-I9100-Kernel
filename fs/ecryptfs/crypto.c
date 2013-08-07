@@ -243,7 +243,7 @@ void ecryptfs_destroy_crypt_stat(struct ecryptfs_crypt_stat *crypt_stat)
 	struct ecryptfs_key_sig *key_sig, *key_sig_tmp;
 
 	if (crypt_stat->tfm)
-		crypto_free_blkcipher(crypt_stat->tfm);
+		crypto_free_ablkcipher(crypt_stat->tfm);
 	if (crypt_stat->hash_tfm)
 		crypto_free_hash(crypt_stat->hash_tfm);
 	list_for_each_entry_safe(key_sig, key_sig_tmp,
@@ -301,17 +301,14 @@ int virt_to_scatterlist(const void *addr, int size, struct scatterlist *sg,
 	while (size > 0 && i < sg_size) {
 		pg = virt_to_page(addr);
 		offset = offset_in_page(addr);
-		if (sg)
-			sg_set_page(&sg[i], pg, 0, offset);
+		sg_set_page(&sg[i], pg, 0, offset);
 		remainder_of_page = PAGE_CACHE_SIZE - offset;
 		if (size >= remainder_of_page) {
-			if (sg)
-				sg[i].length = remainder_of_page;
+			sg[i].length = remainder_of_page;
 			addr += remainder_of_page;
 			size -= remainder_of_page;
 		} else {
-			if (sg)
-				sg[i].length = size;
+			sg[i].length = size;
 			addr += size;
 			size = 0;
 		}
@@ -320,6 +317,22 @@ int virt_to_scatterlist(const void *addr, int size, struct scatterlist *sg,
 	if (size > 0)
 		return -ENOMEM;
 	return i;
+}
+
+struct extent_crypt_result {
+	struct completion completion;
+	int rc;
+};
+
+static void extent_crypt_complete(struct crypto_async_request *req, int rc)
+{
+	struct extent_crypt_result *ecr = req->data;
+
+	if (rc == -EINPROGRESS)
+		return;
+
+	ecr->rc = rc;
+	complete(&ecr->completion);
 }
 
 /**
@@ -337,11 +350,8 @@ static int encrypt_scatterlist(struct ecryptfs_crypt_stat *crypt_stat,
 			       struct scatterlist *src_sg, int size,
 			       unsigned char *iv)
 {
-	struct blkcipher_desc desc = {
-		.tfm = crypt_stat->tfm,
-		.info = iv,
-		.flags = CRYPTO_TFM_REQ_MAY_SLEEP
-	};
+	struct ablkcipher_request *req = NULL;
+	struct extent_crypt_result ecr;
 	int rc = 0;
 
 	BUG_ON(!crypt_stat || !crypt_stat->tfm
@@ -352,24 +362,47 @@ static int encrypt_scatterlist(struct ecryptfs_crypt_stat *crypt_stat,
 		ecryptfs_dump_hex(crypt_stat->key,
 				  crypt_stat->key_size);
 	}
-	/* Consider doing this once, when the file is opened */
+
+	init_completion(&ecr.completion);
+
 	mutex_lock(&crypt_stat->cs_tfm_mutex);
-	if (!(crypt_stat->flags & ECRYPTFS_KEY_SET)) {
-		rc = crypto_blkcipher_setkey(crypt_stat->tfm, crypt_stat->key,
-					     crypt_stat->key_size);
-		crypt_stat->flags |= ECRYPTFS_KEY_SET;
-	}
-	if (rc) {
-		ecryptfs_printk(KERN_ERR, "Error setting key; rc = [%d]\n",
-				rc);
+	req = ablkcipher_request_alloc(crypt_stat->tfm, GFP_NOFS);
+	if (!req) {
 		mutex_unlock(&crypt_stat->cs_tfm_mutex);
-		rc = -EINVAL;
+		rc = -ENOMEM;
 		goto out;
 	}
-	ecryptfs_printk(KERN_DEBUG, "Encrypting [%d] bytes.\n", size);
-	crypto_blkcipher_encrypt_iv(&desc, dest_sg, src_sg, size);
+
+	ablkcipher_request_set_callback(req,
+			CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
+			extent_crypt_complete, &ecr);
+	/* Consider doing this once, when the file is opened */
+	if (!(crypt_stat->flags & ECRYPTFS_KEY_SET)) {
+		rc = crypto_ablkcipher_setkey(crypt_stat->tfm, crypt_stat->key,
+					      crypt_stat->key_size);
+		if (rc) {
+			ecryptfs_printk(KERN_ERR,
+					"Error setting key; rc = [%d]\n",
+					rc);
+			mutex_unlock(&crypt_stat->cs_tfm_mutex);
+			rc = -EINVAL;
+			goto out;
+		}
+		crypt_stat->flags |= ECRYPTFS_KEY_SET;
+	}
 	mutex_unlock(&crypt_stat->cs_tfm_mutex);
+	ecryptfs_printk(KERN_DEBUG, "Encrypting [%d] bytes.\n", size);
+	ablkcipher_request_set_crypt(req, src_sg, dest_sg, size, iv);
+	rc = crypto_ablkcipher_encrypt(req);
+	if (rc == -EINPROGRESS || rc == -EBUSY) {
+		struct extent_crypt_result *ecr = req->base.data;
+
+		wait_for_completion(&ecr->completion);
+		rc = ecr->rc;
+		INIT_COMPLETION(ecr->completion);
+	}
 out:
+	ablkcipher_request_free(req);
 	return rc;
 }
 
@@ -627,35 +660,61 @@ static int decrypt_scatterlist(struct ecryptfs_crypt_stat *crypt_stat,
 			       struct scatterlist *src_sg, int size,
 			       unsigned char *iv)
 {
-	struct blkcipher_desc desc = {
-		.tfm = crypt_stat->tfm,
-		.info = iv,
-		.flags = CRYPTO_TFM_REQ_MAY_SLEEP
-	};
+	struct ablkcipher_request *req = NULL;
+	struct extent_crypt_result ecr;
 	int rc = 0;
 
-	/* Consider doing this once, when the file is opened */
+	BUG_ON(!crypt_stat || !crypt_stat->tfm
+	       || !(crypt_stat->flags & ECRYPTFS_STRUCT_INITIALIZED));
+	if (unlikely(ecryptfs_verbosity > 0)) {
+		ecryptfs_printk(KERN_DEBUG, "Key size [%zd]; key:\n",
+				crypt_stat->key_size);
+		ecryptfs_dump_hex(crypt_stat->key,
+				  crypt_stat->key_size);
+	}
+
+	init_completion(&ecr.completion);
+
 	mutex_lock(&crypt_stat->cs_tfm_mutex);
-	rc = crypto_blkcipher_setkey(crypt_stat->tfm, crypt_stat->key,
-				     crypt_stat->key_size);
-	if (rc) {
-		ecryptfs_printk(KERN_ERR, "Error setting key; rc = [%d]\n",
-				rc);
+	req = ablkcipher_request_alloc(crypt_stat->tfm, GFP_NOFS);
+	if (!req) {
 		mutex_unlock(&crypt_stat->cs_tfm_mutex);
-		rc = -EINVAL;
+		rc = -ENOMEM;
 		goto out;
 	}
-	ecryptfs_printk(KERN_DEBUG, "Decrypting [%d] bytes.\n", size);
-	rc = crypto_blkcipher_decrypt_iv(&desc, dest_sg, src_sg, size);
+
+	ablkcipher_request_set_callback(req,
+			CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
+			extent_crypt_complete, &ecr);
+	/* Consider doing this once, when the file is opened */
+	if (!(crypt_stat->flags & ECRYPTFS_KEY_SET)) {
+		rc = crypto_ablkcipher_setkey(crypt_stat->tfm, crypt_stat->key,
+					      crypt_stat->key_size);
+		if (rc) {
+			ecryptfs_printk(KERN_ERR,
+					"Error setting key; rc = [%d]\n",
+					rc);
+			mutex_unlock(&crypt_stat->cs_tfm_mutex);
+			rc = -EINVAL;
+			goto out;
+		}
+		crypt_stat->flags |= ECRYPTFS_KEY_SET;
+	}
 	mutex_unlock(&crypt_stat->cs_tfm_mutex);
-	if (rc) {
-		ecryptfs_printk(KERN_ERR, "Error decrypting; rc = [%d]\n",
-				rc);
-		goto out;
+	ecryptfs_printk(KERN_DEBUG, "Decrypting [%d] bytes.\n", size);
+	ablkcipher_request_set_crypt(req, src_sg, dest_sg, size, iv);
+	rc = crypto_ablkcipher_decrypt(req);
+	if (rc == -EINPROGRESS || rc == -EBUSY) {
+		struct extent_crypt_result *ecr = req->base.data;
+
+		wait_for_completion(&ecr->completion);
+		rc = ecr->rc;
+		INIT_COMPLETION(ecr->completion);
 	}
-	rc = size;
 out:
+	ablkcipher_request_free(req);
 	return rc;
+
 }
 
 /**
@@ -749,8 +808,7 @@ int ecryptfs_init_crypt_ctx(struct ecryptfs_crypt_stat *crypt_stat)
 						    crypt_stat->cipher, "cbc");
 	if (rc)
 		goto out_unlock;
-	crypt_stat->tfm = crypto_alloc_blkcipher(full_alg_name, 0,
-						 CRYPTO_ALG_ASYNC);
+	crypt_stat->tfm = crypto_alloc_ablkcipher(full_alg_name, 0, 0);
 	kfree(full_alg_name);
 	if (IS_ERR(crypt_stat->tfm)) {
 		rc = PTR_ERR(crypt_stat->tfm);
@@ -760,7 +818,7 @@ int ecryptfs_init_crypt_ctx(struct ecryptfs_crypt_stat *crypt_stat)
 				crypt_stat->cipher);
 		goto out_unlock;
 	}
-	crypto_blkcipher_set_flags(crypt_stat->tfm, CRYPTO_TFM_REQ_WEAK_KEY);
+	crypto_ablkcipher_set_flags(crypt_stat->tfm, CRYPTO_TFM_REQ_WEAK_KEY);
 	rc = 0;
 out_unlock:
 	mutex_unlock(&crypt_stat->cs_tfm_mutex);
@@ -1550,8 +1608,8 @@ int ecryptfs_read_and_validate_xattr_region(struct dentry *dentry,
  */
 int ecryptfs_read_metadata(struct dentry *ecryptfs_dentry)
 {
-	int rc = 0;
-	char *page_virt = NULL;
+	int rc;
+	char *page_virt;
 	struct inode *ecryptfs_inode = ecryptfs_dentry->d_inode;
 	struct ecryptfs_crypt_stat *crypt_stat =
 	    &ecryptfs_inode_to_private(ecryptfs_inode)->crypt_stat;
@@ -1576,6 +1634,7 @@ int ecryptfs_read_metadata(struct dentry *ecryptfs_dentry)
 						ecryptfs_dentry,
 						ECRYPTFS_VALIDATE_HEADER_SIZE);
 	if (rc) {
+		/* metadata is not in the file header, so try xattrs */
 		memset(page_virt, 0, PAGE_CACHE_SIZE);
 		rc = ecryptfs_read_xattr_region(page_virt, ecryptfs_inode);
 		if (rc) {
@@ -1934,7 +1993,7 @@ static const unsigned char filename_rev_map[256] = {
  * @src: Source location for the filename to encode
  * @src_size: Size of the source in bytes
  */
-void ecryptfs_encode_for_filename(unsigned char *dst, size_t *dst_size,
+static void ecryptfs_encode_for_filename(unsigned char *dst, size_t *dst_size,
 				  unsigned char *src, size_t src_size)
 {
 	size_t num_blocks;
@@ -1989,6 +2048,17 @@ out:
 	return;
 }
 
+static size_t ecryptfs_max_decoded_size(size_t encoded_size)
+{
+	/* Not exact; conservatively long. Every block of 4
+	 * encoded characters decodes into a block of 3
+	 * decoded characters. This segment of code provides
+	 * the caller with the maximum amount of allocated
+	 * space that @dst will need to point to in a
+	 * subsequent call. */
+	return ((encoded_size + 1) * 3) / 4;
+}
+
 /**
  * ecryptfs_decode_from_filename
  * @dst: If NULL, this function only sets @dst_size and returns. If
@@ -2007,13 +2077,7 @@ ecryptfs_decode_from_filename(unsigned char *dst, size_t *dst_size,
 	size_t dst_byte_offset = 0;
 
 	if (dst == NULL) {
-		/* Not exact; conservatively long. Every block of 4
-		 * encoded characters decodes into a block of 3
-		 * decoded characters. This segment of code provides
-		 * the caller with the maximum amount of allocated
-		 * space that @dst will need to point to in a
-		 * subsequent call. */
-		(*dst_size) = (((src_size + 1) * 3) / 4);
+		(*dst_size) = ecryptfs_max_decoded_size(src_size);
 		goto out;
 	}
 	while (src_byte_offset < src_size) {
@@ -2237,4 +2301,53 @@ out_free:
 	kfree(decoded_name);
 out:
 	return rc;
+}
+
+#define ENC_NAME_MAX_BLOCKLEN_8_OR_16	143
+
+int ecryptfs_set_f_namelen(long *namelen, long lower_namelen,
+			   struct ecryptfs_mount_crypt_stat *mount_crypt_stat)
+{
+	struct blkcipher_desc desc;
+	struct mutex *tfm_mutex;
+	size_t cipher_blocksize;
+	int rc;
+
+	if (!(mount_crypt_stat->flags & ECRYPTFS_GLOBAL_ENCRYPT_FILENAMES)) {
+		(*namelen) = lower_namelen;
+		return 0;
+	}
+
+	rc = ecryptfs_get_tfm_and_mutex_for_cipher_name(&desc.tfm, &tfm_mutex,
+			mount_crypt_stat->global_default_fn_cipher_name);
+	if (unlikely(rc)) {
+		(*namelen) = 0;
+		return rc;
+	}
+
+	mutex_lock(tfm_mutex);
+	cipher_blocksize = crypto_blkcipher_blocksize(desc.tfm);
+	mutex_unlock(tfm_mutex);
+
+	/* Return an exact amount for the common cases */
+	if (lower_namelen == NAME_MAX
+	    && (cipher_blocksize == 8 || cipher_blocksize == 16)) {
+		(*namelen) = ENC_NAME_MAX_BLOCKLEN_8_OR_16;
+		return 0;
+	}
+
+	/* Return a safe estimate for the uncommon cases */
+	(*namelen) = lower_namelen;
+	(*namelen) -= ECRYPTFS_FNEK_ENCRYPTED_FILENAME_PREFIX_SIZE;
+	/* Since this is the max decoded size, subtract 1 "decoded block" len */
+	(*namelen) = ecryptfs_max_decoded_size(*namelen) - 3;
+	(*namelen) -= ECRYPTFS_TAG_70_MAX_METADATA_SIZE;
+	(*namelen) -= ECRYPTFS_FILENAME_MIN_RANDOM_PREPEND_BYTES;
+	/* Worst case is that the filename is padded nearly a full block size */
+	(*namelen) -= cipher_blocksize - 1;
+
+	if ((*namelen) < 0)
+		(*namelen) = 0;
+
+	return 0;
 }

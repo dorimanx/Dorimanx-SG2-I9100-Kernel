@@ -897,7 +897,6 @@ static int load_flat_binary(struct linux_binprm * bprm)
 						libinfo.lib_list[j].start_data:UNLOADED_LIB;
 
 	install_exec_creds(bprm);
- 	current->flags &= ~PF_FORKNOEXEC;
 
 	set_binfmt(&flat_format);
 

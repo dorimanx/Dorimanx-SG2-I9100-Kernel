@@ -4173,16 +4173,7 @@ struct inode *btrfs_lookup_dentry(struct inode *dir, struct dentry *dentry)
 	if (dentry->d_name.len > BTRFS_NAME_LEN)
 		return ERR_PTR(-ENAMETOOLONG);
 
-	if (unlikely(d_need_lookup(dentry))) {
-		memcpy(&location, dentry->d_fsdata, sizeof(struct btrfs_key));
-		kfree(dentry->d_fsdata);
-		dentry->d_fsdata = NULL;
-		/* This thing is hashed, drop it for now */
-		d_drop(dentry);
-	} else {
-		ret = btrfs_inode_by_name(dir, dentry, &location);
-	}
-
+	ret = btrfs_inode_by_name(dir, dentry, &location);
 	if (ret < 0)
 		return ERR_PTR(ret);
 
@@ -4252,11 +4243,6 @@ static struct dentry *btrfs_lookup(struct inode *dir, struct dentry *dentry,
 	struct dentry *ret;
 
 	ret = d_splice_alias(btrfs_lookup_dentry(dir, dentry), dentry);
-	if (unlikely(d_need_lookup(dentry))) {
-		spin_lock(&dentry->d_lock);
-		dentry->d_flags &= ~DCACHE_NEED_LOOKUP;
-		spin_unlock(&dentry->d_lock);
-	}
 	return ret;
 }
 
@@ -7066,6 +7052,11 @@ static void init_once(void *foo)
 
 void btrfs_destroy_cachep(void)
 {
+	/*
+	 * Make sure all delayed rcu free inodes are flushed before we
+	 * destroy cache.
+	 */
+	rcu_barrier();
 	if (btrfs_inode_cachep)
 		kmem_cache_destroy(btrfs_inode_cachep);
 	if (btrfs_trans_handle_cachep)

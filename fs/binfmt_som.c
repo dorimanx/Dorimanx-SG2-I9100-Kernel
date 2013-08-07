@@ -220,7 +220,6 @@ load_som_binary(struct linux_binprm * bprm)
 		goto out_free;
 
 	/* OK, This is the point of no return */
-	current->flags &= ~PF_FORKNOEXEC;
 	current->personality = PER_HPUX;
 	setup_new_exec(bprm);
 

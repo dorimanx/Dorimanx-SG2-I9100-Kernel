@@ -206,8 +206,12 @@ fi;
 cp $KERNELDIR/arch/arm/boot/compressed/Makefile_clean $KERNELDIR/arch/arm/boot/compressed/Makefile;
 
 if [ -e $KERNELDIR/arch/arm/boot/zImage ]; then
-	cp $KERNELDIR/arch/arm/boot/zImage $KERNELDIR/;
 	cp $KERNELDIR/.config $KERNELDIR/arch/arm/configs/$KERNEL_CONFIG;
+
+	echo "Kernel size before payload!";
+	stat $KERNELDIR/arch/arm/boot/zImage || exit 1;
+
+	$KERNELDIR/mkshbootimg.py $KERNELDIR/zImage $KERNELDIR/arch/arm/boot/zImage $KERNELDIR/payload.tar.xz $KERNELDIR/recovery.tar.xz;
 
 	# clean old files ...
 	rm $KERNELDIR/READY-JB/boot/zImage;
@@ -215,6 +219,7 @@ if [ -e $KERNELDIR/arch/arm/boot/zImage ]; then
 
 	# copy all needed to ready kernel folder
 	cp $KERNELDIR/.config $KERNELDIR/READY-JB/;
+	echo "Kernel size after payload merge!";
 	stat $KERNELDIR/zImage || exit 1;
 	cp $KERNELDIR/zImage /$KERNELDIR/READY-JB/boot/;
 

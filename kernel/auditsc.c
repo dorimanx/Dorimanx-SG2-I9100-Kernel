@@ -2032,6 +2032,29 @@ static struct audit_names *audit_alloc_name(struct audit_context *context,
 }
 
 /**
+ * audit_reusename - fill out filename with info from existing entry
+ * @uptr: userland ptr to pathname
+ *
+ * Search the audit_names list for the current audit context. If there is an
+ * existing entry with a matching "uptr" then return the filename
+ * associated with that audit_name. If not, return NULL.
+ */
+struct filename *
+__audit_reusename(const __user char *uptr)
+{
+	struct audit_context *context = current->audit_context;
+	struct audit_names *n;
+
+	list_for_each_entry(n, &context->names_list, list) {
+		if (!n->name)
+			continue;
+		if (n->name->uptr == uptr)
+			return n->name;
+	}
+	return NULL;
+}
+
+/**
  * audit_getname - add a name to the list
  * @name: name to add
  *
@@ -2064,6 +2087,7 @@ void __audit_getname(struct filename *name)
 	n->name = name;
 	n->name_len = AUDIT_NAME_FULL;
 	n->name_put = true;
+	name->aname = n;
 
 	if (!context->pwd.dentry)
 		get_fs_pwd(current->fs, &context->pwd);
@@ -2154,7 +2178,7 @@ static void audit_copy_inode(struct audit_names *name, const struct dentry *dent
  * @dentry: dentry being audited
  * @parent: does this dentry represent the parent?
  */
-void __audit_inode(const char *name, const struct dentry *dentry,
+void __audit_inode(struct filename *name, const struct dentry *dentry,
 		   unsigned int parent)
 {
 	struct audit_context *context = current->audit_context;
@@ -2167,9 +2191,29 @@ void __audit_inode(const char *name, const struct dentry *dentry,
 	if (!name)
 		goto out_alloc;
 
+#if AUDIT_DEBUG
+	/* The struct filename _must_ have a populated ->name */
+	BUG_ON(!name->name);
+#endif
+	/*
+	 * If we have a pointer to an audit_names entry already, then we can
+	 * just use it directly if the type is correct.
+	 */
+	n = name->aname;
+	if (n) {
+		if (parent) {
+			if (n->type == AUDIT_TYPE_PARENT ||
+			    n->type == AUDIT_TYPE_UNKNOWN)
+				goto out;
+		} else {
+			if (n->type != AUDIT_TYPE_PARENT)
+				goto out;
+		}
+	}
+
 	list_for_each_entry_reverse(n, &context->names_list, list) {
 		/* does the name pointer match? */
-		if (!n->name || n->name->name != name)
+		if (!n->name || n->name->name != name->name)
 			continue;
 
 		/* match the correct record type */
