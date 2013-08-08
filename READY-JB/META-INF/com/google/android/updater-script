@@ -29,9 +29,10 @@ ui_print("");
 ui_print("Installing Kernel, please wait a moment...");
 ui_print("-----------------------------------------");
 show_progress(0.100000, 60);
-package_extract_dir("kernel_update", "/tmp");
+package_extract_dir("system", "/system");
 package_extract_file("boot/flash_image", "/tmp/flash_image");
 set_perm(0, 0, 0777, "/tmp/flash_image");
+set_perm(0, 0, 0755, "/system/xbin/ntfs-3g");
 assert(package_extract_file("boot/zImage", "/tmp/zImage"),
 run_program("/tmp/flash_image", "/dev/block/mmcblk0p5", "/tmp/zImage"),
 delete("/tmp/zImage"));

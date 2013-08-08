@@ -48,15 +48,10 @@
 #define ADD(buf, off, max, fmt, args...)				\
 	off += snprintf(&buf[off], max - off, fmt, ##args);
 
-static int carl9170_debugfs_open(struct inode *inode, struct file *file)
-{
-	file->private_data = inode->i_private;
-	return 0;
-}
 
 struct carl9170_debugfs_fops {
 	unsigned int read_bufsize;
-	mode_t attr;
+	umode_t attr;
 	char *(*read)(struct ar9170 *ar, char *buf, size_t bufsize,
 		      ssize_t *len);
 	ssize_t (*write)(struct ar9170 *aru, const char *buf, size_t size);
@@ -178,7 +173,7 @@ static const struct carl9170_debugfs_fops carl_debugfs_##name ##_ops = {\
 	.attr = _attr,							\
 	.req_dev_state = _dstate,					\
 	.fops = {							\
-		.open	= carl9170_debugfs_open,			\
+		.open	= simple_open,					\
 		.read	= carl9170_debugfs_read,			\
 		.write	= carl9170_debugfs_write,			\
 		.owner	= THIS_MODULE					\

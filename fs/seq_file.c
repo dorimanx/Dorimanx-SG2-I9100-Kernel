@@ -160,21 +160,6 @@ ssize_t seq_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
 
 	mutex_lock(&m->lock);
 
-	/* Don't assume *ppos is where we left it */
-	if (unlikely(*ppos != m->read_pos)) {
-		m->read_pos = *ppos;
-		while ((err = traverse(m, *ppos)) == -EAGAIN)
-			;
-		if (err) {
-			/* With prejudice... */
-			m->read_pos = 0;
-			m->version = 0;
-			m->index = 0;
-			m->count = 0;
-			goto Done;
-		}
-	}
-
 	/*
 	 * seq_file->op->..m_start/m_stop/m_next may do special actions
 	 * or optimisations based on the file->f_version, so we want to
@@ -187,6 +172,23 @@ ssize_t seq_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
 	 * need of passing another argument to all the seq_file methods.
 	 */
 	m->version = file->f_version;
+
+	/* Don't assume *ppos is where we left it */
+	if (unlikely(*ppos != m->read_pos)) {
+		while ((err = traverse(m, *ppos)) == -EAGAIN)
+			;
+		if (err) {
+			/* With prejudice... */
+			m->read_pos = 0;
+			m->version = 0;
+			m->index = 0;
+			m->count = 0;
+			goto Done;
+		} else {
+			m->read_pos = *ppos;
+		}
+	}
+
 	/* grab buffer if we didn't have one */
 	if (!m->buf) {
 		m->buf = kmalloc(m->size = PAGE_SIZE, GFP_KERNEL);
@@ -294,7 +296,7 @@ EXPORT_SYMBOL(seq_read);
  *	seq_lseek -	->llseek() method for sequential files.
  *	@file: the file in question
  *	@offset: new position
- *	@origin: 0 for absolute, 1 for relative position
+ *	@whence: 0 for absolute, 1 for relative position
  *
  *	Ready-made ->f_op->llseek()
  */
@@ -306,27 +308,27 @@ loff_t seq_lseek(struct file *file, loff_t offset, int whence)
 	mutex_lock(&m->lock);
 	m->version = file->f_version;
 	switch (whence) {
-		case 1:
-			offset += file->f_pos;
-		case 0:
-			if (offset < 0)
-				break;
-			retval = offset;
-			if (offset != m->read_pos) {
-				while ((retval=traverse(m, offset)) == -EAGAIN)
-					;
-				if (retval) {
-					/* with extreme prejudice... */
-					file->f_pos = 0;
-					m->read_pos = 0;
-					m->version = 0;
-					m->index = 0;
-					m->count = 0;
-				} else {
-					m->read_pos = offset;
-					retval = file->f_pos = offset;
-				}
+	case SEEK_CUR:
+		offset += file->f_pos;
+	case SEEK_SET:
+		if (offset < 0)
+			break;
+		retval = offset;
+		if (offset != m->read_pos) {
+			while ((retval = traverse(m, offset)) == -EAGAIN)
+				;
+			if (retval) {
+				/* with extreme prejudice... */
+				file->f_pos = 0;
+				m->read_pos = 0;
+				m->version = 0;
+				m->index = 0;
+				m->count = 0;
+			} else {
+				m->read_pos = offset;
+				retval = file->f_pos = offset;
 			}
+		}
 	}
 	file->f_version = m->version;
 	mutex_unlock(&m->lock);
@@ -337,7 +339,7 @@ EXPORT_SYMBOL(seq_lseek);
 /**
  *	seq_release -	free the structures associated with sequential file.
  *	@file: file in question
- *	@inode: file_inode(file);
+ *	@inode: its inode
  *
  *	Frees the structures associated with sequential file; can be used
  *	as ->f_op->release() if you don't have private data to destroy.
@@ -729,7 +731,7 @@ int seq_put_decimal_ll(struct seq_file *m, char delimiter,
 {
 	if (num < 0) {
 		if (m->count + 3 >= m->size) {
-			m->count = m->size;
+			seq_set_overflow(m);
 			return -1;
 		}
 		if (delimiter)

@@ -978,6 +978,85 @@ lpfc_debugfs_dumpDataDif_write(struct file *file, const char __user *buf,
 	return nbytes;
 }
 
+<<<<<<< HEAD
+=======
+static ssize_t
+lpfc_debugfs_dif_err_read(struct file *file, char __user *buf,
+	size_t nbytes, loff_t *ppos)
+{
+	struct dentry *dent = file->f_dentry;
+	struct lpfc_hba *phba = file->private_data;
+	char cbuf[16];
+	int cnt = 0;
+
+	if (dent == phba->debug_writeGuard)
+		cnt = snprintf(cbuf, 16, "%u\n", phba->lpfc_injerr_wgrd_cnt);
+	else if (dent == phba->debug_writeApp)
+		cnt = snprintf(cbuf, 16, "%u\n", phba->lpfc_injerr_wapp_cnt);
+	else if (dent == phba->debug_writeRef)
+		cnt = snprintf(cbuf, 16, "%u\n", phba->lpfc_injerr_wref_cnt);
+	else if (dent == phba->debug_readGuard)
+		cnt = snprintf(cbuf, 16, "%u\n", phba->lpfc_injerr_rgrd_cnt);
+	else if (dent == phba->debug_readApp)
+		cnt = snprintf(cbuf, 16, "%u\n", phba->lpfc_injerr_rapp_cnt);
+	else if (dent == phba->debug_readRef)
+		cnt = snprintf(cbuf, 16, "%u\n", phba->lpfc_injerr_rref_cnt);
+	else if (dent == phba->debug_InjErrLBA)
+		cnt = snprintf(cbuf, 16, "0x%lx\n",
+				 (unsigned long) phba->lpfc_injerr_lba);
+	else
+		lpfc_printf_log(phba, KERN_ERR, LOG_INIT,
+			 "0547 Unknown debugfs error injection entry\n");
+
+	return simple_read_from_buffer(buf, nbytes, ppos, &cbuf, cnt);
+}
+
+static ssize_t
+lpfc_debugfs_dif_err_write(struct file *file, const char __user *buf,
+	size_t nbytes, loff_t *ppos)
+{
+	struct dentry *dent = file->f_dentry;
+	struct lpfc_hba *phba = file->private_data;
+	char dstbuf[32];
+	unsigned long tmp;
+	int size;
+
+	memset(dstbuf, 0, 32);
+	size = (nbytes < 32) ? nbytes : 32;
+	if (copy_from_user(dstbuf, buf, size))
+		return 0;
+
+	if (strict_strtoul(dstbuf, 0, &tmp))
+		return 0;
+
+	if (dent == phba->debug_writeGuard)
+		phba->lpfc_injerr_wgrd_cnt = (uint32_t)tmp;
+	else if (dent == phba->debug_writeApp)
+		phba->lpfc_injerr_wapp_cnt = (uint32_t)tmp;
+	else if (dent == phba->debug_writeRef)
+		phba->lpfc_injerr_wref_cnt = (uint32_t)tmp;
+	else if (dent == phba->debug_readGuard)
+		phba->lpfc_injerr_rgrd_cnt = (uint32_t)tmp;
+	else if (dent == phba->debug_readApp)
+		phba->lpfc_injerr_rapp_cnt = (uint32_t)tmp;
+	else if (dent == phba->debug_readRef)
+		phba->lpfc_injerr_rref_cnt = (uint32_t)tmp;
+	else if (dent == phba->debug_InjErrLBA)
+		phba->lpfc_injerr_lba = (sector_t)tmp;
+	else
+		lpfc_printf_log(phba, KERN_ERR, LOG_INIT,
+			 "0548 Unknown debugfs error injection entry\n");
+
+	return nbytes;
+}
+
+static int
+lpfc_debugfs_dif_err_release(struct inode *inode, struct file *file)
+{
+	return 0;
+}
+
+>>>>>>> 234e340... simple_open: automatically convert to simple_open()
 /**
  * lpfc_debugfs_nodelist_open - Open the nodelist debugfs file
  * @inode: The inode pointer that contains a vport pointer.
@@ -2394,6 +2473,19 @@ static const struct file_operations lpfc_debugfs_op_dumpDif = {
 	.release =      lpfc_debugfs_dumpDataDif_release,
 };
 
+<<<<<<< HEAD
+=======
+#undef lpfc_debugfs_op_dif_err
+static const struct file_operations lpfc_debugfs_op_dif_err = {
+	.owner =	THIS_MODULE,
+	.open =		simple_open,
+	.llseek =	lpfc_debugfs_lseek,
+	.read =		lpfc_debugfs_dif_err_read,
+	.write =	lpfc_debugfs_dif_err_write,
+	.release =	lpfc_debugfs_dif_err_release,
+};
+
+>>>>>>> 234e340... simple_open: automatically convert to simple_open()
 #undef lpfc_debugfs_op_slow_ring_trc
 static const struct file_operations lpfc_debugfs_op_slow_ring_trc = {
 	.owner =        THIS_MODULE,

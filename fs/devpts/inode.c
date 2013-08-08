@@ -420,7 +420,11 @@ static struct file_system_type devpts_fs_type = {
 	.name		= "devpts",
 	.mount		= devpts_mount,
 	.kill_sb	= devpts_kill_sb,
+#ifdef CONFIG_DEVPTS_MULTIPLE_INSTANCES
+	.fs_flags	= FS_USERNS_MOUNT | FS_USERNS_DEV_MOUNT,
+#endif
 };
+MODULE_ALIAS_FS("devpts");
 
 /*
  * The normal naming convention is simply /dev/pts/<number>; this conforms

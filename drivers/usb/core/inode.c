@@ -431,18 +431,10 @@ static loff_t default_file_lseek (struct file *file, loff_t offset, int orig)
 	return retval;
 }
 
-static int default_open (struct inode *inode, struct file *file)
-{
-	if (inode->i_private)
-		file->private_data = inode->i_private;
-
-	return 0;
-}
-
 static const struct file_operations default_file_operations = {
 	.read =		default_read_file,
 	.write =	default_write_file,
-	.open =		default_open,
+	.open =		simple_open,
 	.llseek =	default_file_lseek,
 };
 
@@ -494,7 +486,7 @@ static int fs_create_by_name (const char *name, mode_t mode,
 	 */
 	if (!parent ) {
 		if (usbfs_mount && usbfs_mount->mnt_sb) {
-			parent = usbfs_mount->mnt_sb->s_root;
+			parent = usbfs_mount->mnt_root;
 		}
 	}
 
@@ -601,7 +593,7 @@ static int create_special_files (void)
 
 	ignore_mount = 0;
 
-	parent = usbfs_mount->mnt_sb->s_root;
+	parent = usbfs_mount->mnt_root;
 	devices_usbfs_dentry = fs_create_file ("devices",
 					       listmode | S_IFREG, parent,
 					       NULL, &usbfs_devices_fops,
@@ -655,7 +647,7 @@ static void usbfs_add_bus(struct usb_bus *bus)
 
 	sprintf (name, "%03d", bus->busnum);
 
-	parent = usbfs_mount->mnt_sb->s_root;
+	parent = usbfs_mount->mnt_root;
 	bus->usbfs_dentry = fs_create_file (name, busmode | S_IFDIR, parent,
 					    bus, NULL, busuid, busgid);
 	if (bus->usbfs_dentry == NULL) {

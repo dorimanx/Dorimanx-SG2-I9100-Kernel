@@ -691,6 +691,7 @@ static void dasd_profile_end(struct dasd_block *block,
 	dasd_profile_counter(irqtime / sectors, dasd_io_time2ps, block);
 	dasd_profile_counter(endtime, dasd_io_time3, block);
 }
+
 #else
 #define dasd_profile_start(block, cqr, req) do {} while (0)
 #define dasd_profile_end(block, cqr, req) do {} while (0)

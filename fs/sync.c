@@ -187,11 +187,9 @@ int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 		return 0;
 	else {
 #endif
-
-	if (!file->f_op || !file->f_op->fsync) 
+	if (!file->f_op || !file->f_op->fsync)
 		return -EINVAL;
 	return file->f_op->fsync(file, start, end, datasync);
-
 #ifdef CONFIG_DYNAMIC_FSYNC
 	}
 #endif

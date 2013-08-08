@@ -680,7 +680,6 @@ void rtl8192_proc_module_remove(void)
 	remove_proc_entry(RTL819xU_MODULE_NAME, init_net.proc_net);
 }
 
-
 void rtl8192_proc_remove_one(struct net_device *dev)
 {
 	struct r8192_priv *priv = (struct r8192_priv *)ieee80211_priv(dev);
@@ -715,10 +714,24 @@ void rtl8192_proc_init_one(struct net_device *dev)
 	e = create_proc_read_entry("stats-rx", S_IFREG | S_IRUGO,
 				   priv->dir_dev, proc_get_stats_rx, dev);
 
-	if (!e) {
-		RT_TRACE(COMP_ERR,"Unable to initialize "
-		      "/proc/net/rtl8192/%s/stats-rx\n",
-		      dev->name);
+	if (rtl8192_proc) {
+		priv->dir_dev = proc_mkdir_data(dev->name, 0, rtl8192_proc, dev);
+		if (!priv->dir_dev) {
+			RT_TRACE(COMP_ERR, "Unable to initialize /proc/net/rtl8192/%s\n",
+				 dev->name);
+			return;
+		}
+
+		for (f = rtl8192_proc_files; f->name[0]; f++) {
+			if (!proc_create_data(f->name, S_IFREG | S_IRUGO,
+					      priv->dir_dev,
+					      rtl8192_proc_fops, f->show)) {
+				RT_TRACE(COMP_ERR, "Unable to initialize "
+					 "/proc/net/rtl8192/%s/%s\n",
+					 dev->name, f->name);
+				return;
+			}
+		}
 	}
 
 

@@ -255,7 +255,6 @@ static struct inode *proc_sys_make_inode(struct super_block *sb,
 		inode->i_fop = &proc_sys_file_operations;
 	} else {
 		inode->i_mode |= S_IFDIR;
-		clear_nlink(inode);
 		inode->i_op = &proc_sys_dir_operations;
 		inode->i_fop = &proc_sys_dir_file_operations;
 	}
@@ -265,17 +264,11 @@ out:
 
 static struct ctl_table *find_in_table(struct ctl_table *p, struct qstr *name)
 {
-	int len;
 	for ( ; p->procname; p++) {
-
-		if (!p->procname)
+		if (strlen(p->procname) != name->len)
 			continue;
 
-		len = strlen(p->procname);
-		if (len != name->len)
-			continue;
-
-		if (memcmp(p->procname, name->name, len) != 0)
+		if (memcmp(p->procname, name->name, name->len) != 0)
 			continue;
 
 		/* I have a match */
@@ -471,10 +464,6 @@ static int scan(struct ctl_table_header *head, ctl_table *table,
 
 	for (; table->procname; table++, (*pos)++) {
 		int res;
-
-		/* Can't do anything without a proc name */
-		if (!table->procname)
-			continue;
 
 		if (*pos < file->f_pos)
 			continue;

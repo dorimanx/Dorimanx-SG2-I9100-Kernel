@@ -78,6 +78,13 @@
 #include <linux/kobject.h>
 #include <linux/device.h>
 #include <linux/slab.h>
+#include <linux/pstore.h>
+#include <linux/ctype.h>
+#include <linux/magic.h>
+
+#include <linux/fs.h>
+#include <linux/ramfs.h>
+#include <linux/pagemap.h>
 
 #include <asm/uaccess.h>
 
@@ -394,7 +401,6 @@ efivar_unregister(struct efivar_entry *var)
 {
 	kobject_put(&var->kobj);
 }
-
 
 static ssize_t efivar_create(struct file *filp, struct kobject *kobj,
 			     struct bin_attribute *bin_attr,

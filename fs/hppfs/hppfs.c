@@ -722,7 +722,10 @@ static int hppfs_fill_super(struct super_block *sb, void *d, int silent)
 
 	err = -ENOMEM;
 	root_inode = get_inode(sb, dget(proc_mnt->mnt_root));
-	sb->s_root = d_make_root(root_inode);
+	if (!root_inode)
+		goto out_mntput;
+
+	sb->s_root = d_alloc_root(root_inode);
 	if (!sb->s_root)
 		goto out_mntput;
 
@@ -748,6 +751,7 @@ static struct file_system_type hppfs_type = {
 	.kill_sb	= kill_anon_super,
 	.fs_flags 	= 0,
 };
+MODULE_ALIAS_FS("hppfs");
 
 static int __init init_hppfs(void)
 {

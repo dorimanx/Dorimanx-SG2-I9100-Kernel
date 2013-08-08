@@ -876,6 +876,18 @@ void of_attach_node(struct device_node *np)
 	write_unlock_irqrestore(&devtree_lock, flags);
 }
 
+#ifdef CONFIG_PROC_DEVICETREE
+static void of_remove_proc_dt_entry(struct device_node *dn)
+{
+	proc_remove(dn->pde);
+}
+#else
+static void of_remove_proc_dt_entry(struct device_node *dn)
+{
+	return;
+}
+#endif
+
 /**
  * of_detach_node - "Unplug" a node from the device tree.
  *

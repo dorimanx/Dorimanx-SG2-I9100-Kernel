@@ -1030,12 +1030,6 @@ static struct attribute_group port_attribute_group = {
 	.attrs = port_sysfs_entries,
 };
 
-static int debugfs_open(struct inode *inode, struct file *filp)
-{
-	filp->private_data = inode->i_private;
-	return 0;
-}
-
 static ssize_t debugfs_read(struct file *filp, char __user *ubuf,
 			    size_t count, loff_t *offp)
 {
@@ -1071,7 +1065,7 @@ static ssize_t debugfs_read(struct file *filp, char __user *ubuf,
 
 static const struct file_operations port_debugfs_ops = {
 	.owner = THIS_MODULE,
-	.open  = debugfs_open,
+	.open  = simple_open,
 	.read  = debugfs_read,
 };
 

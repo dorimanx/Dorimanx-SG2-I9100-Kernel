@@ -54,7 +54,7 @@ struct proc_dir_entry {
 	void *data;
 	read_proc_t *read_proc;
 	atomic_t count;		/* use count */
-	int pde_users;	/* number of callers into module in progress; */
+	atomic_t in_use;	/* number of callers into module in progress; */
 			/* negative -> it's going away RSN */
 	struct completion *pde_unload_completion;
 	struct list_head pde_openers;	/* who did ->open, but not ->release */
@@ -97,6 +97,7 @@ struct proc_dir_entry *proc_create_data(const char *name, umode_t mode,
 				struct proc_dir_entry *parent,
 				const struct file_operations *proc_fops,
 				void *data);
+extern void proc_remove(struct proc_dir_entry *);
 extern void remove_proc_entry(const char *name, struct proc_dir_entry *parent);
 extern int remove_proc_subtree(const char *name, struct proc_dir_entry *parent);
 
@@ -128,6 +129,8 @@ extern void proc_device_tree_update_prop(struct proc_dir_entry *pde,
 extern struct proc_dir_entry *proc_symlink(const char *,
 		struct proc_dir_entry *, const char *);
 extern struct proc_dir_entry *proc_mkdir(const char *,struct proc_dir_entry *);
+extern struct proc_dir_entry *proc_mkdir_data(const char *, umode_t,
+					      struct proc_dir_entry *, void *);
 extern struct proc_dir_entry *proc_mkdir_mode(const char *name, umode_t mode,
 			struct proc_dir_entry *parent);
 
@@ -152,11 +155,10 @@ static inline struct proc_dir_entry *create_proc_read_entry(const char *name,
 extern struct proc_dir_entry *proc_net_fops_create(struct net *net,
 	const char *name, umode_t mode, const struct file_operations *fops);
 extern void proc_net_remove(struct net *net, const char *name);
-extern struct proc_dir_entry *proc_net_mkdir(struct net *net, const char *name,
-	struct proc_dir_entry *parent);
 
 extern void proc_set_size(struct proc_dir_entry *, loff_t);
 extern void proc_set_user(struct proc_dir_entry *, kuid_t, kgid_t);
+extern void *proc_get_parent_data(const struct inode *);
 #else
 
 #define proc_net_fops_create(net, name, mode, fops)  ({ (void)(mode), NULL; })
@@ -180,6 +182,7 @@ static inline struct proc_dir_entry *proc_create_data(const char *name,
 {
 	return NULL;
 }
+static inline void proc_remove(struct proc_dir_entry *de) {}
 #define remove_proc_entry(name, parent) do {} while (0)
 #define remove_proc_subtree(name, parent) do {} while (0)
 
@@ -187,6 +190,8 @@ static inline struct proc_dir_entry *proc_symlink(const char *name,
 		struct proc_dir_entry *parent,const char *dest) {return NULL;}
 static inline struct proc_dir_entry *proc_mkdir(const char *name,
 	struct proc_dir_entry *parent) {return NULL;}
+static inline struct proc_dir_entry *proc_mkdir_data(const char *name,
+	umode_t mode, struct proc_dir_entry *parent, void *data) { return NULL; }
 static inline struct proc_dir_entry *proc_mkdir_mode(const char *name,
 	umode_t mode, struct proc_dir_entry *parent) { return NULL; }
 static inline void proc_set_size(struct proc_dir_entry *de, loff_t size) {}
@@ -248,12 +253,14 @@ static inline void *PDE_DATA(const struct inode *inode)
 	return PROC_I(inode)->pde->data;
 }
 
-static inline struct net *PDE_NET(struct proc_dir_entry *pde)
-{
-	return pde->parent->data;
-}
-
 #include <linux/signal.h>
 
 void render_sigset_t(struct seq_file *m, const char *header, sigset_t *set);
+
+static inline struct proc_dir_entry *proc_net_mkdir(
+	struct net *net, const char *name, struct proc_dir_entry *parent)
+{
+	return proc_mkdir_data(name, 0, parent, net);
+}
+
 #endif /* _LINUX_PROC_FS_H */

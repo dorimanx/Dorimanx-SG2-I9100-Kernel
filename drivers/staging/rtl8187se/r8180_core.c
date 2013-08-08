@@ -329,8 +329,11 @@ void rtl8180_proc_remove_one(struct net_device *dev)
 
 void rtl8180_proc_init_one(struct net_device *dev)
 {
-	struct proc_dir_entry *e;
-	struct r8180_priv *priv = (struct r8180_priv *)ieee80211_priv(dev);
+	struct net_device *dev = proc_get_parent_data(inode);
+	int (*show)(struct seq_file *, void *) = PDE_DATA(inode);
+
+	return single_open(file, show, dev);
+}
 
 	priv->dir_dev = rtl8180_proc;
 	if (!priv->dir_dev) {

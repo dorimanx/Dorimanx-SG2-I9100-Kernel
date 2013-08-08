@@ -20,6 +20,7 @@
 #include <linux/signal.h>
 #include <linux/rcupdate.h>
 #include <linux/pid_namespace.h>
+#include <linux/user_namespace.h>
 
 #include <asm/poll.h>
 #include <asm/siginfo.h>
@@ -148,7 +149,7 @@ pid_t f_getown(struct file *filp)
 
 static int f_setown_ex(struct file *filp, unsigned long arg)
 {
-	struct f_owner_ex * __user owner_p = (void * __user)arg;
+	struct f_owner_ex __user *owner_p = (void __user *)arg;
 	struct f_owner_ex owner;
 	struct pid *pid;
 	int type;
@@ -188,7 +189,7 @@ static int f_setown_ex(struct file *filp, unsigned long arg)
 
 static int f_getown_ex(struct file *filp, unsigned long arg)
 {
-	struct f_owner_ex * __user owner_p = (void * __user)arg;
+	struct f_owner_ex __user *owner_p = (void __user *)arg;
 	struct f_owner_ex owner;
 	int ret = 0;
 
@@ -222,6 +223,31 @@ static int f_getown_ex(struct file *filp, unsigned long arg)
 	return ret;
 }
 
+#ifdef CONFIG_CHECKPOINT_RESTORE
+static int f_getowner_uids(struct file *filp, unsigned long arg)
+{
+	struct user_namespace *user_ns = current_user_ns();
+	uid_t __user *dst = (void __user *)arg;
+	uid_t src[2];
+	int err;
+
+	read_lock(&filp->f_owner.lock);
+	src[0] = from_kuid(user_ns, filp->f_owner.uid);
+	src[1] = from_kuid(user_ns, filp->f_owner.euid);
+	read_unlock(&filp->f_owner.lock);
+
+	err  = put_user(src[0], &dst[0]);
+	err |= put_user(src[1], &dst[1]);
+
+	return err;
+}
+#else
+static int f_getowner_uids(struct file *filp, unsigned long arg)
+{
+	return -EINVAL;
+}
+#endif
+
 static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
 		struct file *filp)
 {
@@ -232,7 +258,7 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
 		err = f_dupfd(arg, filp, 0);
 		break;
 	case F_DUPFD_CLOEXEC:
-		err = f_dupfd(arg, filp, FD_CLOEXEC);
+		err = f_dupfd(arg, filp, O_CLOEXEC);
 		break;
 	case F_GETFD:
 		err = get_close_on_exec(fd) ? FD_CLOEXEC : 0;
@@ -273,6 +299,9 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
 		break;
 	case F_SETOWN_EX:
 		err = f_setown_ex(filp, arg);
+		break;
+	case F_GETOWNER_UIDS:
+		err = f_getowner_uids(filp, arg);
 		break;
 	case F_GETSIG:
 		err = filp->f_owner.signum;

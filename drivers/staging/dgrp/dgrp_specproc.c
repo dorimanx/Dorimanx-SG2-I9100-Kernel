@@ -37,6 +37,7 @@
 #include <linux/sched.h>
 #include <linux/cred.h>
 #include <linux/proc_fs.h>
+#include <linux/slab.h>
 #include <linux/ctype.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
@@ -227,7 +228,7 @@ static void register_proc_table(struct dgrp_proc_entry *table,
 {
 	struct proc_dir_entry *de;
 	int len;
-	mode_t mode;
+	umode_t mode;
 
 	if (table == NULL)
 		return;

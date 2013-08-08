@@ -6525,13 +6525,6 @@ typedef struct dhd_dbgfs {
 
 dhd_dbgfs_t g_dbgfs;
 
-static int
-dhd_dbg_state_open(struct inode *inode, struct file *file)
-{
-	file->private_data = inode->i_private;
-	return 0;
-}
-
 static ssize_t
 dhd_dbg_state_read(struct file *file, char __user *ubuf,
                        size_t count, loff_t *ppos)
@@ -6609,7 +6602,7 @@ dhd_debugfs_lseek(struct file *file, loff_t off, int whence)
 static const struct file_operations dhd_dbg_state_ops = {
 	.read   = dhd_dbg_state_read,
 	.write	= dhd_debugfs_write,
-	.open   = dhd_dbg_state_open,
+	.open   = simple_open,
 	.llseek	= dhd_debugfs_lseek
 };
 

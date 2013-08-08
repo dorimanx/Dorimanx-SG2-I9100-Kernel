@@ -496,30 +496,6 @@ static struct attribute_group darkness_attr_group = {
 
 /************************** sysfs end ************************/
 
-static unsigned int darkness_frequency_adjust(int next_freq, unsigned int min_freq, unsigned int cur_freq, unsigned int max_freq, int ffs)
-{	
-	unsigned int scaling_freq_step = next_freq >= cur_freq ? atomic_read(&darkness_tuners_ins.up_sf_step) : atomic_read(&darkness_tuners_ins.down_sf_step);
-	unsigned int adjust_freq = (next_freq / 100000) * 100000;
-	int i=0;
-
-	if (adjust_freq >= max_freq) {
-		return max_freq;
-	} else if (adjust_freq <= min_freq) {
-		return min_freq;
-	} else if (adjust_freq == cur_freq) {
-		return cur_freq;
-	} else if (ffs == 0 && (next_freq % 100000 > scaling_freq_step * 1000)) {
-		adjust_freq += 100000;
-	} else if (ffs > 0) {
-		for (i = 0; i < 16; i++) {
-			if (next_freq >= freqs_step[i][ffs]) {
-				return freqs_step[i][ffs];
-			}
-		}
-	}
-	return adjust_freq;		
-}
-
 static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cpuinfo)
 {
 	int up_rate = atomic_read(&darkness_tuners_ins.cpu_up_rate);
@@ -529,18 +505,22 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 	int force_freq_steps = atomic_read(&darkness_tuners_ins.force_freqs_step);
 	unsigned int min_freq = atomic_read(&darkness_tuners_ins.min_freq_limit);
 	unsigned int max_freq = atomic_read(&darkness_tuners_ins.max_freq_limit);
+	int up_sf_step = atomic_read(&darkness_tuners_ins.up_sf_step);
+	int down_sf_step = atomic_read(&darkness_tuners_ins.down_sf_step);
 	int up_load = atomic_read(&darkness_tuners_ins.up_load);
 	int down_load = atomic_read(&darkness_tuners_ins.down_load);
 	unsigned int next_freq[NR_CPUS];
 	int cur_load[NR_CPUS];
 	int num_core=0;
-	unsigned int j;
+	unsigned int j,i;
 
 	for_each_online_cpu(j) {
 		struct cpufreq_darkness_cpuinfo *j_darkness_cpuinfo = &per_cpu(od_darkness_cpuinfo, j);
 		struct cpufreq_policy *cpu_policy = per_cpu(cpufreq_cpu_data, j);
 		u64 cur_busy_time, cur_idle_time;
 		unsigned int busy_time, idle_time;
+		unsigned int tmp_freq;
+
 		cur_busy_time = cputime_to_usecs(kcpustat_cpu(j).cpustat[CPUTIME_USER] + kcpustat_cpu(j).cpustat[CPUTIME_SYSTEM]
 						+ kcpustat_cpu(j).cpustat[CPUTIME_IRQ] + kcpustat_cpu(j).cpustat[CPUTIME_SOFTIRQ]
 						+ kcpustat_cpu(j).cpustat[CPUTIME_STEAL] + kcpustat_cpu(j).cpustat[CPUTIME_NICE]);
@@ -568,7 +548,23 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 		if (min_freq < cpu_policy->min || min_freq > cpu_policy->max)
 			min_freq = cpu_policy->min;
 		/* CPUs Online Scale Frequency*/
-		next_freq[j] = darkness_frequency_adjust((cur_load[j] * (max_freq / 100)), min_freq, cpu_policy->cur, max_freq, force_freq_steps);
+		tmp_freq = max(min(cur_load[j] * (max_freq / 100), max_freq), min_freq);
+		if (force_freq_steps == 0) {
+			next_freq[j] = (tmp_freq / 100000) * 100000;
+			if ((next_freq[j] > cpu_policy->cur
+				&& (tmp_freq % 100000 > up_sf_step * 1000))
+				|| (next_freq[j] < cpu_policy->cur 
+				&& (tmp_freq % 100000 > down_sf_step * 1000))) {
+					next_freq[j] += 100000;
+			}
+		} else {
+			for (i = 0; i < 16; i++) {
+				if (tmp_freq >= freqs_step[i][force_freq_steps]) {
+					next_freq[j] = freqs_step[i][force_freq_steps];
+					break;
+				}
+			}
+		}		
 		/*printk(KERN_ERR "FREQ CALC.: CPU[%u], load[%d], target freq[%u], cur freq[%u], min freq[%u], max_freq[%u]\n",j, cur_load[j], next_freq[j], cpu_policy->cur, cpu_policy->min, max_freq); */
 		if (next_freq[j] != cpu_policy->cur) {
 			__cpufreq_driver_target(cpu_policy, next_freq[j], CPUFREQ_RELATION_L);
@@ -703,7 +699,7 @@ static int cpufreq_governor_darkness(struct cpufreq_policy *policy,
 		mutex_unlock(&darkness_mutex);
 
 		mutex_init(&timer_mutex);
-		INIT_DELAYED_WORK(&this_darkness_cpuinfo->work, do_darkness_timer);
+		INIT_DEFERRABLE_WORK(&this_darkness_cpuinfo->work, do_darkness_timer);
 		mod_delayed_work_on(this_darkness_cpuinfo->cpu, dvfs_workqueue, &this_darkness_cpuinfo->work, 0);
 
 		break;

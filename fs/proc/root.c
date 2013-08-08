@@ -101,7 +101,6 @@ static struct dentry *proc_mount(struct file_system_type *fs_type,
 	int err;
 	struct super_block *sb;
 	struct pid_namespace *ns;
-	struct proc_inode *ei;
 	char *options;
 
 	if (flags & MS_KERNMOUNT) {
@@ -134,13 +133,6 @@ static struct dentry *proc_mount(struct file_system_type *fs_type,
 		sb->s_flags |= MS_ACTIVE;
 	}
 
-	ei = PROC_I(sb->s_root->d_inode);
-	if (!ei->pid) {
-		rcu_read_lock();
-		ei->pid = get_pid(find_pid_ns(1, ns));
-		rcu_read_unlock();
-	}
-
 	return dget(sb->s_root);
 }
 
@@ -149,6 +141,8 @@ static void proc_kill_sb(struct super_block *sb)
 	struct pid_namespace *ns;
 
 	ns = (struct pid_namespace *)sb->s_fs_info;
+	if (ns->proc_self)
+		dput(ns->proc_self);
 	kill_anon_super(sb);
 	put_pid_ns(ns);
 }
@@ -157,6 +151,7 @@ static struct file_system_type proc_fs_type = {
 	.name		= "proc",
 	.mount		= proc_mount,
 	.kill_sb	= proc_kill_sb,
+	.fs_flags	= FS_USERNS_MOUNT,
 };
 
 void __init proc_root_init(void)
@@ -168,6 +163,7 @@ void __init proc_root_init(void)
 	if (err)
 		return;
 
+	proc_self_init();
 	proc_symlink("mounts", NULL, "self/mounts");
 
 	proc_net_init();

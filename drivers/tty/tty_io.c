@@ -966,11 +966,10 @@ static ssize_t tty_read(struct file *file, char __user *buf, size_t count,
 			loff_t *ppos)
 {
 	int i;
-	struct inode *inode = file_inode(file);
 	struct tty_struct *tty = file_tty(file);
 	struct tty_ldisc *ld;
 
-	if (tty_paranoia_check(tty, inode, "tty_read"))
+	if (tty_paranoia_check(tty, file_inode(file), "tty_read"))
 		return -EIO;
 	if (!tty || (test_bit(TTY_IO_ERROR, &tty->flags)))
 		return -EIO;
@@ -985,7 +984,7 @@ static ssize_t tty_read(struct file *file, char __user *buf, size_t count,
 	tty_ldisc_deref(ld);
 
 	if (i > 0)
-		tty_update_time(&inode->i_atime);
+		tty_update_time(&file_inode(file)->i_atime);
 
 	return i;
 }
@@ -1144,12 +1143,11 @@ void tty_write_message(struct tty_struct *tty, char *msg)
 static ssize_t tty_write(struct file *file, const char __user *buf,
 						size_t count, loff_t *ppos)
 {
-	struct inode *inode = file_inode(file);
 	struct tty_struct *tty = file_tty(file);
  	struct tty_ldisc *ld;
 	ssize_t ret;
 
-	if (tty_paranoia_check(tty, inode, "tty_write"))
+	if (tty_paranoia_check(tty, file_inode(file), "tty_write"))
 		return -EIO;
 	if (!tty || !tty->ops->write ||
 		(test_bit(TTY_IO_ERROR, &tty->flags)))
@@ -2006,7 +2004,7 @@ static unsigned int tty_poll(struct file *filp, poll_table *wait)
 	struct tty_ldisc *ld;
 	int ret = 0;
 
-	if (tty_paranoia_check(tty, filp->f_path.dentry->d_inode, "tty_poll"))
+	if (tty_paranoia_check(tty, file_inode(filp), "tty_poll"))
 		return 0;
 
 	ld = tty_ldisc_ref_wait(tty);
@@ -2022,7 +2020,7 @@ static int __tty_fasync(int fd, struct file *filp, int on)
 	unsigned long flags;
 	int retval = 0;
 
-	if (tty_paranoia_check(tty, filp->f_path.dentry->d_inode, "tty_fasync"))
+	if (tty_paranoia_check(tty, file_inode(filp), "tty_fasync"))
 		goto out;
 
 	retval = fasync_helper(fd, filp, on, &tty->fasync);
@@ -2592,9 +2590,8 @@ long tty_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	void __user *p = (void __user *)arg;
 	int retval;
 	struct tty_ldisc *ld;
-	struct inode *inode = file_inode(file);
 
-	if (tty_paranoia_check(tty, inode, "tty_ioctl"))
+	if (tty_paranoia_check(tty, file_inode(file), "tty_ioctl"))
 		return -EINVAL;
 
 	real_tty = tty_pair_get_tty(tty);
@@ -2730,12 +2727,11 @@ long tty_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 static long tty_compat_ioctl(struct file *file, unsigned int cmd,
 				unsigned long arg)
 {
-	struct inode *inode = file_inode(file);
 	struct tty_struct *tty = file_tty(file);
 	struct tty_ldisc *ld;
 	int retval = -ENOIOCTLCMD;
 
-	if (tty_paranoia_check(tty, inode, "tty_ioctl"))
+	if (tty_paranoia_check(tty, file_inode(file), "tty_ioctl"))
 		return -EINVAL;
 
 	if (tty->ops->compat_ioctl) {
@@ -2753,6 +2749,13 @@ static long tty_compat_ioctl(struct file *file, unsigned int cmd,
 }
 #endif
 
+static int this_tty(const void *t, struct file *file, unsigned fd)
+{
+	if (likely(file->f_op->read != tty_read))
+		return 0;
+	return file_tty(file) != t ? 0 : fd + 1;
+}
+	
 /*
  * This implements the "Secure Attention Key" ---  the idea is to
  * prevent trojan horses by killing all processes associated with this
@@ -2780,8 +2783,6 @@ void __do_SAK(struct tty_struct *tty)
 	struct task_struct *g, *p;
 	struct pid *session;
 	int		i;
-	struct file	*filp;
-	struct fdtable *fdt;
 
 	if (!tty)
 		return;
@@ -2811,27 +2812,12 @@ void __do_SAK(struct tty_struct *tty)
 			continue;
 		}
 		task_lock(p);
-		if (p->files) {
-			/*
-			 * We don't take a ref to the file, so we must
-			 * hold ->file_lock instead.
-			 */
-			spin_lock(&p->files->file_lock);
-			fdt = files_fdtable(p->files);
-			for (i = 0; i < fdt->max_fds; i++) {
-				filp = fcheck_files(p->files, i);
-				if (!filp)
-					continue;
-				if (filp->f_op->read == tty_read &&
-				    file_tty(filp) == tty) {
-					printk(KERN_NOTICE "SAK: killed process %d"
-					    " (%s): fd#%d opened to the tty\n",
-					    task_pid_nr(p), p->comm, i);
-					force_sig(SIGKILL, p);
-					break;
-				}
-			}
-			spin_unlock(&p->files->file_lock);
+		i = iterate_fd(p->files, 0, this_tty, tty);
+		if (i != 0) {
+			printk(KERN_NOTICE "SAK: killed process %d"
+			    " (%s): fd#%d opened to the tty\n",
+				    task_pid_nr(p), p->comm, i - 1);
+			force_sig(SIGKILL, p);
 		}
 		task_unlock(p);
 	} while_each_thread(g, p);

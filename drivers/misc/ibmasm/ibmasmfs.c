@@ -110,6 +110,7 @@ static struct file_system_type ibmasmfs_type = {
 	.mount          = ibmasmfs_mount,
 	.kill_sb        = kill_litter_super,
 };
+MODULE_ALIAS_FS("ibmasmfs");
 
 static int ibmasmfs_fill_super (struct super_block *sb, void *data, int silent)
 {
@@ -502,12 +503,6 @@ static ssize_t r_heartbeat_file_write(struct file *file, const char __user *buf,
 	return 1;
 }
 
-static int remote_settings_file_open(struct inode *inode, struct file *file)
-{
-	file->private_data = inode->i_private;
-	return 0;
-}
-
 static int remote_settings_file_close(struct inode *inode, struct file *file)
 {
 	return 0;
@@ -602,7 +597,7 @@ static const struct file_operations r_heartbeat_fops = {
 };
 
 static const struct file_operations remote_settings_fops = {
-	.open =		remote_settings_file_open,
+	.open =		simple_open,
 	.release =	remote_settings_file_close,
 	.read =		remote_settings_file_read,
 	.write =	remote_settings_file_write,
