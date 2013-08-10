@@ -195,6 +195,9 @@ while [ $(cat ${TMPFILE}) == 0 ]; do
 	echo "wait for image ...";
 done;
 
+md5sum PAYLOAD/res/misc/payload/STweaks.apk | awk '{print $1}' > $INITRAMFS_TMP/res/stweaks_md5;
+chmod 644 $INITRAMFS_TMP/res/stweaks_md5;
+
 # make kernel!!!
 if [ "$USER" != "root" ]; then
 	time make -j $NAMBEROFCPUS zImage CONFIG_INITRAMFS_SOURCE="$INITRAMFS_TMP";

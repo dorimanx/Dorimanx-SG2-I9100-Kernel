@@ -352,7 +352,7 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
 
 LOW_ARM_FLAGS	= -pipe -march=armv7-a -mcpu=cortex-a9 -mtune=cortex-a9 -marm \
-		  -mfpu=neon -mfloat-abi=softfp
+		  -mfpu=neon -mfloat-abi=softfp -fno-inline
 
 #ARM_FLAGS      = -fsingle-precision-constant -ftree-vectorize
 #LOOPS		= -funswitch-loops -fpredictive-commoning
