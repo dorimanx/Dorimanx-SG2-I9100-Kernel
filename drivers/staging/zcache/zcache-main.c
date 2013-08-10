@@ -45,6 +45,8 @@
 #include <linux/frontswap.h>
 #endif
 
+#define ZCACHE_COMPRESSOR_DEFAULT "lzo"
+
 #if 0
 /* this is more aggressive but may cause other problems? */
 #define ZCACHE_GFP_MASK	(GFP_ATOMIC | __GFP_NORETRY | __GFP_NOWARN)
@@ -1993,7 +1995,7 @@ static int zcache_comp_init(void)
 					zcache_comp_name);
 	}
 	if (!ret)
-		strcpy(zcache_comp_name, "lzo");
+		strcpy(zcache_comp_name, ZCACHE_COMPRESSOR_DEFAULT);
 	ret = crypto_has_comp(zcache_comp_name, 0, 0);
 	if (!ret) {
 		ret = 1;
