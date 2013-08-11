@@ -1,5 +1,26 @@
                        This is Dorimanx Kernel 9.X/8.x
 
+NEW! You can build this kernel easily on BBQLinux (http://www.bbqlinux.org/), an Arch based distro for Android Devs.
+Install it and simply do these commands:
+
+To compile you need:
+$ pacman -S parallel bc
+
+To clone this repo
+$ sudo apt-get install git
+$ mkdir ~/samsung-i9100
+$ cd ~/samsung-i9100
+$ git clone https://github.com/dorimanx/Dorimanx-SG2-I9100-Kernel.git
+$ git clone https://github.com/dorimanx/initramfs3.git
+
+To start the build
+$ cd ~/samsung-i9100/Dorimanx-SG2-I9100-Kernel
+$ sudo ./load_config.sh
+$ sudo ./build_kernel.sh
+
+Enjoy!
+
+==================================================================
 This kernel is compiled on Ubuntu Server/Desktop 12.04 x86/64BIT.
 
 It is important to keep this one, otherwise the kernel will be compiled
@@ -35,8 +56,21 @@ $ git clone https://github.com/dorimanx/initramfs3.git
 
 To start the build
 $ cd ~/samsung-i9100/Dorimanx-SG2-I9100-Kernel
+<<<<<<< HEAD
+$ sudo ./load_config.sh
+$ sudo ./build_kernel.sh
+
+To put on hold "parallel" package (since Ubuntu will try to upgrade it)
+sudo apt-mark hold parallel
+
+**IMPORTANT!**
+Since I'm proving to you a specific version of Parallel you will
+have to NOT update it since you'll break the build and have a
+non working Kernel (it will stuck at boot).
+=======
 $ sudo sh load_config.sh
 $ sudo sh build_kernel.sh
+>>>>>>> 5e734cb1e020a45c1d2879ecd514fc556885fb94
 
 ==================================================================
 My info guide.
