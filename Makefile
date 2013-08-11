@@ -1,8 +1,8 @@
 VERSION = 3
-PATCHLEVEL = 1
+PATCHLEVEL = 10
 SUBLEVEL = 0
-EXTRAVERSION = -R88
-NAME = "Divemaster Edition"
+EXTRAVERSION = -R89
+NAME = "Unicycling Gorilla"
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
