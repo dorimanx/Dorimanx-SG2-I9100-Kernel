@@ -25,11 +25,6 @@ else
 	export KERNELDIR=`readlink -f .`;
 fi;
 
-# check if parallel installed, if not install
-if [ ! -e /usr/bin/parallel ]; then
-	sudo dpkg -i parallel_20120422-1_all.deb
-fi;
-
 export PARENT_DIR=`readlink -f ${KERNELDIR}/..`;
 export INITRAMFS_SOURCE=`readlink -f ${KERNELDIR}/../initramfs3`;
 export INITRAMFS_TMP=/tmp/initramfs_source;
@@ -136,7 +131,9 @@ rm -f $KERNELDIR/usr/initramfs_data.o;
 cp $KERNELDIR/.config $KERNELDIR/arch/arm/configs/$KERNEL_CONFIG;
 
 # remove all old modules before compile
-find $KERNELDIR -name "*.ko" | parallel rm -rf {};
+for i in `find $KERNELDIR/ -name "*.ko"`; do
+	rm -f $i;
+done;
 
 # make modules
 mkdir -p $INITRAMFS/lib/modules
@@ -177,7 +174,9 @@ if [ -d $INITRAMFS_TMP/.hg ]; then
 fi;
 
 # remove empty directory placeholders from tmp-initramfs
-find $INITRAMFS_TMP -name EMPTY_DIRECTORY | parallel rm -rf {};
+for i in `find $INITRAMFS_TMP -name EMPTY_DIRECTORY`; do
+	rm -f $i;
+done;
 
 # remove more from from tmp-initramfs ...
 rm -f $INITRAMFS_TMP/compress-sql.sh;
@@ -185,8 +184,15 @@ rm -f $INITRAMFS_TMP/update*;
 
 # copy modules into tmp-initramfs
 mkdir -p $INITRAMFS_TMP/lib/modules;
-find $KERNELDIR -name '*.ko' | parallel cp -av {} $INITRAMFS_TMP/lib/modules/;
-find $INITRAMFS_TMP/lib/modules/ -name '*.ko' | parallel ${CROSS_COMPILE}strip --strip-debug {};
+for i in `find $KERNELDIR -name '*.ko'`; do
+	cp -av $i $INITRAMFS_TMP/lib/modules/;
+done;
+# do not --strip-debug from wifi module
+mv $INITRAMFS_TMP/lib/modules/dhd.ko $INITRAMFS_TMP/lib/modules/dhd.tmp;
+for i in `find $INITRAMFS_TMP/lib/modules/ -name '*.ko'`; do
+	${CROSS_COMPILE}strip --strip-debug $i;
+done;
+mv $INITRAMFS_TMP/lib/modules/dhd.tmp $INITRAMFS_TMP/lib/modules/dhd.ko;
 chmod 755 $INITRAMFS_TMP/lib/modules/*;
 
 # wait for the boot-image

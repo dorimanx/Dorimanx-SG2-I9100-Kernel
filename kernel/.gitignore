@@ -4,4 +4,4 @@
 config_data.h
 config_data.gz
 timeconst.h
-kernel/hz.bc
+hz.bc

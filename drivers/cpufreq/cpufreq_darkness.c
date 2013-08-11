@@ -39,12 +39,19 @@
 #define HOTPLUG_DOWN_INDEX		(0)
 #define HOTPLUG_UP_INDEX		(1)
 
+#ifndef CONFIG_CPU_EXYNOS4210
 static atomic_t hotplug_freq[4][2] = {
 	{ATOMIC_INIT(0), ATOMIC_INIT(500000)},
 	{ATOMIC_INIT(200000), ATOMIC_INIT(500000)},
 	{ATOMIC_INIT(200000), ATOMIC_INIT(500000)},
 	{ATOMIC_INIT(200000), ATOMIC_INIT(0)}
 };
+#else
+static atomic_t hotplug_freq[2][2] = {
+	{ATOMIC_INIT(0), ATOMIC_INIT(500000)},
+	{ATOMIC_INIT(200000), ATOMIC_INIT(0)}
+};
+#endif
 
 static void do_darkness_timer(struct work_struct *work);
 static int cpufreq_governor_darkness(struct cpufreq_policy *policy,
@@ -507,11 +514,9 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 	unsigned int max_freq = atomic_read(&darkness_tuners_ins.max_freq_limit);
 	int up_sf_step = atomic_read(&darkness_tuners_ins.up_sf_step);
 	int down_sf_step = atomic_read(&darkness_tuners_ins.down_sf_step);
-	int up_load = atomic_read(&darkness_tuners_ins.up_load);
-	int down_load = atomic_read(&darkness_tuners_ins.down_load);
 	unsigned int next_freq[NR_CPUS];
 	int cur_load[NR_CPUS];
-	int num_core=0;
+	int num_core = num_online_cpus();
 	unsigned int j,i;
 
 	for_each_online_cpu(j) {
@@ -535,10 +540,9 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 				(cur_idle_time - j_darkness_cpuinfo->prev_cpu_idle);
 		j_darkness_cpuinfo->prev_cpu_idle = cur_idle_time;
 
-		num_core++;
-
 		/*printk(KERN_ERR "TIMER CPU[%u], wall[%u], idle[%u]\n",j, busy_time + idle_time, idle_time);*/
 		if (!cpu_policy || busy_time + idle_time == 0) { /*if busy_time and idle_time are 0, evaluate cpu load next time*/
+			hotplug_enable = false;
 			continue;
 		}
 		cur_load[j] = busy_time ? (100 * busy_time) / (busy_time + idle_time) : 1;/*if busy_time is 0 cpu_load is equal to 1*/
@@ -578,7 +582,7 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 		/*Check for CPU hotplug*/
 		if (!onecoresuspend && num_rate % up_rate == 0 && num_core < NR_CPUS) {
 #ifndef CONFIG_CPU_EXYNOS4210
-			if (cur_load[num_core - 1] >= up_load
+			if (cur_load[num_core - 1] >= atomic_read(&darkness_tuners_ins.up_load)
 				&& next_freq[num_core - 1] >= atomic_read(&hotplug_freq[num_core - 1][HOTPLUG_UP_INDEX])) {
 				/* printk(KERN_ERR "[HOTPLUG IN] %s %u>=%u\n",
 					__func__, cur_freq, up_freq); */
@@ -588,7 +592,7 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 				}
 			}
 #else
-			if (cur_load[0] >= up_load
+			if (cur_load[0] >= atomic_read(&darkness_tuners_ins.up_load)
 				&& next_freq[0] >= atomic_read(&hotplug_freq[0][HOTPLUG_UP_INDEX])) {
 				/* printk(KERN_ERR "[HOTPLUG IN] %s %u>=%u\n",
 					__func__, cur_freq, up_freq); */
@@ -601,7 +605,7 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 		} else if (num_rate % down_rate == 0 && num_core > 1) {
 #ifndef CONFIG_CPU_EXYNOS4210	
 			if (onecoresuspend 
-				|| cur_load[num_core - 1] < down_load 
+				|| cur_load[num_core - 1] < atomic_read(&darkness_tuners_ins.down_load) 
 				|| next_freq[num_core - 1] <= atomic_read(&hotplug_freq[num_core - 1][HOTPLUG_DOWN_INDEX])) {
 				/* printk(KERN_ERR "[HOTPLUG OUT] %s %u<=%u\n",
 					__func__, cur_freq, down_freq); */
@@ -612,7 +616,7 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 			}
 #else
 			if (onecoresuspend 
-				|| cur_load[1] < down_load 
+				|| cur_load[1] < atomic_read(&darkness_tuners_ins.down_load)
 				|| next_freq[1] <= atomic_read(&hotplug_freq[1][HOTPLUG_DOWN_INDEX])) {
 				/* printk(KERN_ERR "[HOTPLUG OUT] %s %u<=%u\n",
 					__func__, cur_freq, down_freq); */
@@ -663,13 +667,8 @@ static int cpufreq_governor_darkness(struct cpufreq_policy *policy,
 		if ((!cpu_online(cpu)) || (!policy->cur))
 			return -EINVAL;
 
-		/* SET POLICY SHARED TYPE AND APPLY MASK TO ALL CPUS */
-		policy->shared_type = CPUFREQ_SHARED_TYPE_ANY;
-		cpumask_setall(policy->cpus);
-
-		num_rate = 0;
-
 		mutex_lock(&darkness_mutex);
+		num_rate = 0;
 
 		darkness_enable++;
 		for_each_possible_cpu(j) {
