@@ -287,4 +287,9 @@ config DYNAMIC_FSYNC
 	help
 	  An experimental file sync control using Android's early suspend / late resume drivers
 
+config AIO_OPTIMIZATION
+	bool "AIO kernel optimization patches"
+	default y
+	help
+	  An experimental AIO FS kernel optimization
 endmenu
