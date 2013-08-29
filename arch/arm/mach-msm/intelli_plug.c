@@ -73,6 +73,17 @@ static unsigned int nr_run_last;
 static unsigned int NwNs_Threshold[] = { 19, 30,  19,  11,  19,  11, 0,  11};
 static unsigned int TwTs_Threshold[] = {140,  0, 140, 190, 140, 190, 0, 190};
 
+unsigned int apget_intelli_plug_active(void)
+{
+	return intelli_plug_active;
+}
+
+void apenable_intelli_plug(unsigned int state)
+{
+	if (intelli_plug_active != state)
+		intelli_plug_active = state;
+}
+
 static int mp_decision(void)
 {
 	static bool first_call = true;

@@ -124,6 +124,16 @@ config CPU_FREQ_DEFAULT_GOV_INTELLIDEMAND
 	  Use the CPUFreq governor 'intellidemand' as default. This is
 	  based on Ondemand with browsing detection based on GPU loading
 
+config CPU_FREQ_DEFAULT_GOV_NIGHTMARE
+  bool "nightmare"
+  select CPU_FREQ_GOV_NIGHTMARE
+  help
+
+config CPU_FREQ_DEFAULT_GOV_DARKNESS
+  bool "darkness"
+  select CPU_FREQ_GOV_DARKNESS
+  help
+
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -250,6 +260,14 @@ config CPU_FREQ_GOV_INTELLIDEMAND
           For details, take a look at linux/Documentation/cpu-freq.
 
           If in doubt, say N.
+
+config CPU_FREQ_GOV_NIGHTMARE
+	tristate "'nightmare' cpufreq governor"
+	depends on CPU_FREQ
+
+config CPU_FREQ_GOV_DARKNESS
+	tristate "'darkness' cpufreq governor"
+	depends on CPU_FREQ
 
 config INTELLI_MAX_ACTIVE_FREQ
 	int "Max Active Freq for Intellidemand"
