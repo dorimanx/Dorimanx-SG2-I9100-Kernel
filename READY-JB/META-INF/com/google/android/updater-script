@@ -1,0 +1,16 @@
+ui_print("mounting system");
+run_program("/sbin/busybox", "mount", "/system");
+ui_print("copying modules");
+ui_print("");
+package_extract_dir("system", "/system");
+
+ui_print("unmounting system");
+ui_print("");
+unmount("/system");
+
+ui_print("Flashing Kernel");
+ui_print("");
+
+package_extract_file("boot.img", "/dev/block/platform/msm_sdcc.1/by-name/boot");
+show_progress(0.100000, 0);
+

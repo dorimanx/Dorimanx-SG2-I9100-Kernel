@@ -29,6 +29,9 @@
 #include <linux/completion.h>
 #include <linux/mutex.h>
 #include <linux/syscore_ops.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
 
 #include <trace/events/power.h>
 
@@ -390,6 +393,11 @@ out:
 	return err;
 }
 
+static void __ref hotplug_cpu_up(int cpu) {
+	if (!cpu_online(cpu)) {
+		cpu_up(cpu);
+	}	
+}
 
 /**
  * cpufreq_per_cpu_attr_read() / show_##file_name() -
@@ -508,6 +516,43 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 		return ret;
 	else
 		return count;
+}
+
+/**
+ * show_scaling_governor_all_cpus - show the current policy for the specified CPU
+ */
+static ssize_t show_scaling_governor_all_cpus(struct cpufreq_policy *policy, char *buf)
+{
+	if (policy->policy == CPUFREQ_POLICY_POWERSAVE)
+		return sprintf(buf, "powersave\n");
+	else if (policy->policy == CPUFREQ_POLICY_PERFORMANCE)
+		return sprintf(buf, "performance\n");
+	else if (policy->governor)
+		return scnprintf(buf, CPUFREQ_NAME_LEN, "%s\n",
+				policy->governor->name);
+	return -EINVAL;
+}
+
+/**
+ * store_scaling_governor_all_cpus - store policy governor for the all CPUs
+ */
+static ssize_t store_scaling_governor_all_cpus(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	unsigned int cpu;
+	ssize_t ret;
+
+	for_each_possible_cpu(cpu) {
+		struct cpufreq_policy *cpu_policy;
+
+		hotplug_cpu_up(cpu);
+
+		cpu_policy = per_cpu(cpufreq_cpu_data, cpu);
+
+		if (cpu_policy) {
+			ret = store_scaling_governor(cpu_policy, buf, count);
+		}
+	}
+	return count;
 }
 
 /**
@@ -695,6 +740,7 @@ cpufreq_freq_attr_ro(cpu_utilization);
 cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
+cpufreq_freq_attr_rw(scaling_governor_all_cpus);
 cpufreq_freq_attr_rw(scaling_setspeed);
 #ifdef CONFIG_CPU_VOLTAGE_TABLE
 define_one_global_rw(vdd_levels);
@@ -710,6 +756,7 @@ static struct attribute *default_attrs[] = {
 	&cpu_utilization.attr,
 	&related_cpus.attr,
 	&scaling_governor.attr,
+	&scaling_governor_all_cpus.attr,
 	&scaling_driver.attr,
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
@@ -2231,6 +2278,31 @@ int cpufreq_unregister_driver(struct cpufreq_driver *driver)
 }
 EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static atomic_t isSuspended = ATOMIC_INIT(0);
+
+bool apget_if_suspended(void)
+{
+	return atomic_read(&isSuspended) > 0;
+}
+
+static void powersave_early_suspend(struct early_suspend *handler)
+{
+	atomic_set(&isSuspended,1);
+}
+
+static void powersave_late_resume(struct early_suspend *handler)
+{
+	atomic_set(&isSuspended,0);
+}
+
+static struct early_suspend _powersave_early_suspend = {
+	.suspend = powersave_early_suspend,
+	.resume = powersave_late_resume,
+	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+};
+#endif
+
 static int __init cpufreq_core_init(void)
 {
 	int cpu;
@@ -2252,6 +2324,9 @@ static int __init cpufreq_core_init(void)
 #ifdef CONFIG_CPU_VOLTAGE_TABLE
 	rc = sysfs_create_group(cpufreq_global_kobject, &vddtbl_attr_group);
 #endif	/* CONFIG_CPU_VOLTAGE_TABLE */
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	register_early_suspend(&_powersave_early_suspend);
+#endif
 
 	return 0;
 }
