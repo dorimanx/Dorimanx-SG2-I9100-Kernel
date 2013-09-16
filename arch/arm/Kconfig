@@ -1690,6 +1690,10 @@ config HOTPLUG_CPU
 	  Say Y here to experiment with turning CPUs off and on.  CPUs
 	  can be controlled through /sys/devices/system/cpu.
 
+config ARM_AUTO_HOTPLUG
+	bool "Auto hotplugging based on scheduler runqueue load for ARM SoCs"
+	default n
+
 config LOCAL_TIMERS
 	bool "Use local timer interrupts"
 	depends on SMP

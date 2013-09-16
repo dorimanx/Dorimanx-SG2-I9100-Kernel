@@ -50,6 +50,12 @@ config QUAD_CORES_SOC_STAT
 	  This will show overall CPU frequency statistics via sysfs.
 	  If this option is not set, it defaults to dual core stats
 
+config ALUCARD_HOTPLUG
+	bool "Enable alucard-hotplug cpu hotplug driver"
+	default n
+	help
+	  Generic Alucard-hotplug cpu hotplug driver for ARM SOCs
+
 choice
 	prompt "Default CPUFreq governor"
 	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
