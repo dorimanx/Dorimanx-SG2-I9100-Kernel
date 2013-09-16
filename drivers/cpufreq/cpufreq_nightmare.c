@@ -48,11 +48,11 @@ struct cpufreq_governor cpufreq_gov_nightmare = {
 };
 
 struct cpufreq_nightmare_cpuinfo {
-	cputime64_t prev_cpu_user;
-	cputime64_t prev_cpu_system;
-	cputime64_t prev_cpu_others;
-	cputime64_t prev_cpu_idle;
-	cputime64_t prev_cpu_iowait;
+	unsigned long prev_cpu_user;
+	unsigned long prev_cpu_system;
+	unsigned long prev_cpu_others;
+	unsigned long prev_cpu_idle;
+	unsigned long prev_cpu_iowait;
 	struct cpufreq_frequency_table *freq_table;
 	struct delayed_work work;
 	struct cpufreq_policy *cur_policy;
@@ -662,7 +662,7 @@ static void nightmare_check_cpu(struct cpufreq_nightmare_cpuinfo *this_nightmare
 	int freq_step = atomic_read(&nightmare_tuners_ins.freq_step);
 	int freq_up_brake = atomic_read(&nightmare_tuners_ins.freq_up_brake);
 	int freq_step_dec = atomic_read(&nightmare_tuners_ins.freq_step_dec);
-	cputime64_t cur_user_time, cur_system_time, cur_others_time, cur_idle_time, cur_iowait_time;
+	unsigned long cur_user_time, cur_system_time, cur_others_time, cur_idle_time, cur_iowait_time;
 	unsigned int busy_time, idle_time;
 	unsigned int index = 0;
 	unsigned int tmp_freq = 0;
@@ -671,13 +671,13 @@ static void nightmare_check_cpu(struct cpufreq_nightmare_cpuinfo *this_nightmare
 	
 	cpu_policy = this_nightmare_cpuinfo->cur_policy;
 
-	cur_user_time = (kcpustat_cpu(cpu).cpustat[CPUTIME_USER]);
-	cur_system_time = (kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
-	cur_others_time = (kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ] + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]
+	cur_user_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_USER]);
+	cur_system_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
+	cur_others_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ] + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]
 																	+ kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL] + kcpustat_cpu(cpu).cpustat[CPUTIME_NICE]);
 
-	cur_idle_time = (kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE]);
-	cur_iowait_time = (kcpustat_cpu(cpu).cpustat[CPUTIME_IOWAIT]);
+	cur_idle_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE]);
+	cur_iowait_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IOWAIT]);
 
 	busy_time = (unsigned int)
 			((cur_user_time - this_nightmare_cpuinfo->prev_cpu_user) +
@@ -694,7 +694,7 @@ static void nightmare_check_cpu(struct cpufreq_nightmare_cpuinfo *this_nightmare
 	this_nightmare_cpuinfo->prev_cpu_iowait = cur_iowait_time;
 
 	/*printk(KERN_ERR "TIMER CPU[%u], wall[%u], idle[%u]\n",cpu, busy_time + idle_time, idle_time);*/
-	if (cpu_policy->cur > 0 && busy_time + idle_time > 0) { /*if busy_time and idle_time are 0, evaluate cpu load next time*/
+	if (busy_time + idle_time > 0) { /*if busy_time and idle_time are 0, evaluate cpu load next time*/
 		cur_load = busy_time ? (100 * busy_time) / (busy_time + idle_time) : 1;/*if busy_time is 0 cpu_load is equal to 1*/
 		tmp_freq = cpu_policy->cur;
 		/* Checking Frequency Limit */
@@ -734,7 +734,7 @@ static void nightmare_check_cpu(struct cpufreq_nightmare_cpuinfo *this_nightmare
 			CPUFREQ_RELATION_H, &index);
 	 	next_freq = this_nightmare_cpuinfo->freq_table[index].frequency;
 #endif
-		/*printk(KERN_ERR "FREQ CALC.: CPU[%u], load[%d], target freq[%u], cur freq[%u], min freq[%u], max_freq[%u]\n",cpu, cur_load, next_freq, cpu_policy->cur, cpu_policy->min, max_freq); */
+		//printk(KERN_ERR "FREQ CALC.: CPU[%u], load[%d], target freq[%u], cur freq[%u], min freq[%u], max_freq[%u]\n",cpu, cur_load, next_freq, cpu_policy->cur, cpu_policy->min, max_freq);
 		if (next_freq != cpu_policy->cur) {
 			__cpufreq_driver_target(cpu_policy, next_freq, CPUFREQ_RELATION_L);
 		}
@@ -785,18 +785,19 @@ static int cpufreq_governor_nightmare(struct cpufreq_policy *policy,
 
 		this_nightmare_cpuinfo->cur_policy = policy;
 
-		this_nightmare_cpuinfo->prev_cpu_user = (kcpustat_cpu(cpu).cpustat[CPUTIME_USER]);
-		this_nightmare_cpuinfo->prev_cpu_system = (kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
-		this_nightmare_cpuinfo->prev_cpu_others = (kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ] + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]
+		this_nightmare_cpuinfo->prev_cpu_user = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_USER]);
+		this_nightmare_cpuinfo->prev_cpu_system = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
+		this_nightmare_cpuinfo->prev_cpu_others = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ] + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]
 																	+ kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL] + kcpustat_cpu(cpu).cpustat[CPUTIME_NICE]);
 
-		this_nightmare_cpuinfo->prev_cpu_idle = (kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE]);
-		this_nightmare_cpuinfo->prev_cpu_iowait = (kcpustat_cpu(cpu).cpustat[CPUTIME_IOWAIT]);
+		this_nightmare_cpuinfo->prev_cpu_idle = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE]);
+		this_nightmare_cpuinfo->prev_cpu_iowait = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IOWAIT]);
 
 		this_nightmare_cpuinfo->freq_table = cpufreq_frequency_get_table(cpu);
 		this_nightmare_cpuinfo->cpu = cpu;
 
 		mutex_init(&this_nightmare_cpuinfo->timer_mutex);
+
 		nightmare_enable++;
 		/*
 		 * Start the timerschedule work, when this governor

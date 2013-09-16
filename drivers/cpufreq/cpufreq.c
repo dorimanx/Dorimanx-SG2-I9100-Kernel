@@ -740,7 +740,7 @@ cpufreq_freq_attr_ro(cpu_utilization);
 cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
-cpufreq_freq_attr_rw(scaling_governor_all_cpus);
+cpufreq_freq_attr_rw_perm(scaling_governor_all_cpus, 0666);
 cpufreq_freq_attr_rw(scaling_setspeed);
 #ifdef CONFIG_CPU_VOLTAGE_TABLE
 define_one_global_rw(vdd_levels);

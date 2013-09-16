@@ -85,20 +85,68 @@ static atomic_t min_freq_limit_sleep[NR_CPUS];
 static atomic_t max_freq_limit_sleep[NR_CPUS];
 #endif
 
+#define MAX_HOTPLUG_RATE		(40)
+#define DOWN_INDEX		(0)
+#define UP_INDEX		(1)
+
+#ifdef CONFIG_CPU_EXYNOS4210
+static atomic_t hotplug_freq[2][2] = {
+	{ATOMIC_INIT(0), ATOMIC_INIT(800000)},
+	{ATOMIC_INIT(500000), ATOMIC_INIT(0)}
+};
+static atomic_t hotplug_load[2][2] = {
+	{ATOMIC_INIT(0), ATOMIC_INIT(65)},
+	{ATOMIC_INIT(30), ATOMIC_INIT(0)}
+};
+static atomic_t cpu_updown_rate[2][2] = {
+	{ATOMIC_INIT(0), ATOMIC_INIT(10)},
+	{ATOMIC_INIT(10), ATOMIC_INIT(0)}
+};
+static atomic_t HOTPLUGRATE[2] = {ATOMIC_INIT(0), ATOMIC_INIT(0)};
+#else
+static atomic_t hotplug_freq[4][2] = {
+	{ATOMIC_INIT(0), ATOMIC_INIT(702000)},
+	{ATOMIC_INIT(486000), ATOMIC_INIT(702000)},
+	{ATOMIC_INIT(486000), ATOMIC_INIT(702000)},
+	{ATOMIC_INIT(486000), ATOMIC_INIT(0)}
+};
+static atomic_t hotplug_load[4][2] = {
+	{ATOMIC_INIT(0), ATOMIC_INIT(65)},
+	{ATOMIC_INIT(30), ATOMIC_INIT(65)},
+	{ATOMIC_INIT(30), ATOMIC_INIT(65)},
+	{ATOMIC_INIT(30), ATOMIC_INIT(0)}
+};
+static atomic_t cpu_updown_rate[4][2] = {
+	{ATOMIC_INIT(0), ATOMIC_INIT(10)},
+	{ATOMIC_INIT(10), ATOMIC_INIT(10)},
+	{ATOMIC_INIT(10), ATOMIC_INIT(10)},
+	{ATOMIC_INIT(10), ATOMIC_INIT(0)}
+};
+static atomic_t HOTPLUGRATE[4] = {ATOMIC_INIT(0), ATOMIC_INIT(0), ATOMIC_INIT(0), ATOMIC_INIT(0)};
+#endif
+
 /* darkness tuners */
 static struct darkness_tuners {
 	atomic_t sampling_rate;
+	atomic_t hotplug_enable;
+	atomic_t maxcoreslimit;
 #ifdef CONFIG_CPU_EXYNOS4210
 	atomic_t up_sf_step;
 	atomic_t down_sf_step;
 	atomic_t force_freqs_step;
+#else
+	atomic_t maxcoreslimitsleep;
 #endif
 } darkness_tuners_ins = {
 	.sampling_rate = ATOMIC_INIT(60000),
+	.hotplug_enable = ATOMIC_INIT(0),
+	.maxcoreslimit = ATOMIC_INIT(NR_CPUS),
 #ifdef CONFIG_CPU_EXYNOS4210
 	.up_sf_step = ATOMIC_INIT(0),
 	.down_sf_step = ATOMIC_INIT(0),
 	.force_freqs_step = ATOMIC_INIT(0),
+#else
+	.maxcoreslimitsleep = ATOMIC_INIT(1),
 #endif
 };
 
@@ -137,11 +185,133 @@ static ssize_t show_##file_name						\
 	return sprintf(buf, "%d\n", atomic_read(&darkness_tuners_ins.object));		\
 }
 show_one(sampling_rate, sampling_rate);
+show_one(hotplug_enable, hotplug_enable);
+show_one(maxcoreslimit, maxcoreslimit);
 #ifdef CONFIG_CPU_EXYNOS4210
 show_one(up_sf_step, up_sf_step);
 show_one(down_sf_step, down_sf_step);
 show_one(force_freqs_step, force_freqs_step);
+#else
+show_one(maxcoreslimitsleep, maxcoreslimitsleep);
 #endif
+
+/*show_one(earlysuspend, earlysuspend);*/
+
+#define show_hotplug_param(file_name, num_core, up_down)		\
+static ssize_t show_##file_name##_##num_core##_##up_down		\
+(struct kobject *kobj, struct attribute *attr, char *buf)		\
+{									\
+	return sprintf(buf, "%d\n", atomic_read(&file_name[num_core - 1][up_down]));	\
+}
+
+#define store_hotplug_param(file_name, num_core, up_down)		\
+static ssize_t store_##file_name##_##num_core##_##up_down		\
+(struct kobject *kobj, struct attribute *attr,				\
+	const char *buf, size_t count)					\
+{									\
+	unsigned int input;						\
+	int ret;							\
+	ret = sscanf(buf, "%d", &input);				\
+	if (ret != 1)							\
+		return -EINVAL;						\
+	if (input == atomic_read(&file_name[num_core - 1][up_down])) {		\
+		return count;	\
+	}	\
+	atomic_set(&file_name[num_core - 1][up_down], input);			\
+	return count;							\
+}
+
+/* hotplug freq */
+show_hotplug_param(hotplug_freq, 1, 1);
+show_hotplug_param(hotplug_freq, 2, 0);
+show_hotplug_param(hotplug_freq, 2, 1);
+show_hotplug_param(hotplug_freq, 3, 0);
+show_hotplug_param(hotplug_freq, 3, 1);
+show_hotplug_param(hotplug_freq, 4, 0);
+/* hotplug load */
+show_hotplug_param(hotplug_load, 1, 1);
+show_hotplug_param(hotplug_load, 2, 0);
+show_hotplug_param(hotplug_load, 2, 1);
+show_hotplug_param(hotplug_load, 3, 0);
+show_hotplug_param(hotplug_load, 3, 1);
+show_hotplug_param(hotplug_load, 4, 0);
+
+/* hotplug freq */
+store_hotplug_param(hotplug_freq, 1, 1);
+store_hotplug_param(hotplug_freq, 2, 0);
+store_hotplug_param(hotplug_freq, 2, 1);
+store_hotplug_param(hotplug_freq, 3, 0);
+store_hotplug_param(hotplug_freq, 3, 1);
+store_hotplug_param(hotplug_freq, 4, 0);
+/* hotplug load */
+store_hotplug_param(hotplug_load, 1, 1);
+store_hotplug_param(hotplug_load, 2, 0);
+store_hotplug_param(hotplug_load, 2, 1);
+store_hotplug_param(hotplug_load, 3, 0);
+store_hotplug_param(hotplug_load, 3, 1);
+store_hotplug_param(hotplug_load, 4, 0);
+
+define_one_global_rw(hotplug_freq_1_1);
+define_one_global_rw(hotplug_freq_2_0);
+define_one_global_rw(hotplug_freq_2_1);
+define_one_global_rw(hotplug_freq_3_0);
+define_one_global_rw(hotplug_freq_3_1);
+define_one_global_rw(hotplug_freq_4_0);
+define_one_global_rw(hotplug_load_1_1);
+define_one_global_rw(hotplug_load_2_0);
+define_one_global_rw(hotplug_load_2_1);
+define_one_global_rw(hotplug_load_3_0);
+define_one_global_rw(hotplug_load_3_1);
+define_one_global_rw(hotplug_load_4_0);
+
+#define show_rate_param(file_name, num_core, up_down)		\
+static ssize_t show_##file_name##_##num_core##_##up_down		\
+(struct kobject *kobj, struct attribute *attr, char *buf)		\
+{									\
+	return sprintf(buf, "%d\n", atomic_read(&file_name[num_core - 1][up_down]));	\
+}
+
+#define store_rate_param(file_name, num_core, up_down)		\
+static ssize_t store_##file_name##_##num_core##_##up_down		\
+(struct kobject *kobj, struct attribute *attr,				\
+	const char *buf, size_t count)					\
+{									\
+	unsigned int input;						\
+	int ret;							\
+	ret = sscanf(buf, "%d", &input);				\
+	if (ret != 1)							\
+		return -EINVAL;					\
+	if (input < 1) 					\
+		input = 1; 					\
+	if (input > MAX_HOTPLUG_RATE) 					\
+		input = MAX_HOTPLUG_RATE; 					\
+	if (input == atomic_read(&file_name[num_core - 1][up_down])) {		\
+		return count;	\
+	}	\
+	atomic_set(&file_name[num_core - 1][up_down], input);			\
+	return count;							\
+}
+
+show_rate_param(cpu_updown_rate, 1, 1);
+show_rate_param(cpu_updown_rate, 2, 0);
+show_rate_param(cpu_updown_rate, 2, 1);
+show_rate_param(cpu_updown_rate, 3, 0);
+show_rate_param(cpu_updown_rate, 3, 1);
+show_rate_param(cpu_updown_rate, 4, 0);
+
+store_rate_param(cpu_updown_rate, 1, 1);
+store_rate_param(cpu_updown_rate, 2, 0);
+store_rate_param(cpu_updown_rate, 2, 1);
+store_rate_param(cpu_updown_rate, 3, 0);
+store_rate_param(cpu_updown_rate, 3, 1);
+store_rate_param(cpu_updown_rate, 4, 0);
+
+define_one_global_rw(cpu_updown_rate_1_1);
+define_one_global_rw(cpu_updown_rate_2_0);
+define_one_global_rw(cpu_updown_rate_2_1);
+define_one_global_rw(cpu_updown_rate_3_0);
+define_one_global_rw(cpu_updown_rate_3_1);
+define_one_global_rw(cpu_updown_rate_4_0);
 
 #define show_freqlimit_param(file_name, cpu)		\
 static ssize_t show_##file_name##_##cpu		\
@@ -281,6 +451,49 @@ static ssize_t store_sampling_rate(struct kobject *a, struct attribute *b,
 
 	return count;
 }
+
+/* hotplug_enable */
+static ssize_t store_hotplug_enable(struct kobject *a, struct attribute *b,
+				  const char *buf, size_t count)
+{
+	int input;
+	int ret;
+
+	ret = sscanf(buf, "%d", &input);
+	if (ret != 1)
+		return -EINVAL;
+
+	input = input > 0; 
+
+	if (atomic_read(&darkness_tuners_ins.hotplug_enable) == input)
+		return count;
+
+	atomic_set(&darkness_tuners_ins.hotplug_enable, input);
+
+	return count;
+}
+
+/* maxcoreslimit */
+static ssize_t store_maxcoreslimit(struct kobject *a, struct attribute *b,
+				  const char *buf, size_t count)
+{
+	int input;
+	int ret;
+
+	ret = sscanf(buf, "%d", &input);
+	if (ret != 1)
+		return -EINVAL;
+
+	input = max(input > NR_CPUS ? NR_CPUS : input, 1); 
+
+	if (atomic_read(&darkness_tuners_ins.maxcoreslimit) == input)
+		return count;
+
+	atomic_set(&darkness_tuners_ins.maxcoreslimit, input);
+
+	return count;
+}
+
 #ifdef CONFIG_CPU_EXYNOS4210
 /* up_sf_step */
 static ssize_t store_up_sf_step(struct kobject *a, struct attribute *b,
@@ -344,21 +557,68 @@ static ssize_t store_force_freqs_step(struct kobject *a, struct attribute *b,
 
 	return count;
 }
+#else
+/* maxcoreslimitsleep */
+static ssize_t store_maxcoreslimitsleep(struct kobject *a, struct attribute *b,
+				  const char *buf, size_t count)
+{
+	int input;
+	int ret;
+
+	ret = sscanf(buf, "%d", &input);
+	if (ret != 1)
+		return -EINVAL;
+
+	input = max(input > NR_CPUS ? NR_CPUS : input, 1); 
+
+	if (atomic_read(&darkness_tuners_ins.maxcoreslimitsleep) == input)
+		return count;
+
+	atomic_set(&darkness_tuners_ins.maxcoreslimitsleep, input);
+
+	return count;
+}
 #endif
 
 define_one_global_rw(sampling_rate);
+define_one_global_rw(hotplug_enable);
+define_one_global_rw(maxcoreslimit);
 #ifdef CONFIG_CPU_EXYNOS4210
 define_one_global_rw(up_sf_step);
 define_one_global_rw(down_sf_step);
 define_one_global_rw(force_freqs_step);
+#else
+define_one_global_rw(maxcoreslimitsleep);
 #endif
 
 static struct attribute *darkness_attributes[] = {
 	&sampling_rate.attr,
+	&hotplug_enable.attr,
+	&maxcoreslimit.attr,
+	&hotplug_freq_1_1.attr,
+	&hotplug_freq_2_0.attr,
+	&hotplug_freq_2_1.attr,
+	&hotplug_freq_3_0.attr,
+	&hotplug_freq_3_1.attr,
+	&hotplug_freq_4_0.attr,
+	&hotplug_load_1_1.attr,
+	&hotplug_load_2_0.attr,
+	&hotplug_load_2_1.attr,
+	&hotplug_load_3_0.attr,
+	&hotplug_load_3_1.attr,
+	&hotplug_load_4_0.attr,
+	&cpu_updown_rate_1_1.attr,
+	&cpu_updown_rate_2_0.attr,
+	&cpu_updown_rate_2_1.attr,
+	&cpu_updown_rate_3_0.attr,
+	&cpu_updown_rate_3_1.attr,
+	&cpu_updown_rate_4_0.attr,
 #ifdef CONFIG_CPU_EXYNOS4210
 	&up_sf_step.attr,
 	&down_sf_step.attr,
 	&force_freqs_step.attr,
+#else
+	&maxcoreslimitsleep.attr,
 #endif
 	&min_freq_limit_0.attr,
 	&min_freq_limit_1.attr,
@@ -398,6 +658,26 @@ static struct attribute_group darkness_attr_group = {
 
 /************************** sysfs end ************************/
 
+static int __cpuinit darkness_cpu_up(unsigned int cpu)
+{
+	int err = 0;
+
+	if (!cpu_online(cpu))
+		err = cpu_up(cpu);
+
+	return err;
+}
+
+static int __ref darkness_cpu_down(unsigned int cpu)
+{
+	int err = 0;
+
+	if (cpu_online(cpu))
+		err = cpu_down(cpu);
+
+	return err;
+}
+
 static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cpuinfo)
 {
 	struct cpufreq_policy *cpu_policy;
@@ -417,11 +697,16 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 	unsigned int min_freq = !earlysuspend ? atomic_read(&min_freq_limit[cpu]) : atomic_read(&min_freq_limit_sleep[cpu]);
 	unsigned int max_freq = !earlysuspend ? atomic_read(&max_freq_limit[cpu]) : atomic_read(&max_freq_limit_sleep[cpu]);
 #endif
+	bool hotplug_enable = atomic_read(&darkness_tuners_ins.hotplug_enable) > 0;
+	int up_rate = atomic_read(&cpu_updown_rate[cpu][UP_INDEX]);
+	int down_rate = atomic_read(&cpu_updown_rate[cpu][DOWN_INDEX]);
+	int lmaxcoreslimit = !earlysuspend ? atomic_read(&darkness_tuners_ins.maxcoreslimit) : atomic_read(&darkness_tuners_ins.maxcoreslimitsleep);
 	unsigned long cur_user_time, cur_system_time, cur_others_time, cur_idle_time, cur_iowait_time;
 	unsigned int busy_time, idle_time;
 	unsigned int index = 0;
 	unsigned int next_freq = 0;
 	int cur_load = -1;
+	int hp_rate = 0;
 
 	cpu_policy = this_darkness_cpuinfo->cur_policy;
 
@@ -480,12 +765,38 @@ static void darkness_check_cpu(struct cpufreq_darkness_cpuinfo *this_darkness_cp
 			CPUFREQ_RELATION_H, &index);
 		next_freq = this_darkness_cpuinfo->freq_table[index].frequency;
 #endif
-		//printk(KERN_ERR "FREQ CALC.: CPU[%u], load[%d], target freq[%u], cur freq[%u], min freq[%u], max_freq[%u]\n",cpu, cur_load, next_freq, cpu_policy->cur, cpu_policy->min, max_freq);
+		printk(KERN_ERR "FREQ CALC.: CPU[%u], load[%d], target freq[%u], cur freq[%u], min freq[%u], max_freq[%u]\n",cpu, cur_load, next_freq, cpu_policy->cur, cpu_policy->min, max_freq);
 		if (next_freq != cpu_policy->cur) {
 			__cpufreq_driver_target(cpu_policy, next_freq, CPUFREQ_RELATION_L);
 		}
+	} else {
+		hotplug_enable = false;
 	}
 
+	/* increment hotplugrate per cpu used */
+	atomic_inc(&HOTPLUGRATE[cpu]);
+
+	if (hotplug_enable) {
+		hp_rate = atomic_read(&HOTPLUGRATE[cpu]);
+		if (cpu < (lmaxcoreslimit - 1)
+			&& (hp_rate % up_rate == 0)
+			&& cur_load >= atomic_read(&hotplug_load[cpu][UP_INDEX])
+			&& next_freq >= atomic_read(&hotplug_freq[cpu][UP_INDEX])) {
+				darkness_cpu_up(cpu + 1);
+				hp_rate=0;
+		} else if (cpu > (lmaxcoreslimit == NR_CPUS ? 0 : lmaxcoreslimit - 1)
+			&& hp_rate % down_rate == 0
+			&& cur_load > -1
+			&& (cur_load < atomic_read(&hotplug_load[cpu][DOWN_INDEX])
+				|| next_freq <= atomic_read(&hotplug_freq[cpu][DOWN_INDEX]))) {
+				darkness_cpu_down(cpu);
+				hp_rate=0;
+		}
+	}
+
+	if (hp_rate >= max(up_rate, down_rate)) {
+		atomic_set(&HOTPLUGRATE[cpu], 0);
+	}
 }
 
 static void do_darkness_timer(struct work_struct *work)
