@@ -198,14 +198,14 @@ static void __ref cpus_hotplugging(bool state) {
 
 	if (state) {
 		for_each_possible_cpu(cpu) {
-			struct hotplug_cpuinfo *j_hotplug_cpuinfo = &per_cpu(od_hotplug_cpuinfo, cpu);
-			j_hotplug_cpuinfo->prev_cpu_user = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_USER]);
-			j_hotplug_cpuinfo->prev_cpu_system = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
-			j_hotplug_cpuinfo->prev_cpu_others = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ] + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]
+			struct hotplug_cpuinfo *cpu_hotplug_cpuinfo = &per_cpu(od_hotplug_cpuinfo, cpu);
+			cpu_hotplug_cpuinfo->prev_cpu_user = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_USER]);
+			cpu_hotplug_cpuinfo->prev_cpu_system = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
+			cpu_hotplug_cpuinfo->prev_cpu_others = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ] + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]
 																			+ kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL] + kcpustat_cpu(cpu).cpustat[CPUTIME_NICE]);
 
-			j_hotplug_cpuinfo->prev_cpu_idle = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE]);
-			j_hotplug_cpuinfo->prev_cpu_iowait = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IOWAIT]);
+			cpu_hotplug_cpuinfo->prev_cpu_idle = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE]);
+			cpu_hotplug_cpuinfo->prev_cpu_iowait = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IOWAIT]);
 		}
 		atomic_set(&hotplugging_rate, 0);
 		schedule_delayed_work_on(0, &alucard_hotplug_work, delay);
@@ -409,95 +409,99 @@ static void __cpuinit hotplug_work_fn(struct work_struct *work)
 	unsigned int cur_freq[NR_CPUS] = {0, 0, 0, 0};
 	int cur_load[NR_CPUS] = {-1, -1, -1, -1};
 #endif
-	unsigned int j;
 	unsigned int cpu = 0;
-	int hp_rate = 0;
-	bool hotplugging = true;
+	bool hotplugged = false;
 
 	mutex_lock(&timer_mutex);
 
 	if (hotplug_enable) { 
-		for_each_online_cpu(j) {
-			struct hotplug_cpuinfo *j_hotplug_cpuinfo = &per_cpu(od_hotplug_cpuinfo, j);
+		for_each_online_cpu(cpu) {
+			struct hotplug_cpuinfo *cpu_hotplug_cpuinfo = &per_cpu(od_hotplug_cpuinfo, cpu);
 			struct cpufreq_policy cpu_policy;
 			unsigned long cur_user_time, cur_system_time, cur_others_time, cur_idle_time, cur_iowait_time;
 			unsigned int busy_time, idle_time;
 			unsigned int ret = -EINVAL;
 
-			cur_user_time = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_USER]);
-			cur_system_time = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_SYSTEM]);
-			cur_others_time = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_IRQ] + kcpustat_cpu(j).cpustat[CPUTIME_SOFTIRQ]
-																			+ kcpustat_cpu(j).cpustat[CPUTIME_STEAL] + kcpustat_cpu(j).cpustat[CPUTIME_NICE]);
+			cur_user_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_USER]);
+			cur_system_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
+			cur_others_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ] + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]
+																			+ kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL] + kcpustat_cpu(cpu).cpustat[CPUTIME_NICE]);
 
-			cur_idle_time = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_IDLE]);
-			cur_iowait_time = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_IOWAIT]);
+			cur_idle_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE]);
+			cur_iowait_time = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IOWAIT]);
 
 			busy_time = (unsigned int)
-					((cur_user_time - j_hotplug_cpuinfo->prev_cpu_user) +
-					 (cur_system_time - j_hotplug_cpuinfo->prev_cpu_system) +
-					 (cur_others_time - j_hotplug_cpuinfo->prev_cpu_others));
-			j_hotplug_cpuinfo->prev_cpu_user = cur_user_time;
-			j_hotplug_cpuinfo->prev_cpu_system = cur_system_time;
-			j_hotplug_cpuinfo->prev_cpu_others = cur_others_time;
+					((cur_user_time - cpu_hotplug_cpuinfo->prev_cpu_user) +
+					 (cur_system_time - cpu_hotplug_cpuinfo->prev_cpu_system) +
+					 (cur_others_time - cpu_hotplug_cpuinfo->prev_cpu_others));
+			cpu_hotplug_cpuinfo->prev_cpu_user = cur_user_time;
+			cpu_hotplug_cpuinfo->prev_cpu_system = cur_system_time;
+			cpu_hotplug_cpuinfo->prev_cpu_others = cur_others_time;
 
 			idle_time = (unsigned int)
-					((cur_idle_time - j_hotplug_cpuinfo->prev_cpu_idle) + 
-					 (cur_iowait_time - j_hotplug_cpuinfo->prev_cpu_iowait));
-			j_hotplug_cpuinfo->prev_cpu_idle = cur_idle_time;
-			j_hotplug_cpuinfo->prev_cpu_iowait = cur_iowait_time;
+					((cur_idle_time - cpu_hotplug_cpuinfo->prev_cpu_idle) + 
+					 (cur_iowait_time - cpu_hotplug_cpuinfo->prev_cpu_iowait));
+			cpu_hotplug_cpuinfo->prev_cpu_idle = cur_idle_time;
+			cpu_hotplug_cpuinfo->prev_cpu_iowait = cur_iowait_time;
 
-			ret = cpufreq_get_policy(&cpu_policy, j);
+			ret = cpufreq_get_policy(&cpu_policy, cpu);
 			/*printk(KERN_ERR "TIMER CPU[%u], wall[%u], idle[%u]\n",j, busy_time + idle_time, idle_time);*/
 			if (ret || busy_time + idle_time == 0) { /*if busy_time and idle_time are 0, evaluate cpu load next time*/
 				continue;
 			}
 
-			cur_load[j] = busy_time ? (100 * busy_time) / (busy_time + idle_time) : 1;/*if busy_time is 0 cpu_load is equal to 1*/
-			cur_freq[j] = cpu_policy.cur;
+			cur_load[cpu] = busy_time ? (100 * busy_time) / (busy_time + idle_time) : 1;/*if busy_time is 0 cpu_load is equal to 1*/
+			cur_freq[cpu] = cpu_policy.cur;
 		}
 
 		/* set hotplugging_rate used */
 		atomic_inc(&hotplugging_rate);
 
-		if (hotplugging) {
-			hp_rate = atomic_read(&hotplugging_rate);
-			/*Check for CPU hotplug*/
-			if (hp_rate % up_rate == 0) {
-				for_each_cpu_not(cpu, cpu_online_mask) {
-					if (cpu == 0 || cpu > maxcoreslimit - 1) {
-						continue;
-					}
-					if (cur_load[cpu - 1] >= atomic_read(&hotplug_load[cpu - 1][UP_INDEX])
-						&& cur_freq[cpu - 1] >= atomic_read(&hotplug_freq[cpu - 1][UP_INDEX])) {
-							cpu_up(cpu);
-							atomic_set(&hotplugging_rate, 0);
-							goto schedule_cpu;
-					}
+		/*Check for CPU hotplug*/
+		if (atomic_read(&hotplugging_rate) % up_rate == 0) {
+			for_each_cpu_not(cpu, cpu_online_mask) {
+				if (cpu == 0 || cpu > maxcoreslimit - 1 || hotplugged == true) {
+					continue;
+				}
+				if (cur_load[cpu - 1] >= atomic_read(&hotplug_load[cpu - 1][UP_INDEX])
+					&& cur_freq[cpu - 1] >= atomic_read(&hotplug_freq[cpu - 1][UP_INDEX])) {
+						cpu_up(cpu);
+						atomic_set(&hotplugging_rate, 0);
+						hotplugged = true;
+						break;
 				}
 			}
-			if (hp_rate % down_rate == 0) {
-				maxcoreslimit = (maxcoreslimit == NR_CPUS ? 0 : maxcoreslimit - 1);
-				for_each_online_cpu(cpu) {
-					if (cur_load[cpu] < 0 || cpu <= maxcoreslimit) {
-						continue;
-					}
-					if (cur_load[cpu] < atomic_read(&hotplug_load[cpu][DOWN_INDEX])
-						|| cur_freq[cpu] <= atomic_read(&hotplug_freq[cpu][DOWN_INDEX])) {
-							cpu_down(cpu);
-							atomic_set(&hotplugging_rate, 0);
-							goto schedule_cpu;
-					}
-				}
-			}
+			if (hotplugged == true)
+				goto schedule_cpu;
 		}
 
-		if (hp_rate >= max(up_rate, down_rate)) {
+		if (atomic_read(&hotplugging_rate) % down_rate == 0) {
+			maxcoreslimit = (maxcoreslimit == NR_CPUS ? 0 : maxcoreslimit - 1);
+			for_each_online_cpu(cpu) {
+				if (cur_load[cpu] < 0 || cpu <= maxcoreslimit || hotplugged == true) {
+					continue;
+				}
+				if (cur_load[cpu] < atomic_read(&hotplug_load[cpu][DOWN_INDEX])
+					|| cur_freq[cpu] <= atomic_read(&hotplug_freq[cpu][DOWN_INDEX])) {
+						cpu_down(cpu);
+						atomic_set(&hotplugging_rate, 0);
+						hotplugged = true;
+						break;
+				}
+			}
+			if (hotplugged == true)
+				goto schedule_cpu;
+		}
+
+		if (atomic_read(&hotplugging_rate) >= max(up_rate, down_rate)) {
 			atomic_set(&hotplugging_rate, 0);
 		}
 	}
 
 schedule_cpu:
 	delay = usecs_to_jiffies(atomic_read(&hotplug_tuners_ins.hotplug_sampling_rate));
+	if (num_online_cpus() > 1)
+		delay -= jiffies % delay;
 	schedule_delayed_work_on(0, &alucard_hotplug_work, delay);
 	mutex_unlock(&timer_mutex);
 }
@@ -526,37 +530,30 @@ static struct early_suspend alucard_hotplug_early_suspend_struct_driver = {
 #endif	/* CONFIG_HAS_EARLYSUSPEND */
 #endif
 
-/*static struct kobject *alucard_hotplug_kobj;*/
-
 int __init alucard_hotplug_init(void)
 {
 	/* We want all CPUs to do sampling nearly on same jiffy */
 	int delay;
-	unsigned int j;
+	unsigned int cpu;
 	int ret;
-
-	/*alucard_hotplug_kobj = kobject_create_and_add("alucard_hotplug", kernel_kobj);
-	if (!alucard_hotplug_kobj)
-		return -ENOMEM;*/
 
 	ret = sysfs_create_group(cpufreq_global_kobject, &alucard_hotplug_attr_group);
 	if (ret) {
 		printk(KERN_ERR "failed at(%d)\n", __LINE__);
-		/*kobject_put(alucard_hotplug_kobj);*/
 		return ret;
 	}
 
 	mutex_lock(&alucard_hotplug_mutex);
 	atomic_set(&hotplugging_rate, 0);
-	for_each_possible_cpu(j) {
-		struct hotplug_cpuinfo *j_hotplug_cpuinfo = &per_cpu(od_hotplug_cpuinfo, j);
-		j_hotplug_cpuinfo->prev_cpu_user = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_USER]);
-		j_hotplug_cpuinfo->prev_cpu_system = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_SYSTEM]);
-		j_hotplug_cpuinfo->prev_cpu_others = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_IRQ] + kcpustat_cpu(j).cpustat[CPUTIME_SOFTIRQ]
-																		+ kcpustat_cpu(j).cpustat[CPUTIME_STEAL] + kcpustat_cpu(j).cpustat[CPUTIME_NICE]);
+	for_each_possible_cpu(cpu) {
+		struct hotplug_cpuinfo *cpu_hotplug_cpuinfo = &per_cpu(od_hotplug_cpuinfo, cpu);
+		cpu_hotplug_cpuinfo->prev_cpu_user = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_USER]);
+		cpu_hotplug_cpuinfo->prev_cpu_system = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM]);
+		cpu_hotplug_cpuinfo->prev_cpu_others = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ] + kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ]
+																		+ kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL] + kcpustat_cpu(cpu).cpustat[CPUTIME_NICE]);
 
-		j_hotplug_cpuinfo->prev_cpu_idle = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_IDLE]);
-		j_hotplug_cpuinfo->prev_cpu_iowait = (__force unsigned long)(kcpustat_cpu(j).cpustat[CPUTIME_IOWAIT]);
+		cpu_hotplug_cpuinfo->prev_cpu_idle = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE]);
+		cpu_hotplug_cpuinfo->prev_cpu_iowait = (__force unsigned long)(kcpustat_cpu(cpu).cpustat[CPUTIME_IOWAIT]);
 	}
 	mutex_init(&timer_mutex);
 	mutex_unlock(&alucard_hotplug_mutex);
@@ -587,7 +584,6 @@ static void __exit alucard_hotplug_exit(void)
 	unregister_early_suspend(&alucard_hotplug_early_suspend_struct_driver);
 #endif
 #endif
-	/*kobject_put(alucard_hotplug_kobj);*/
 }
 MODULE_AUTHOR("Alucard_24@XDA");
 MODULE_DESCRIPTION("'alucard_hotplug' - A cpu hotplug driver for "
