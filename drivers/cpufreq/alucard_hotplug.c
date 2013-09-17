@@ -410,7 +410,7 @@ static void __cpuinit hotplug_work_fn(struct work_struct *work)
 	int cur_load[NR_CPUS] = {-1, -1, -1, -1};
 #endif
 	unsigned int cpu = 0;
-	bool hotplugged = false;
+	/*bool hotplugged = false;*/
 
 	mutex_lock(&timer_mutex);
 
@@ -460,37 +460,39 @@ static void __cpuinit hotplug_work_fn(struct work_struct *work)
 		/*Check for CPU hotplug*/
 		if (atomic_read(&hotplugging_rate) % up_rate == 0) {
 			for_each_cpu_not(cpu, cpu_online_mask) {
-				if (cpu == 0 || cpu > maxcoreslimit - 1 || hotplugged == true) {
+				/*if (cpu == 0 || cpu > maxcoreslimit - 1 || hotplugged == true) {*/
+				if (cpu == 0 || cpu > maxcoreslimit - 1) {
 					continue;
 				}
 				if (cur_load[cpu - 1] >= atomic_read(&hotplug_load[cpu - 1][UP_INDEX])
 					&& cur_freq[cpu - 1] >= atomic_read(&hotplug_freq[cpu - 1][UP_INDEX])) {
 						cpu_up(cpu);
-						atomic_set(&hotplugging_rate, 0);
-						hotplugged = true;
+						/*atomic_set(&hotplugging_rate, 0);
+						hotplugged = true;*/
 						break;
 				}
 			}
-			if (hotplugged == true)
-				goto schedule_cpu;
+			/*if (hotplugged == true)
+				goto schedule_cpu;*/
 		}
 
 		if (atomic_read(&hotplugging_rate) % down_rate == 0) {
 			maxcoreslimit = (maxcoreslimit == NR_CPUS ? 0 : maxcoreslimit - 1);
 			for_each_online_cpu(cpu) {
-				if (cur_load[cpu] < 0 || cpu <= maxcoreslimit || hotplugged == true) {
+				/*if (cur_load[cpu] < 0 || cpu <= maxcoreslimit || hotplugged == true) {*/
+				if (cur_load[cpu] < 0 || cpu <= maxcoreslimit) {
 					continue;
 				}
 				if (cur_load[cpu] < atomic_read(&hotplug_load[cpu][DOWN_INDEX])
 					|| cur_freq[cpu] <= atomic_read(&hotplug_freq[cpu][DOWN_INDEX])) {
 						cpu_down(cpu);
-						atomic_set(&hotplugging_rate, 0);
-						hotplugged = true;
+						/*atomic_set(&hotplugging_rate, 0);
+						hotplugged = true;*/
 						break;
 				}
 			}
-			if (hotplugged == true)
-				goto schedule_cpu;
+			/*if (hotplugged == true)
+				goto schedule_cpu;*/
 		}
 
 		if (atomic_read(&hotplugging_rate) >= max(up_rate, down_rate)) {
@@ -498,7 +500,7 @@ static void __cpuinit hotplug_work_fn(struct work_struct *work)
 		}
 	}
 
-schedule_cpu:
+/*schedule_cpu:*/
 	delay = usecs_to_jiffies(atomic_read(&hotplug_tuners_ins.hotplug_sampling_rate));
 	if (num_online_cpus() > 1)
 		delay -= jiffies % delay;
