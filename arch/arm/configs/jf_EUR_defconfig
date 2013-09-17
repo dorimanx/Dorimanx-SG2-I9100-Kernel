@@ -1,3 +1,0 @@
-CONFIG_MACH_JF_EUR=y
-CONFIG_EXTRA_FIRMWARE="audience-es325-fw-eur.bin"
-CONFIG_EXTRA_FIRMWARE_DIR="firmware"
