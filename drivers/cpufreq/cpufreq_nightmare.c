@@ -241,7 +241,6 @@ store_freqlimit_param(max_freq_limit_sleep, 2);
 store_freqlimit_param(max_freq_limit_sleep, 3);
 #endif
 #endif
-
 define_one_global_rw(min_freq_limit_0);
 define_one_global_rw(min_freq_limit_1);
 #if NR_CPUS >= 4
