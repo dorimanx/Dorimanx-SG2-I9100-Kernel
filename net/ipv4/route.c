@@ -131,6 +131,7 @@ static int ip_rt_mtu_expires __read_mostly	= 10 * 60 * HZ;
 static int ip_rt_min_pmtu __read_mostly		= 512 + 20 + 20;
 static int ip_rt_min_advmss __read_mostly	= 256;
 static int rt_chain_length_max __read_mostly	= 20;
+static int redirect_genid;
 
 /*
  *	Interface to generic destination cache.
@@ -841,6 +842,7 @@ static void rt_cache_invalidate(struct net *net)
 
 	get_random_bytes(&shuffle, sizeof(shuffle));
 	atomic_add(shuffle + 1U, &net->ipv4.rt_genid);
+	redirect_genid++;
 }
 
 /*
@@ -1687,14 +1689,12 @@ static void ipv4_validate_peer(struct rtable *rt)
 		if (peer) {
 			check_peer_pmtu(&rt->dst, peer);
 
+			if (peer->redirect_genid != redirect_genid)
+				peer->redirect_learned.a4 = 0;
 			if (peer->redirect_learned.a4 &&
 			    peer->redirect_learned.a4 != rt->rt_gateway)
 				check_peer_redir(&rt->dst, peer);
 		}
-
-		peer = rt->peer;
-		if (peer && peer->pmtu_expires)
-			check_peer_pmtu(dst, peer);
 
 		rt->rt_peer_genid = rt_peer_genid();
 	}
@@ -1854,6 +1854,8 @@ static void rt_init_metrics(struct rtable *rt, const struct flowi4 *fl4,
 		dst_init_metrics(&rt->dst, peer->metrics, false);
 
 		check_peer_pmtu(&rt->dst, peer);
+		if (peer->redirect_genid != redirect_genid)
+			peer->redirect_learned.a4 = 0;
 		if (peer->redirect_learned.a4 &&
 		    peer->redirect_learned.a4 != rt->rt_gateway) {
 			rt->rt_gateway = peer->redirect_learned.a4;
@@ -2690,15 +2692,10 @@ static struct rtable *ip_route_output_slow(struct net *net, struct flowi4 *fl4)
 	    res.type == RTN_UNICAST && !fl4->flowi4_oif)
 		fib_select_default(&res);
 
-	dev_out = FIB_RES_DEV(res);
-	if (dev_out == NULL) {
-		rth = ERR_PTR(-ENODEV);
-		goto out;
-	}
-
 	if (!fl4->saddr)
 		fl4->saddr = FIB_RES_PREFSRC(net, res);
 
+	dev_out = FIB_RES_DEV(res);
 	fl4->flowi4_oif = dev_out->ifindex;
 
 
