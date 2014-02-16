@@ -74,6 +74,13 @@ int of_n_size_cells(struct device_node *np)
 }
 EXPORT_SYMBOL(of_n_size_cells);
 
+#ifdef CONFIG_NUMA
+int __weak of_node_to_nid(struct device_node *np)
+{
+	return numa_node_id();
+}
+#endif
+
 #if defined(CONFIG_OF_DYNAMIC)
 /**
  *	of_node_get - Increment refcount of a node
@@ -265,9 +272,9 @@ static bool __of_find_n_match_cpu_property(struct device_node *cpun,
 
 	ac = of_n_addr_cells(cpun);
 	cell = of_get_property(cpun, prop_name, &prop_len);
-	if (!cell)
+	if (!cell || !ac)
 		return false;
-	prop_len /= sizeof(*cell);
+	prop_len /= sizeof(*cell) * ac;
 	for (tid = 0; tid < prop_len; tid++) {
 		hwid = of_read_number(cell, ac);
 		if (arch_match_cpu_phys_id(cpu, hwid)) {
@@ -277,6 +284,31 @@ static bool __of_find_n_match_cpu_property(struct device_node *cpun,
 		}
 		cell += ac;
 	}
+	return false;
+}
+
+/*
+ * arch_find_n_match_cpu_physical_id - See if the given device node is
+ * for the cpu corresponding to logical cpu 'cpu'.  Return true if so,
+ * else false.  If 'thread' is non-NULL, the local thread number within the
+ * core is returned in it.
+ */
+bool __weak arch_find_n_match_cpu_physical_id(struct device_node *cpun,
+					      int cpu, unsigned int *thread)
+{
+	/* Check for non-standard "ibm,ppc-interrupt-server#s" property
+	 * for thread ids on PowerPC. If it doesn't exist fallback to
+	 * standard "reg" property.
+	 */
+	if (IS_ENABLED(CONFIG_PPC) &&
+	    __of_find_n_match_cpu_property(cpun,
+					   "ibm,ppc-interrupt-server#s",
+					   cpu, thread))
+		return true;
+
+	if (__of_find_n_match_cpu_property(cpun, "reg", cpu, thread))
+		return true;
+
 	return false;
 }
 
@@ -300,26 +332,10 @@ static bool __of_find_n_match_cpu_property(struct device_node *cpun,
  */
 struct device_node *of_get_cpu_node(int cpu, unsigned int *thread)
 {
-	struct device_node *cpun, *cpus;
+	struct device_node *cpun;
 
-	cpus = of_find_node_by_path("/cpus");
-	if (!cpus) {
-		pr_warn("Missing cpus node, bailing out\n");
-		return NULL;
-	}
-
-	for_each_child_of_node(cpus, cpun) {
-		if (of_node_cmp(cpun->type, "cpu"))
-			continue;
-		/* Check for non-standard "ibm,ppc-interrupt-server#s" property
-		 * for thread ids on PowerPC. If it doesn't exist fallback to
-		 * standard "reg" property.
-		 */
-		if (IS_ENABLED(CONFIG_PPC) &&
-			__of_find_n_match_cpu_property(cpun,
-				"ibm,ppc-interrupt-server#s", cpu, thread))
-			return cpun;
-		if (__of_find_n_match_cpu_property(cpun, "reg", cpu, thread))
+	for_each_node_by_type(cpun, "cpu") {
+		if (arch_find_n_match_cpu_physical_id(cpun, cpu, thread))
 			return cpun;
 	}
 	return NULL;
@@ -398,6 +414,9 @@ static int __of_device_is_available(const struct device_node *device)
 {
 	const char *status;
 	int statlen;
+
+	if (!device)
+		return 0;
 
 	status = __of_get_property(device, "status", &statlen);
 	if (status == NULL)
@@ -711,12 +730,48 @@ out:
 }
 EXPORT_SYMBOL(of_find_node_with_property);
 
+static const struct of_device_id *
+of_match_compatible(const struct of_device_id *matches,
+			const struct device_node *node)
+{
+	const char *cp;
+	int cplen, l;
+	const struct of_device_id *m;
+
+	cp = __of_get_property(node, "compatible", &cplen);
+	while (cp && (cplen > 0)) {
+		m = matches;
+		while (m->name[0] || m->type[0] || m->compatible[0]) {
+			/* Only match for the entries without type and name */
+			if (m->name[0] || m->type[0] ||
+				of_compat_cmp(m->compatible, cp,
+					 strlen(m->compatible)))
+				m++;
+			else
+				return m;
+		}
+
+		/* Get node's next compatible string */
+		l = strlen(cp) + 1;
+		cp += l;
+		cplen -= l;
+	}
+
+	return NULL;
+}
+
 static
 const struct of_device_id *__of_match_node(const struct of_device_id *matches,
 					   const struct device_node *node)
 {
+	const struct of_device_id *m;
+
 	if (!matches)
 		return NULL;
+
+	m = of_match_compatible(matches, node);
+	if (m)
+		return m;
 
 	while (matches->name[0] || matches->type[0] || matches->compatible[0]) {
 		int match = 1;
@@ -741,7 +796,12 @@ const struct of_device_id *__of_match_node(const struct of_device_id *matches,
  *	@matches:	array of of device match structures to search in
  *	@node:		the of device structure to match against
  *
- *	Low level utility function used by device matching.
+ *	Low level utility function used by device matching. We have two ways
+ *	of matching:
+ *	- Try to find the best compatible match by comparing each compatible
+ *	  string of device node with all the given matches respectively.
+ *	- If the above method failed, then try to match the compatible by using
+ *	  __of_device_is_compatible() besides the match in type and name.
  */
 const struct of_device_id *of_match_node(const struct of_device_id *matches,
 					 const struct device_node *node)
@@ -1175,6 +1235,15 @@ int of_property_count_strings(struct device_node *np, const char *propname)
 	return i;
 }
 EXPORT_SYMBOL_GPL(of_property_count_strings);
+
+void of_print_phandle_args(const char *msg, const struct of_phandle_args *args)
+{
+	int i;
+	printk("%s %s", msg, of_node_full_name(args->np));
+	for (i = 0; i < args->args_count; i++)
+		printk(i ? ",%08x" : ":%08x", args->args[i]);
+	printk("\n");
+}
 
 static int __of_parse_phandle_with_args(const struct device_node *np,
 					const char *list_name,
@@ -1884,3 +1953,34 @@ int of_device_is_stdout_path(struct device_node *dn)
 	return of_stdout == dn;
 }
 EXPORT_SYMBOL_GPL(of_device_is_stdout_path);
+
+/**
+ *	of_find_next_cache_node - Find a node's subsidiary cache
+ *	@np:	node of type "cpu" or "cache"
+ *
+ *	Returns a node pointer with refcount incremented, use
+ *	of_node_put() on it when done.  Caller should hold a reference
+ *	to np.
+ */
+struct device_node *of_find_next_cache_node(const struct device_node *np)
+{
+	struct device_node *child;
+	const phandle *handle;
+
+	handle = of_get_property(np, "l2-cache", NULL);
+	if (!handle)
+		handle = of_get_property(np, "next-level-cache", NULL);
+
+	if (handle)
+		return of_find_node_by_phandle(be32_to_cpup(handle));
+
+	/* OF on pmac has nodes instead of properties named "l2-cache"
+	 * beneath CPU nodes.
+	 */
+	if (!strcmp(np->type, "cpu"))
+		for_each_child_of_node(np, child)
+			if (!strcmp(child->type, "cache"))
+				return child;
+
+	return NULL;
+}
