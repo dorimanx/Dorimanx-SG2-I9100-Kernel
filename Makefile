@@ -359,7 +359,7 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 
 LOW_ARM_FLAGS	= -pipe -march=armv7-a -mcpu=cortex-a9 \
 		  -mtune=cortex-a9 -marm -mfpu=neon \
-		  -mfloat-abi=softfp -fno-pic -munaligned-access
+		  -mfloat-abi=softfp -fno-pic
 
 MODULES		= -fmodulo-sched -fmodulo-sched-allow-regmoves
 
