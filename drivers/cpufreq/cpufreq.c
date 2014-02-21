@@ -1206,8 +1206,7 @@ static int __cpufreq_remove_dev_prepare(struct device *dev,
 	up_read(&data->rwsem);
 
 	if (cpu != data->cpu) {
-		if (!frozen)
-			sysfs_remove_link(&dev->kobj, "cpufreq");
+		sysfs_remove_link(&dev->kobj, "cpufreq");
 	} else if (cpus > 1) {
 		new_cpu = cpufreq_nominate_new_policy_cpu(data, cpu);
 		if (new_cpu >= 0) {
