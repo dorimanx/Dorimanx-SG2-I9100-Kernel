@@ -90,7 +90,6 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 		"MemFree:        %8lu kB\n"
 		"Buffers:        %8lu kB\n"
 		"Cached:         %8lu kB\n"
-		"MemAvailable:   %8lu kB\n"
 		"SwapCached:     %8lu kB\n"
 		"Active:         %8lu kB\n"
 		"Inactive:       %8lu kB\n"
@@ -141,12 +140,12 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
 		"AnonHugePages:  %8lu kB\n"
 #endif
+		"MemAvailable:   %8lu kB\n"
 		,
 		K(i.totalram),
 		K(i.freeram),
 		K(i.bufferram),
 		K(cached),
-		K(available),
 		K(total_swapcache_pages()),
 		K(pages[LRU_ACTIVE_ANON]   + pages[LRU_ACTIVE_FILE]),
 		K(pages[LRU_INACTIVE_ANON] + pages[LRU_INACTIVE_FILE]),
@@ -191,14 +190,15 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 		K(committed),
 		(unsigned long)VMALLOC_TOTAL >> 10,
 		vmi.used >> 10,
-		vmi.largest_chunk >> 10
+		vmi.largest_chunk >> 10,
 #ifdef CONFIG_MEMORY_FAILURE
-		,atomic_long_read(&num_poisoned_pages) << (PAGE_SHIFT - 10)
+		atomic_long_read(&num_poisoned_pages) << (PAGE_SHIFT - 10),
 #endif
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-		,K(global_page_state(NR_ANON_TRANSPARENT_HUGEPAGES) *
-		   HPAGE_PMD_NR)
+		K(global_page_state(NR_ANON_TRANSPARENT_HUGEPAGES) *
+		   HPAGE_PMD_NR),
 #endif
+		K(available)
 		);
 
 	hugetlb_report_meminfo(m);
