@@ -90,17 +90,15 @@ static unsigned long lowmem_deathpending_timeout;
 
 static bool avoid_to_kill(uid_t uid)
 {
-
-	if (uid == 0 || /* root */
-		uid == 1001 || /* radio */
-		uid == 1002 || /* bluetooth */
-		uid == 1010 || /* wifi */
-		uid == 1012 || /* install */
-		uid == 1013 || /* media */
-		uid == 1014 || /* dhcp */
-		uid == 1017 || /* keystore */
-		uid == 1019)	/* drm */
-	{
+	/* uid info
+	 * uid == 0 > root
+	 * uid == 1001 > radio
+	 * uid == 1002 > bluetooth
+	 * uid == 1010 > wifi
+	 * uid == 1014 > dhcp
+	 */
+	if (uid == 0 || uid == 1001 || uid == 1002 || uid == 1010 ||
+				uid == 1014) {
 		return 1;
 	}
 	return 0;
@@ -109,9 +107,8 @@ static bool avoid_to_kill(uid_t uid)
 static bool protected_apps(char *comm)
 {
 	if (strcmp(comm, "d.process.acore") == 0 ||
-		strcmp(comm, "ndroid.systemui") == 0 ||
-		strcmp(comm, "ndroid.contacts") == 0 ||
-		strcmp(comm, "d.process.media") == 0) {
+			strcmp(comm, "ndroid.systemui") == 0 ||
+			strcmp(comm, "ndroid.contacts") == 0) {
 		return 1;
 	}
 	return 0;
@@ -276,8 +273,8 @@ static struct early_suspend low_mem_suspend = {
 
 static int __init lowmem_init(void)
 {
-	register_early_suspend(&low_mem_suspend);
 	register_shrinker(&lowmem_shrinker);
+	register_early_suspend(&low_mem_suspend);
 	return 0;
 }
 
@@ -377,8 +374,6 @@ module_param_array_named(adj, lowmem_adj, short, &lowmem_adj_size,
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_array_named(minfree_screen_off, lowmem_minfree_screen_off, uint, &lowmem_minfree_size,
-			 S_IRUGO | S_IWUSR);
-module_param_array_named(minfree_screen_on, lowmem_minfree_screen_on, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
 module_param_named(auto_oom, lowmem_auto_oom, uint, S_IRUGO | S_IWUSR);
