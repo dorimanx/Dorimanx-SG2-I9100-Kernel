@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 3.14.0-rc3 Kernel Configuration
+# Linux/arm 3.14.0-rc4 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_GENERIC_GPIO=y
@@ -2983,7 +2983,7 @@ CONFIG_EXT2_FS=y
 CONFIG_EXT4_FS=y
 CONFIG_EXT4_USE_FOR_EXT23=y
 # CONFIG_EXT4_FS_POSIX_ACL is not set
-# CONFIG_EXT4_FS_SECURITY is not set
+CONFIG_EXT4_FS_SECURITY=y
 # CONFIG_EXT4_DEBUG is not set
 CONFIG_JBD2=y
 # CONFIG_JBD2_DEBUG is not set
